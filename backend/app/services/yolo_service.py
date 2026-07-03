@@ -20,7 +20,7 @@ LABELS = {0: "Organik", 1: "Non-Organik"}
 
 def _run_yolo_inference(img_dir=None, out_dir=None):
     img_dir = img_dir or (DATASET_DIR / "train" / "images")
-    yolo_out_dir = out_dir or (DATASET_DIR / "annotation_yolo_real_v2")
+    yolo_out_dir = out_dir or (DATASET_DIR / "yolo_train_bbox")
     yolo_out_dir.mkdir(parents=True, exist_ok=True)
 
     model = load_model()
@@ -80,8 +80,8 @@ def _run_yolo_inference(img_dir=None, out_dir=None):
 
 def _export_yolo_viz(img_dir=None, pred_dir=None, out_viz_dir=None):
     img_dir = img_dir or (DATASET_DIR / "train" / "images")
-    yolo_pred_dir = pred_dir or (DATASET_DIR / "annotation_yolo_real_v2")
-    viz_dir = out_viz_dir or (DATASET_DIR / "annotation_yolo_real_img_v2")
+    yolo_pred_dir = pred_dir or (DATASET_DIR / "yolo_train_bbox")
+    viz_dir = out_viz_dir or (DATASET_DIR / "yolo_train_bbox_img")
     viz_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -126,7 +126,7 @@ def _export_yolo_viz(img_dir=None, pred_dir=None, out_viz_dir=None):
 
 def _clean_outputs():
     import shutil
-    for d in [DATASET_DIR / "annotation_yolo_real_v2", DATASET_DIR / "annotation_yolo_real_img_v2"]:
+    for d in [DATASET_DIR / "yolo_train_bbox", DATASET_DIR / "yolo_train_bbox_img"]:
         if d.exists():
             shutil.rmtree(str(d))
         d.mkdir(parents=True, exist_ok=True)
@@ -153,8 +153,8 @@ def run_yolo_pipeline():
 
 def run_yolo_val_pipeline():
     val_img_dir = DATASET_DIR / "val" / "images"
-    val_ann_dir = DATASET_DIR / "annotation_yolo_val_real_v2"
-    val_viz_dir = DATASET_DIR / "annotation_yolo_val_real_img_v2"
+    val_ann_dir = DATASET_DIR / "yolo_val_bbox"
+    val_viz_dir = DATASET_DIR / "yolo_val_bbox_img"
     logs = []
     t0 = time.time()
 
@@ -178,8 +178,8 @@ def _box_to_polygon(cls_id, x1, y1, x2, y2):
 
 def run_yolo_seg_pipeline():
     img_dir = DATASET_DIR / "train" / "images"
-    ann_dir = DATASET_DIR / "annotation_yolo_seg_v2"
-    viz_dir = DATASET_DIR / "annotation_yolo_seg_img_v2"
+    ann_dir = DATASET_DIR / "yolo_train_seg"
+    viz_dir = DATASET_DIR / "yolo_train_seg_img"
     logs = []
     t0 = time.time()
 
@@ -269,8 +269,8 @@ def run_yolo_seg_pipeline():
 
 def run_yolo_test_pipeline():
     test_img_dir = DATASET_DIR / "test" / "images"
-    test_ann_dir = DATASET_DIR / "annotation_yolo_test_real_v2"
-    test_viz_dir = DATASET_DIR / "annotation_yolo_test_real_img_v2"
+    test_ann_dir = DATASET_DIR / "yolo_test_bbox"
+    test_viz_dir = DATASET_DIR / "yolo_test_bbox_img"
     logs = []
     t0 = time.time()
 

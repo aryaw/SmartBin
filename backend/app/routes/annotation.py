@@ -21,16 +21,16 @@ router = APIRouter(prefix="/api/dataset", tags=["Dataset"])
 
 DATASET_DIR = BASE_DIR / "dataset"
 ANNOTATIONS_FILE = BASE_DIR.parent / "datasource" / "annotations.json"
-CONVERT_ANN_DIR = DATASET_DIR / "annotation_yolo_convert_v2"
-CONVERT_VIZ_DIR = DATASET_DIR / "annotation_yolo_convert_img_v2"
-REAL_ANN_DIR = DATASET_DIR / "annotation_yolo_real_v2"
-REAL_VIZ_DIR = DATASET_DIR / "annotation_yolo_real_img_v2"
-VAL_REAL_ANN_DIR = DATASET_DIR / "annotation_yolo_val_real_v2"
-VAL_REAL_VIZ_DIR = DATASET_DIR / "annotation_yolo_val_real_img_v2"
-TEST_REAL_ANN_DIR = DATASET_DIR / "annotation_yolo_test_real_v2"
-TEST_REAL_VIZ_DIR = DATASET_DIR / "annotation_yolo_test_real_img_v2"
-SEG_ANN_DIR = DATASET_DIR / "annotation_yolo_seg_v2"
-SEG_VIZ_DIR = DATASET_DIR / "annotation_yolo_seg_img_v2"
+CONVERT_ANN_DIR = DATASET_DIR / "coco_gt_bbox"
+CONVERT_VIZ_DIR = DATASET_DIR / "coco_gt_bbox_img"
+REAL_ANN_DIR = DATASET_DIR / "yolo_train_bbox"
+REAL_VIZ_DIR = DATASET_DIR / "yolo_train_bbox_img"
+VAL_REAL_ANN_DIR = DATASET_DIR / "yolo_val_bbox"
+VAL_REAL_VIZ_DIR = DATASET_DIR / "yolo_val_bbox_img"
+TEST_REAL_ANN_DIR = DATASET_DIR / "yolo_test_bbox"
+TEST_REAL_VIZ_DIR = DATASET_DIR / "yolo_test_bbox_img"
+SEG_ANN_DIR = DATASET_DIR / "yolo_train_seg"
+SEG_VIZ_DIR = DATASET_DIR / "yolo_train_seg_img"
 TRAIN_IMG_DIR = DATASET_DIR / "train" / "images"
 TRAIN_LBL_DIR = DATASET_DIR / "train" / "labels"
 VAL_IMG_DIR = DATASET_DIR / "val" / "images"
@@ -283,12 +283,12 @@ async def dataset_file(source: str, filename: str):
         "train": TRAIN_IMG_DIR,
         "val": VAL_IMG_DIR,
         "test": TEST_IMG_DIR,
-        "annotation_yolo_convert_img_v2": CONVERT_VIZ_DIR,
-        "annotation_yolo_real_img_v2": REAL_VIZ_DIR,
-        "annotation_yolo_val_real_img_v2": VAL_REAL_VIZ_DIR,
-        "annotation_yolo_test_real_img_v2": TEST_REAL_VIZ_DIR,
-        "annotation_yolo_seg_img_v2": SEG_VIZ_DIR,
-        "annotation_yolo_seg_v2_ann": SEG_ANN_DIR,
+        "coco_gt_bbox_img": CONVERT_VIZ_DIR,
+        "yolo_train_bbox_img": REAL_VIZ_DIR,
+        "yolo_val_bbox_img": VAL_REAL_VIZ_DIR,
+        "yolo_test_bbox_img": TEST_REAL_VIZ_DIR,
+        "yolo_train_seg_img": SEG_VIZ_DIR,
+        "yolo_train_seg_ann": SEG_ANN_DIR,
     }
     dir_path = base_map.get(source)
     if not dir_path or not dir_path.exists():
@@ -490,7 +490,7 @@ async def annotation_convert_detail(filename: str):
         "filename": filename,
         "predictions": predictions,
         "prediction_count": len(predictions),
-        "viz_url": f"/api/dataset/file/annotation_yolo_convert_img_v2/{stem}.jpg" if viz_path.exists() else None,
+        "viz_url": f"/api/dataset/file/coco_gt_bbox_img/{stem}.jpg" if viz_path.exists() else None,
     }
 
 
@@ -503,7 +503,7 @@ async def annotation_real_detail(filename: str):
         "filename": filename,
         "predictions": predictions,
         "prediction_count": len(predictions),
-        "viz_url": f"/api/dataset/file/annotation_yolo_real_img/{stem}.jpg" if viz_path.exists() else None,
+        "viz_url": f"/api/dataset/file/yolo_train_bbox_img/{stem}.jpg" if viz_path.exists() else None,
     }
 
 
@@ -516,7 +516,7 @@ async def annotation_val_detail(filename: str):
         "filename": filename,
         "predictions": predictions,
         "prediction_count": len(predictions),
-        "viz_url": f"/api/dataset/file/annotation_yolo_val_real_img/{stem}.jpg" if viz_path.exists() else None,
+        "viz_url": f"/api/dataset/file/yolo_val_bbox_img/{stem}.jpg" if viz_path.exists() else None,
     }
 
 
@@ -529,5 +529,5 @@ async def annotation_test_detail(filename: str):
         "filename": filename,
         "predictions": predictions,
         "prediction_count": len(predictions),
-        "viz_url": f"/api/dataset/file/annotation_yolo_test_real_img/{stem}.jpg" if viz_path.exists() else None,
+        "viz_url": f"/api/dataset/file/yolo_test_bbox_img/{stem}.jpg" if viz_path.exists() else None,
     }

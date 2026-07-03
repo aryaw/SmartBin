@@ -80,7 +80,11 @@ backend/
 │   ├── train/images+labels/    # 70% split
 │   ├── val/images+labels/      # 15% split
 │   ├── test/images+labels/     # 15% split
-│   └── annotation_yolo_*_v2/  # Pipeline output dirs
+│   ├── coco_gt_bbox{,_img}/      # COCO ground truth bbox + viz
+│   ├── yolo_train_bbox{,_img}/   # YOLO train predictions + viz
+│   ├── yolo_train_seg{,_img}/    # YOLO train segmentation + viz
+│   ├── yolo_val_bbox{,_img}/     # YOLO val predictions + viz
+│   └── yolo_test_bbox{,_img}/    # YOLO test predictions + viz
 ├── models/best.pt              # YOLO weights (trained)
 ├── .venv/                      # Python 3.12 (--copies, portable)
 ├── requirements.txt

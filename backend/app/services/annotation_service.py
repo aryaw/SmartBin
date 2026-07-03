@@ -17,7 +17,7 @@ LABELS = {0: "Organik", 1: "Non-Organik"}
 
 def _export_coco():
     train_img_dir = DATASET_DIR / "train" / "images"
-    coco_out_dir = DATASET_DIR / "annotation_yolo_convert_v2"
+    coco_out_dir = DATASET_DIR / "coco_gt_bbox"
     coco_out_dir.mkdir(parents=True, exist_ok=True)
 
     data = json.loads(ANNOTATIONS_FILE.read_text())
@@ -89,8 +89,8 @@ def _export_coco():
 
 def _export_coco_viz():
     train_img_dir = DATASET_DIR / "train" / "images"
-    coco_ann_dir = DATASET_DIR / "annotation_yolo_convert_v2"
-    viz_dir = DATASET_DIR / "annotation_yolo_convert_img_v2"
+    coco_ann_dir = DATASET_DIR / "coco_gt_bbox"
+    viz_dir = DATASET_DIR / "coco_gt_bbox_img"
     viz_dir.mkdir(parents=True, exist_ok=True)
 
     try:
