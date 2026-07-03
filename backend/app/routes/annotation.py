@@ -238,6 +238,10 @@ async def dataset_evaluate(split: str = Query("all", regex="^(train|val|test|all
     device = get_device()
 
     def _eval(s: str) -> dict:
+        import yaml
+        with open(BASE_DIR / "data.yaml") as f:
+            cfg = yaml.safe_load(f)
+        cls_names = {i: n for i, n in enumerate(cfg.get("names", []))}
         model = YOLO(str(MODEL_PATH))
         results = model.val(
             data=str(BASE_DIR / "data.yaml"),
@@ -251,7 +255,6 @@ async def dataset_evaluate(split: str = Query("all", regex="^(train|val|test|all
         d = results.results_dict
         per_class = []
         if hasattr(results, "box") and hasattr(results.box, "ap_class_index"):
-            cls_names = model.names if hasattr(model, "names") else {}
             for i, c in enumerate(results.box.ap_class_index):
                 name_cls = cls_names.get(int(c), str(c))
                 ap = results.box.ap[i] if hasattr(results.box, "ap") and i < len(results.box.ap) else 0
@@ -329,7 +332,7 @@ async def pipeline_yolo_val():
     try:
         return run_yolo_val_pipeline()
     except Exception as e:
-        raise HTTPException(500, f"YOLO val pipeline failed: {str(e)}")
+        raise HTTPException(500, f"YOLO inference pipeline failed: {str(e)}")
 
 
 @router.post("/pipeline/yolo/seg")

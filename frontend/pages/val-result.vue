@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
       <div>
-        <h1 class="font-bold text-lg text-dark">Validation Result</h1>
+        <h1 class="font-bold text-lg text-dark">Inference Result</h1>
         <p class="text-sm text-dark/50">{{ tab === 0 ? `${cocoItems.length} COCO annotated` : `${results.length} inference results` }}</p>
       </div>
       <button :disabled="inferring"
@@ -15,7 +15,7 @@
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
         </svg>
-        {{ inferring ? 'Running...' : 'Run Validation' }}
+        {{ inferring ? 'Running...' : 'Run Inference' }}
       </button>
     </div>
 
@@ -43,7 +43,7 @@
       </div>
 
       <div v-else-if="!paginatedCoco.length" class="bg-white rounded-xl p-10 text-center border border-gray-100">
-        <p class="text-dark/50 text-sm">No validation annotations. Split raw data first.</p>
+        <p class="text-dark/50 text-sm">No inference annotations. Split raw data first.</p>
       </div>
 
       <template v-else>
@@ -103,7 +103,7 @@
       </div>
 
       <div v-else-if="!paginatedRes.length" class="bg-white rounded-xl p-10 text-center border border-gray-100">
-        <p class="text-dark/50 text-sm">No val results. Run validation first.</p>
+        <p class="text-dark/50 text-sm">No val results. Run inference first.</p>
       </div>
 
       <template v-else>
@@ -181,7 +181,7 @@ const zoomUrl = ref<string | null>(null)
 const inferring = ref(false)
 const inferResult = ref<any>(null)
 
-const tabs = ["COCO Annotation", "Validation Inference"]
+const tabs = ["COCO Annotation", "Inference"]
 
 const cocoItems = computed(() => (data.value?.val_coco || []).filter((img: any) => img.annotation_count > 0))
 const results = computed(() => data.value?.val_real || [])
@@ -202,7 +202,7 @@ async function runVal() {
     inferResult.value = await $fetch("/api/dataset/pipeline/yolo/val", { baseURL: apiBase, method: "POST" })
     await load()
     tab.value = 1
-  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Validation pipeline failed') } finally { inferring.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Inference pipeline failed') } finally { inferring.value = false }
 }
 
 async function load() {

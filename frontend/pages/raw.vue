@@ -28,7 +28,7 @@
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-        {{ splitting ? 'Splitting...' : 'Split Train/Val/Test' }}
+        {{ splitting ? 'Splitting...' : 'Split Train/Test/Inference' }}
       </button>
       <button :disabled="resetting"
         class="bg-red-500 hover:bg-red-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
@@ -56,7 +56,7 @@
       <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span>Split done: {{ splitResult.train }} train, {{ splitResult.val }} val, {{ splitResult.test }} test</span>
+      <span>Split done: {{ splitResult.train }} train, {{ splitResult.val }} inference, {{ splitResult.test }} test</span>
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
@@ -94,6 +94,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const data = ref<any>(null)
 const loading = ref(true)
@@ -117,7 +118,7 @@ async function runDownload() {
   try {
     downloadResult.value = await $fetch("/api/dataset/download", { baseURL: apiBase, method: "POST" })
     await load()
-  } catch {} finally { downloading.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Download failed') } finally { downloading.value = false }
 }
 
 async function runSplit() {
@@ -125,7 +126,7 @@ async function runSplit() {
   try {
     splitResult.value = await $fetch("/api/dataset/split", { baseURL: apiBase, method: "POST" })
     await load()
-  } catch {} finally { splitting.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Split failed') } finally { splitting.value = false }
 }
 
 async function runReset() {
@@ -135,13 +136,13 @@ async function runReset() {
     downloadResult.value = null
     splitResult.value = null
     await load()
-  } catch {} finally { resetting.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Reset failed') } finally { resetting.value = false }
 }
 
 async function load() {
   loading.value = true
   try { data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
-  } catch {} finally { loading.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Failed to load data') } finally { loading.value = false }
 }
 
 onMounted(load)

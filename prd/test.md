@@ -9,7 +9,7 @@
 | `backend/dataset/raw/` | 1500 raw images from TACO |
 | `backend/dataset/train/images/` | 1050 training images |
 | `backend/dataset/train/labels/` | 1050 YOLO .txt annotation files |
-| `backend/dataset/val/images/` | 225 validation images |
+| `backend/dataset/val/images/` | 225 inference images |
 | `backend/dataset/val/labels/` | 225 YOLO .txt annotation files |
 | `backend/dataset/test/images/` | 225 test images |
 | `backend/dataset/test/labels/` | 225 YOLO .txt annotation files |

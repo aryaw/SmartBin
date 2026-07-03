@@ -129,6 +129,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const inputRef = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
@@ -176,6 +177,6 @@ async function runPrepare() {
   preparing.value = true; prepareResult.value = null
   try {
     prepareResult.value = await $fetch("/api/dataset/prepare", { baseURL: apiBase, method: "POST" })
-  } catch {} finally { preparing.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Prepare failed') } finally { preparing.value = false }
 }
 </script>

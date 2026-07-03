@@ -25,7 +25,7 @@
 |------|-------|-------------|
 | BoundingBox Result | `/boundingbox-result` | COCO bounding box annotations with image zoom |
 | Segmentation Result | `/segmentation-result` | Segmentation predictions from COCO dataset |
-| Validation Inference Result | `/val-result` | Run val pipeline + show results |
+| Inference Result | `/val-result` | Run val pipeline + show results |
 | Test Inference Result | `/test-result` | Run test pipeline + show results |
 
 All grid pages: ZoomModal (click-to-zoom popup) + Pagination component.
@@ -53,6 +53,7 @@ All grid pages: ZoomModal (click-to-zoom popup) + Pagination component.
 | `FileUpload.vue` | Drag-drop file upload zone |
 | `LoadingOverlay.vue` | Spinner overlay |
 | `YoloGrid.vue` | YOLO annotation grid with bbox overlay thumbnails |
+| `Toast.vue` | Error/success notification popup with auto-dismiss |
 
 ---
 
@@ -62,6 +63,7 @@ All grid pages: ZoomModal (click-to-zoom popup) + Pagination component.
 |------------|-------|
 | `useDetection.ts` | API calls for detection endpoints |
 | `useFileUpload.ts` | File validation, preview, form-data construction |
+| `useToast.ts` | Global error/success notification state |
 
 ---
 
@@ -83,6 +85,6 @@ Default: `http://localhost:8080` in dev, `http://backend:8000` in Docker.
 | Eval | Metrics table (mAP, precision, recall per split), per-class breakdown |
 | BoundingBox Result | COCO bbox table with coords, image zoom |
 | Segmentation Result | Segmentation polygon table with points, image zoom |
-| Val Result | Run val pipeline button, results grid |
+| Val Result | Tabs for COCO annotations + inference, run pipeline button |
 | Test Result | Run test pipeline button, results grid |
 | Test Upload | Quick file upload for testing detection |

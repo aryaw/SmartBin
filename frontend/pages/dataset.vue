@@ -13,7 +13,7 @@
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-green-700">{{ data?.stats?.val || 0 }}</p>
-        <p class="text-xs mt-1 text-green-600 font-medium">Total Val Data</p>
+        <p class="text-xs mt-1 text-green-600 font-medium">Total Inference Data</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-orange-600">{{ data?.stats?.test || 0 }}</p>
@@ -27,7 +27,7 @@
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-blue-700">{{ data?.stats?.coco_val || 0 }}</p>
-        <p class="text-xs mt-1 text-blue-600 font-medium">Val Annotated</p>
+        <p class="text-xs mt-1 text-blue-600 font-medium">Inference Annotated</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-purple-700">{{ totalCocoObjects }}</p>
@@ -49,7 +49,7 @@
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-green-700">{{ data?.stats?.val || 0 }}</p>
-        <p class="text-xs mt-1 text-green-600 font-medium">Val</p>
+        <p class="text-xs mt-1 text-green-600 font-medium">Inference</p>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
         <p class="text-3xl font-bold text-orange-600">{{ data?.stats?.test || 0 }}</p>
@@ -293,10 +293,10 @@
         </template>
       </div>
 
-      <!-- Val Image YOLO -->
+      <!-- Inference Image YOLO -->
       <div v-if="subKey === 'val_img'">
         <div class="flex items-center justify-between mb-3">
-          <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm">Val Image YOLO</h3>
+          <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm">Inference Image YOLO</h3>
           <button
             class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 disabled:opacity-50"
             :disabled="training" @click="trainYoloVal()"
@@ -308,7 +308,7 @@
             <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
             </svg>
-            {{ training && trainingType === 'yolo_val' ? 'Inferring...' : 'Run Val' }}
+            {{ training && trainingType === 'yolo_val' ? 'Inferring...' : 'Run Inference' }}
           </button>
         </div>
         <div v-if="!paginatedValPlain.length" class="bg-white rounded-xl p-8 text-center border border-gray-100">
@@ -332,9 +332,9 @@
         </template>
       </div>
 
-      <!-- Val Result YOLO (detail + bounding box) -->
+      <!-- Inference Result YOLO (detail + bounding box) -->
       <div v-if="subKey === 'val_real'">
-        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Val Result YOLO (detail + bounding box)</h3>
+        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Inference Result YOLO (detail + bounding box)</h3>
         <div v-if="!paginatedValResult.length" class="bg-white rounded-xl p-8 text-center border border-gray-100">
           <p class="text-dark/40 text-sm">No val results. Run Val on Val Image YOLO page.</p>
         </div>

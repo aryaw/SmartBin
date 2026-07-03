@@ -42,7 +42,7 @@ Nuxt 3 port 3000. Tailwind CSS. Sidebar: 3 groups, 10 nav items, 10 unique route
 
 - **Main:** Dashboard Report, Test Upload
 - **Dataset:** All Raw Data, Train Data, Test Data, Evaluation Metrics
-- **Annotations:** BoundingBox Result, Segmentation Result, Validation Inference, Test Inference
+- **Annotations:** BoundingBox Result, Segmentation Result, Inference, Test Inference
 
 All grids: ZoomModal + Pagination.
 

@@ -76,9 +76,9 @@
       <p class="text-dark/50 text-sm">Click "Run Evaluation" to evaluate model performance.</p>
     </div>
 
-    <!-- Validation Images -->
+    <!-- Inference Images -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <h2 class="font-bold text-dark/60 uppercase tracking-wide text-sm mb-4">Validation Images with Predictions</h2>
+      <h2 class="font-bold text-dark/60 uppercase tracking-wide text-sm mb-4">Inference Images with Predictions</h2>
 
       <div v-if="loading" class="flex justify-center py-8">
         <svg class="animate-spin h-8 w-8 text-tertiary" fill="none" viewBox="0 0 24 24">
@@ -88,7 +88,7 @@
       </div>
 
       <div v-else-if="!paginatedItems.length" class="text-center py-8">
-        <p class="text-dark/50 text-sm">No validation images available.</p>
+        <p class="text-dark/50 text-sm">No inference images available.</p>
       </div>
 
       <template v-else>
@@ -149,6 +149,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const evaluating = ref(false)
 const evalMetrics = ref<any>(null)
@@ -197,6 +198,6 @@ onMounted(async () => {
   } catch {}
   try {
     data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
-  } catch {} finally { loading.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Failed to load data') } finally { loading.value = false }
 })
 </script>
