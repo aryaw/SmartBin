@@ -13,14 +13,14 @@ TACO JSON ─→ COCO→YOLO Convert ─→ Split 70/15/15 ─→ Augmentasi Onl
 
 ### 3.2.1 Sumber Data
 
-TACO (Trash Annotations in Context) — citra sampah lingkungan nyata dari `datasource/annotations.json`.
+TACO (Trash Annotations in Context) - citra sampah lingkungan nyata dari `datasource/annotations.json`.
 
 | Karakteristik | Nilai |
 |---------------|-------|
 | Jumlah citra | 1.500 (official) |
 | Jumlah anotasi | 4.784 bounding box |
 | Kategori asli | 60 kelas |
-| Resolusi | 300×300 — 4000×3000 |
+| Resolusi | 300×300 - 4000×3000 |
 
 ### 3.2.2 Pemetaan Taksonomi ke Dua Kelas
 

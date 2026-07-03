@@ -36,7 +36,7 @@ def main():
     cls_names = model.names if hasattr(model, "names") else {}
 
     print(f"\n{'='*50}")
-    print(f"Evaluation Results — split={args.split}")
+    print(f"Evaluation Results - split={args.split}")
     print(f"{'='*50}")
     print(f"Model      : {args.model}")
     print(f"Dataset    : {args.data}")

@@ -1,4 +1,4 @@
-# Upload Mechanism PRD — SmartBin
+# Upload Mechanism PRD - SmartBin
 
 ---
 

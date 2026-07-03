@@ -11,7 +11,7 @@ Dataset TACO: 1.500 citra, 4.784 annotations di 60 kategori. Setelah pemetaan:
 | Organik (ID 0) | ~150 | ~3.1% |
 | Non-Organik (ID 1) | ~4.634 | ~96.9% |
 
-Distribusi menunjukkan class imbalance signifikan (31:1) — tantangan utama.
+Distribusi menunjukkan class imbalance signifikan (31:1) - tantangan utama.
 
 ### 4.1.2 Split Distribution
 
@@ -24,9 +24,9 @@ Distribusi menunjukkan class imbalance signifikan (31:1) — tantangan utama.
 ### 4.1.3 Augmentasi Online
 
 Augmentasi mosaic, HSV jitter, geometric transform, random erasing diterapkan via Ultralytics engine saat training. Efek augmentasi:
-- **Mosaic (1.0):** Meningkatkan small object detection — objek organik kecil diperbesar relatif konteks.
-- **Random erasing (0.4):** Simulasi occlusion — model belajar dari bounding box parsial.
-- **HSV jitter:** Variasi pencahayaan — generalisasi ke kondisi real-world.
+- **Mosaic (1.0):** Meningkatkan small object detection - objek organik kecil diperbesar relatif konteks.
+- **Random erasing (0.4):** Simulasi occlusion - model belajar dari bounding box parsial.
+- **HSV jitter:** Variasi pencahayaan - generalisasi ke kondisi real-world.
 
 ## 4.2 Hasil Anotasi Pipeline
 
@@ -99,7 +99,7 @@ YOLO26n pretrained COCO memberikan inisialisasi backbone yang baik. Fine-tuning 
 
 ### 4.5.3 Augmentasi vs Overfitting
 
-Dataset 1.500 citra rentan overfitting. Augmentasi online — terutama mosaic dan random erasing — esensial untuk generalisasi. Close mosaic di epoch akhir penting karena mosaic mengubah distribusi data secara artifisial.
+Dataset 1.500 citra rentan overfitting. Augmentasi online - terutama mosaic dan random erasing - esensial untuk generalisasi. Close mosaic di epoch akhir penting karena mosaic mengubah distribusi data secara artifisial.
 
 ### 4.5.4 Keterbatasan
 

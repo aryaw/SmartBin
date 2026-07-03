@@ -1,4 +1,4 @@
-# Backend PRD — SmartBin
+# Backend PRD - SmartBin
 
 **Stack:** Python 3.12, FastAPI, Uvicorn, Ultralytics YOLO, OpenCV, PyTorch (CUDA)
 
@@ -43,8 +43,8 @@
 4. Shebangs rewritten from host path to `/app/.venv/bin/python3.12`
 5. `.venv` copied into Docker image (`COPY .venv .venv`)
 6. `ENV PATH=/app/.venv/bin:$PATH`
-7. `pip install --break-system-packages -r requirements.txt` — finds all packages already in `.venv` → zero download
-8. `--mount=type=cache,target=/root/.cache/pip` — fallback cache
+7. `pip install --break-system-packages -r requirements.txt` - finds all packages already in `.venv` → zero download
+8. `--mount=type=cache,target=/root/.cache/pip` - fallback cache
 
 Rebuild: ~2s (no pip download, just copy `.venv` + source code).
 
@@ -76,7 +76,7 @@ backend/
 │   └── models/
 │       └── database.py         # SQLAlchemy async engine + models
 ├── dataset/
-│   ├── raw/                    # 1500 images (TACO) — NEVER deleted
+│   ├── raw/                    # 1500 images (TACO) - NEVER deleted
 │   ├── train/images+labels/    # 70% split
 │   ├── val/images+labels/      # 15% split
 │   ├── test/images+labels/     # 15% split

@@ -2,21 +2,9 @@
   <div class="space-y-6">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
       <div>
-        <h1 class="font-bold text-lg text-dark">COCO Annotation Result</h1>
-        <p class="text-sm text-dark/50">{{ filteredItems.length }} annotated images · {{ totalObjects }} objects</p>
+        <h1 class="font-bold text-lg text-dark">BoundingBox Result</h1>
+        <p class="text-sm text-dark/50">{{ cocoItems.length }} COCO annotated images</p>
       </div>
-      <button :disabled="loading"
-        class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-        @click="runPipeline">
-        <svg v-if="pipelineRunning" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        </svg>
-        {{ pipelineRunning ? 'Running...' : 'Train COCO Pipeline' }}
-      </button>
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
@@ -26,8 +14,8 @@
       </svg>
     </div>
 
-    <div v-else-if="!filteredItems.length" class="bg-white rounded-xl p-10 text-center border border-gray-100">
-      <p class="text-dark/50 text-sm">No COCO annotations. Click "Train COCO Pipeline" above.</p>
+    <div v-else-if="!paginatedItems.length" class="bg-white rounded-xl p-10 text-center border border-gray-100">
+      <p class="text-dark/50 text-sm">No COCO annotations. Click Generate COCO above.</p>
     </div>
 
     <template v-else>
@@ -74,7 +62,7 @@
           </div>
         </div>
       </div>
-      <Pagination :page="page" :total="filteredItems.length" :per="perPage" @update:page="page = $event" />
+      <Pagination :page="page" :total="cocoItems.length" :per="perPage" @update:page="page = $event" />
     </template>
 
     <ZoomModal :url="zoomUrl" @close="zoomUrl = null" />
@@ -84,35 +72,25 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const data = ref<any>(null)
 const loading = ref(true)
-const pipelineRunning = ref(false)
 const page = ref(1)
 const perPage = 10
 const zoomUrl = ref<string | null>(null)
 
-const filteredItems = computed(() => (data.value?.coco || []).filter((img: any) => img.annotation_count > 0))
-const totalObjects = computed(() => filteredItems.value.reduce((s: number, img: any) => s + img.annotation_count, 0))
+const cocoItems = computed(() => (data.value?.coco || []).filter((img: any) => img.annotation_count > 0))
 
 const paginatedItems = computed(() => {
   const start = (page.value - 1) * perPage
-  return filteredItems.value.slice(start, start + perPage)
+  return cocoItems.value.slice(start, start + perPage)
 })
 
 async function load() {
   loading.value = true
-  try {
-    data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
-  } catch {} finally { loading.value = false }
-}
-
-async function runPipeline() {
-  pipelineRunning.value = true
-  try {
-    await $fetch("/api/dataset/pipeline/coco", { baseURL: apiBase, method: "POST" })
-    await load()
-  } catch {} finally { pipelineRunning.value = false }
+  try { data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Failed to load data') } finally { loading.value = false }
 }
 
 onMounted(load)

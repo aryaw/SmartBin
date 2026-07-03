@@ -1,4 +1,4 @@
-# Docker & Infrastructure PRD — SmartBin
+# Docker & Infrastructure PRD - SmartBin
 
 ---
 

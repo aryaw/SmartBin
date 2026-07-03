@@ -34,7 +34,7 @@ YOLO26 adalah generasi terbaru Ultralytics YOLO dengan tiga komponen utama:
 
 ### 2.2.1 Backbone: CSPNet Termodifikasi
 
-Backbone mengekstraksi fitur melalui Cross Stage Partial Network (CSPNet) — membagi feature map menjadi dua jalur, satu diproses melalui convolution block, satu langsung digabung. Ini mengurangi computational load sambil mempertahankan representasi fitur.
+Backbone mengekstraksi fitur melalui Cross Stage Partial Network (CSPNet) - membagi feature map menjadi dua jalur, satu diproses melalui convolution block, satu langsung digabung. Ini mengurangi computational load sambil mempertahankan representasi fitur.
 
 CSPDarknet di YOLO26 menggunakan convolution SiLU + batch normalization + residual shortcut. Strided convolution menggantikan pooling untuk downsampling.
 
@@ -58,7 +58,7 @@ Pemisahan memungkinkan setiap branch mengoptimalkan representasi berbeda.
 | yolo26s | 9,8M | 19 | 47,8% | 8,5 |
 | yolo26m | 21,2M | 42 | 52,5% | 13,2 |
 
-Penelitian ini menggunakan YOLO26n — optimal untuk edge deployment.
+Penelitian ini menggunakan YOLO26n - optimal untuk edge deployment.
 
 ## 2.3 Bounding Box Regression dan Loss Functions
 

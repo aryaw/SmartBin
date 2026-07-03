@@ -1,4 +1,4 @@
-# API PRD — SmartBin
+# API PRD - SmartBin
 
 **Base URL:** `http://localhost:8000`
 
@@ -55,6 +55,7 @@ Read detection log from DB.
 | POST | `/api/dataset/pipeline/coco` | Generate COCO annotation visualization files |
 | POST | `/api/dataset/pipeline/yolo` | YOLO inference on train images |
 | POST | `/api/dataset/pipeline/yolo/val` | YOLO inference on val images |
+| POST | `/api/dataset/pipeline/yolo/seg` | YOLO segmentation inference on train images |
 | POST | `/api/dataset/pipeline/yolo/test` | YOLO inference on test images |
 
 ---

@@ -8,39 +8,27 @@
       <div class="flex items-center gap-2">
         <button :disabled="pipelineRunning"
           class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-          @click="runCoco">
-          <svg v-if="pipelineRunning && pipeType==='coco'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+          @click="runAnnotation">
+          <svg v-if="pipelineRunning && pipeType==='ann'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           </svg>
-          {{ pipelineRunning && pipeType==='coco' ? 'Generating...' : 'Generate COCO Annotation' }}
-        </button>
-        <button :disabled="pipelineRunning"
-          class="bg-secondary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-          @click="runYolo">
-          <svg v-if="pipelineRunning && pipeType==='yolo'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-          </svg>
-          {{ pipelineRunning && pipeType==='yolo' ? 'Generating...' : 'Generate YOLO Annotation' }}
+          {{ pipelineRunning && pipeType==='ann' ? 'Generating...' : 'Generate Annotation' }}
         </button>
         <button :disabled="pipelineRunning"
           class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-          @click="runYoloSeg">
-          <svg v-if="pipelineRunning && pipeType==='yolo-seg'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+          @click="runSegmentation">
+          <svg v-if="pipelineRunning && pipeType==='seg'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           </svg>
-          {{ pipelineRunning && pipeType==='yolo-seg' ? 'Generating...' : 'Generate YOLO Segmentation' }}
+          {{ pipelineRunning && pipeType==='seg' ? 'Generating...' : 'Generate Segmentation' }}
         </button>
       </div>
     </div>
@@ -80,6 +68,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const data = ref<any>(null)
 const loading = ref(true)
@@ -95,37 +84,26 @@ const paginatedItems = computed(() => {
   return items.value.slice(start, start + perPage)
 })
 
-async function runCoco() {
-  pipelineRunning.value = true; pipeType.value = 'coco'
+async function runAnnotation() {
+  pipelineRunning.value = true; pipeType.value = 'ann'
   try {
     await $fetch("/api/dataset/pipeline/coco", { baseURL: apiBase, method: "POST" })
     await load()
-  } catch {} finally { pipelineRunning.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Annotation pipeline failed') } finally { pipelineRunning.value = false }
 }
 
-async function runYoloSeg() {
-  pipelineRunning.value = true; pipeType.value = 'yolo-seg'
+async function runSegmentation() {
+  pipelineRunning.value = true; pipeType.value = 'seg'
   try {
     await $fetch("/api/dataset/pipeline/yolo/seg", { baseURL: apiBase, method: "POST" })
     await load()
-  } catch {} finally { pipelineRunning.value = false }
-}
-
-async function runYolo() {
-  pipelineRunning.value = true; pipeType.value = 'yolo'
-  try {
-    await Promise.allSettled([
-      $fetch("/api/dataset/pipeline/yolo", { baseURL: apiBase, method: "POST" }),
-      $fetch("/api/dataset/pipeline/yolo/seg", { baseURL: apiBase, method: "POST" }),
-    ])
-    await load()
-  } catch {} finally { pipelineRunning.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Segmentation pipeline failed') } finally { pipelineRunning.value = false }
 }
 
 async function load() {
   loading.value = true
   try { data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
-  } catch {} finally { loading.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Failed to load data') } finally { loading.value = false }
 }
 
 onMounted(load)

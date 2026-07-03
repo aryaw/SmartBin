@@ -1,10 +1,10 @@
-# Frontend PRD — SmartBin
+# Frontend PRD - SmartBin
 
 **Stack:** Nuxt 3, Vue 3, TypeScript, Tailwind CSS
 
 ---
 
-## 1. Sidebar Navigation (3 groups, 12 items, 10 unique routes)
+## 1. Sidebar Navigation (3 groups, 10 items, 10 unique routes)
 
 ### Main
 | Menu | Route | Description |
@@ -16,15 +16,15 @@
 | Menu | Route | Description |
 |------|-------|-------------|
 | All Raw Data | `/raw` | Raw image grid + Download + Split + Reset buttons |
-| Train Data | `/train-data` | Train image grid + Generate COCO/YOLO buttons |
+| Train Data | `/train-data` | Train image grid + Generate Annotation / Segmentation buttons |
 | Test Data | `/test-data` | Test split images grid |
 | Evaluation Metrics | `/eval` | Model metrics table + val inference images |
 
 ### Annotations
 | Menu | Route | Description |
 |------|-------|-------------|
-| COCO Annotation Result | `/coco-annotation` | COCO annotations with bounding boxes |
-| YOLO Annotation Result | `/yolo-annotation` | YOLO converted annotations |
+| BoundingBox Result | `/boundingbox-result` | COCO bounding box annotations with image zoom |
+| Segmentation Result | `/segmentation-result` | Segmentation predictions from COCO dataset |
 | Validation Inference Result | `/val-result` | Run val pipeline + show results |
 | Test Inference Result | `/test-result` | Run test pipeline + show results |
 
@@ -78,11 +78,11 @@ Default: `http://localhost:8080` in dev, `http://backend:8000` in Docker.
 |------|-------------|
 | Dashboard | Gradient header, drag-drop upload, file preview, detection result card, Prepare Data button |
 | Raw | Image grid, Pagination, ZoomModal, Download + Split + Reset buttons, status messages |
-| Train Data | Image grid, Generate COCO/YOLO pipeline buttons |
+| Train Data | Image grid, Generate Annotation + Segmentation pipeline buttons |
 | Test Data | Grid for test split images |
 | Eval | Metrics table (mAP, precision, recall per split), per-class breakdown |
-| COCO Annotation | BBox table with coords, image zoom |
-| YOLO Annotation | BBox table with confidence, image zoom |
+| BoundingBox Result | COCO bbox table with coords, image zoom |
+| Segmentation Result | Segmentation polygon table with points, image zoom |
 | Val Result | Run val pipeline button, results grid |
 | Test Result | Run test pipeline button, results grid |
 | Test Upload | Quick file upload for testing detection |

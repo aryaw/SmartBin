@@ -91,6 +91,7 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
+const { show: showError } = useToast()
 
 const data = ref<any>(null)
 const loading = ref(true)
@@ -111,13 +112,13 @@ async function runTest() {
   try {
     inferResult.value = await $fetch("/api/dataset/pipeline/yolo/test", { baseURL: apiBase, method: "POST" })
     await load()
-  } catch {} finally { inferring.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Test pipeline failed') } finally { inferring.value = false }
 }
 
 async function load() {
   loading.value = true
   try { data.value = await $fetch("/api/dataset/grid", { baseURL: apiBase })
-  } catch {} finally { loading.value = false }
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Failed to load data') } finally { loading.value = false }
 }
 
 onMounted(load)

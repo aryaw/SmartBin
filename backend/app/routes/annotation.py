@@ -68,18 +68,21 @@ async def dataset_grid():
             })
         img_lookup = {img["id"]: img for img in data.get("images", [])}
 
-    coco_images = []
-    if TRAIN_IMG_DIR.exists():
-        for f in sorted(TRAIN_IMG_DIR.iterdir()):
+    def _build_coco_for_split(img_dir, source_name, viz_dir=None):
+        items = []
+        if not img_dir.exists():
+            return items
+        for f in sorted(img_dir.iterdir()):
             if f.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
                 continue
             stem = f.stem
             img_id = None
             anns = []
             viz_url = None
-            convert_viz = CONVERT_VIZ_DIR / f"{stem}.jpg"
-            if convert_viz.exists():
-                viz_url = f"/api/dataset/file/annotation_yolo_convert_img_v2/{stem}.jpg"
+            if viz_dir:
+                viz_file = viz_dir / f"{stem}.jpg"
+                if viz_file.exists():
+                    viz_url = f"/api/dataset/file/{viz_dir.name}/{stem}.jpg"
             if ANNOTATIONS_FILE.exists():
                 key = f"{stem}.jpg"
                 for iid, img in img_lookup.items():
@@ -88,13 +91,16 @@ async def dataset_grid():
                         break
                 if img_id and img_id in coco_annotations:
                     anns = coco_annotations[img_id]
-            coco_images.append({
+            items.append({
                 "filename": f.name,
-                "image_url": f"/api/dataset/file/train/{f.name}",
+                "image_url": f"/api/dataset/file/{source_name}/{f.name}",
                 "annotations": anns,
                 "viz_url": viz_url,
                 "annotation_count": len(anns),
             })
+        return items
+
+    coco_images = _build_coco_for_split(TRAIN_IMG_DIR, "train", CONVERT_VIZ_DIR)
 
     def scan_annotations(img_dir, source_name, ann_dir, viz_dir, has_conf=False, is_yolo=False, is_seg=False):
         items = []
@@ -163,6 +169,7 @@ async def dataset_grid():
     train_convert = scan_annotations(TRAIN_IMG_DIR, "train", CONVERT_ANN_DIR, CONVERT_VIZ_DIR, is_yolo=True)
     train_real = scan_annotations(TRAIN_IMG_DIR, "train", REAL_ANN_DIR, REAL_VIZ_DIR, has_conf=True)
     train_seg = scan_annotations(TRAIN_IMG_DIR, "train", SEG_ANN_DIR, SEG_VIZ_DIR, is_seg=True)
+    val_coco = _build_coco_for_split(VAL_IMG_DIR, "val")
     val_real = scan_annotations(VAL_IMG_DIR, "val", VAL_REAL_ANN_DIR, VAL_REAL_VIZ_DIR, has_conf=True)
     test_real = scan_annotations(TEST_IMG_DIR, "test", TEST_REAL_ANN_DIR, TEST_REAL_VIZ_DIR, has_conf=True)
 
@@ -202,6 +209,7 @@ async def dataset_grid():
         "train_convert": train_convert,
         "train_real": train_real,
         "train_seg": train_seg,
+        "val_coco": val_coco,
         "val_real": val_real,
         "test_real": test_real,
         "test": test_images,
@@ -217,6 +225,7 @@ async def dataset_grid():
             "train_convert": len([x for x in train_convert if x["prediction_count"] > 0]),
             "train_real": len([x for x in train_real if x["prediction_count"] > 0]),
             "train_seg": len([x for x in train_seg if x["prediction_count"] > 0]),
+            "val_coco": len([x for x in val_coco if x["annotation_count"] > 0]),
             "val_real": len([x for x in val_real if x["prediction_count"] > 0]),
             "test_real": len([x for x in test_real if x["prediction_count"] > 0]),
         },

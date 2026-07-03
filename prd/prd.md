@@ -1,4 +1,4 @@
-# SmartBin — Product Requirements Document
+# SmartBin - Product Requirements Document
 
 **Version:** 2.0
 **Platform:** Web Application
@@ -38,11 +38,11 @@ Build strategy: host `.venv` (Python 3.12 `--copies`) copied into Docker → `pi
 
 ## Frontend
 
-Nuxt 3 port 3000. Tailwind CSS. Sidebar: 3 groups, 12 nav items, 10 unique routes.
+Nuxt 3 port 3000. Tailwind CSS. Sidebar: 3 groups, 10 nav items, 10 unique routes.
 
 - **Main:** Dashboard Report, Test Upload
 - **Dataset:** All Raw Data, Train Data, Test Data, Evaluation Metrics
-- **Annotations:** COCO Annotation, YOLO Annotation, Validation Inference, Test Inference
+- **Annotations:** BoundingBox Result, Segmentation Result, Validation Inference, Test Inference
 
 All grids: ZoomModal + Pagination.
 

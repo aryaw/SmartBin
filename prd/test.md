@@ -1,4 +1,4 @@
-# Test Plan — SmartBin
+# Test Plan - SmartBin
 
 ---
 
@@ -45,9 +45,9 @@
 |-------|----------|
 | `/dashboard` | Upload + detect + Prepare Data |
 | `/raw` | Grid + zoom + Download + Split |
-| `/train-data` | Grid + zoom + Generate COCO/YOLO |
+| `/train-data` | Grid + zoom + Generate Annotation + Segmentation |
 | `/eval` | Metrics table + val images |
-| `/coco-annotation` | BBox table + zoom |
-| `/yolo-annotation` | BBox table + zoom |
+| `/boundingbox-result` | COCO bbox table + zoom |
+| `/segmentation-result` | Segmentation polygon table + zoom |
 | `/val-result` | Run val + results + zoom |
 | `/test-result` | Run test + results + zoom |
