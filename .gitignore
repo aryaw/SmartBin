@@ -1,0 +1,39 @@
+node_modules/
+.nuxt/
+.output/
+dist/
+.env
+*.pyc
+__pycache__/
+.venv/
+*.egg-info/
+.DS_Store
+*.log
+
+# Backend
+backend/.venv/
+backend/__pycache__/
+backend/runs/
+backend/static/result/
+backend/uploads/
+
+# Dataset (large files, not in repo)
+backend/dataset/raw/
+backend/dataset/train/
+backend/dataset/val/
+backend/dataset/test/
+backend/dataset/annotation*/
+
+# Models (large binary)
+backend/models/*.pt
+
+# Docker
+docker-compose.yml
+backend/docker-compose.yml
+frontend/docker-compose.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
