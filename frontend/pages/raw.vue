@@ -7,18 +7,6 @@
       </div>
       <div class="flex items-center gap-2">
         <button :disabled="downloading"
-          class="bg-secondary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-          @click="runDownload('taco')">
-          <svg v-if="downloading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.707.707V19a2 2 0 01-2 2z" />
-          </svg>
-          {{ downloading === 'taco' ? 'Downloading...' : 'Download TACO' }}
-        </button>
-        <button :disabled="downloading"
           class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
           @click="runDownload('kaggle')">
           <svg v-if="downloading === 'kaggle'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -28,7 +16,7 @@
           <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          {{ downloading === 'kaggle' ? 'Downloading...' : 'Download Kaggle' }}
+          {{ downloading === 'kaggle' ? 'Downloading...' : 'Download Kaggle Dataset' }}
         </button>
         <button :disabled="splitting"
           class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
