@@ -22,3 +22,5 @@ https://github.com/vishvaspatel/GARBAGE-DETECTION
 https://github.com/mayuras7685/Under_water_trash_plastic_detection
 https://github.com/Afnanksalal/Waste-Detection
 https://github.com/xrl3y/WasteDetector
+https://www.kaggle.com/code/hanzalasaify/yolo26seg-waste-segmentation#3.-Convert-to-YOLO-seg-Format-(Polygon-Masks)
+https://www.kaggle.com/datasets/phenomsg/waste-classification/code
