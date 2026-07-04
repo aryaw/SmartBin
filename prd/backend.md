@@ -56,7 +56,12 @@ Rebuild: ~2s (no pip download, just copy `.venv` + source code).
 backend/
 ├── app/
 │   ├── main.py                 # FastAPI entry (lifespan: GPU init + model load)
-│   ├── config.py               # Paths, CORS, DB, GPU config
+│   ├── core/
+│   │   └── config.py           # Paths, CORS, DB, GPU config
+│   ├── cli/
+│   │   ├── train.py            # Training CLI with grid search
+│   │   ├── test.py             # Evaluation CLI
+│   │   └── predict.py          # CLI inference helper
 │   ├── routes/
 │   │   ├── health.py           # GET /health
 │   │   ├── detect.py           # POST /api/detect, /detect/bulk, /result, /log
@@ -72,9 +77,11 @@ backend/
 │   │   └── detection.py        # Pydantic models for detect response
 │   ├── utils/
 │   │   ├── gpu_utils.py        # GPU init, memory limit, warmup
-│   │   └── file_utils.py       # Upload validation, save, cleanup
-│   └── models/
-│       └── database.py         # SQLAlchemy async engine + models
+│   │   ├── file_utils.py       # Upload validation, save, cleanup
+│   │   └── progress.py         # SSE progress emitter
+│   ├── models/
+│   │   └── database.py         # SQLAlchemy async engine + models
+│   └── datapreparation/        # Dataset download & split scripts
 ├── dataset/
 │   ├── raw/                    # 1500 images (TACO) - NEVER deleted
 │   ├── train/images+labels/    # 70% split
@@ -88,10 +95,6 @@ backend/
 ├── models/best.pt              # YOLO weights (trained)
 ├── .venv/                      # Python 3.12 (--copies, portable)
 ├── requirements.txt
-├── app/core/config.py          # App configuration
-├── app/cli/train.py            # Training CLI with grid search
-├── app/cli/test.py             # Evaluation CLI
-├── app/cli/predict.py          # CLI inference helper
 ├── data.yaml                   # Dataset config for YOLO
 ├── Dockerfile
 ├── log-wrapper.sh              # Entrypoint logging wrapper

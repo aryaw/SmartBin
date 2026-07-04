@@ -6,7 +6,7 @@ Penelitian mengikuti pipeline sistematis empat tahap: (1) pra-pemrosesan data da
 
 ```
 TACO JSON ─→ COCO→YOLO Convert ─→ Split 70/15/15 ─→ Augmentasi Online ─→ YOLO26n Training ─→ Evaluasi
-(datasource/)   (annotation_service.py)   (api/dataset/split)   (train.py: mosaic+HSV+geo)   (ultralytics)   (mAP/precision/recall)
+(datasource/)   (annotation_service.py)   (api/dataset/split)   (app/cli/train.py: mosaic+HSV+geo)   (ultralytics)   (mAP/precision/recall)
 ```
 
 ## 3.2 Dataset dan Anotasi

@@ -64,12 +64,13 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 
-from app.routes import health, detect, annotation, datasource
+from app.routes import health, detect, annotation, datasource, kaggle_cms
 
 app.include_router(health.router)
 app.include_router(detect.router)
 app.include_router(annotation.router)
 app.include_router(datasource.router)
+app.include_router(kaggle_cms.router)
 
 static_result = STATIC_DIR / "result"
 static_result.mkdir(parents=True, exist_ok=True)

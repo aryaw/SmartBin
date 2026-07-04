@@ -196,7 +196,7 @@ def run_yolo_seg_pipeline():
 
     t = time.time()
     from PIL import Image, ImageDraw, ImageFont
-    from app.config import MODEL_PATH
+    from app.core.config import MODEL_PATH
     from ultralytics import YOLO
     import torch
 
@@ -287,7 +287,7 @@ def run_yolo_test_pipeline():
 
     t = time.time()
     from PIL import Image, ImageDraw, ImageFont
-    from app.config import MODEL_PATH
+    from app.core.config import MODEL_PATH
     from ultralytics import YOLO
     import torch
 

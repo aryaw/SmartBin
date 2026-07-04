@@ -346,10 +346,14 @@ async def pipeline_yolo_seg():
 
 
 @router.post("/download")
-async def dataset_download():
+async def dataset_download(source: str = Query("taco", regex="^(taco|kaggle)$")):
     try:
-        from app.services.datapreparation_service import run_download_only
-        return run_download_only()
+        if source == "kaggle":
+            from app.services.kaggle_service import download_and_prepare
+            return download_and_prepare()
+        else:
+            from app.services.datapreparation_service import run_download_only
+            return run_download_only()
     except Exception as e:
         raise HTTPException(500, f"Download failed: {str(e)}")
 

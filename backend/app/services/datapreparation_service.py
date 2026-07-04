@@ -84,7 +84,12 @@ def _prepare_splits():
             src_name = img["file_name"].replace("/", "_")
             src_path = RAW_DIR / src_name
             if not src_path.exists():
-                continue
+                # Try case-insensitive match (TACO has .jpg vs .JPG)
+                candidates = list(RAW_DIR.glob(f"{src_path.stem}.*"))
+                if candidates:
+                    src_path = candidates[0]
+                else:
+                    continue
             shutil.copy2(str(src_path), str(img_dir / src_name))
             label_name = Path(src_name).stem + ".txt"
             h, w = img["height"], img["width"]

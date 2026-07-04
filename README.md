@@ -21,7 +21,12 @@ Built on the [TACO dataset](http://tacodataset.org/) - 1500 images, 4784 annotat
 backend/
 ├── app/
 │   ├── main.py                 # FastAPI entry, lifespan, model load
-│   ├── config.py               # Paths, CORS, GPU, DB config
+│   ├── core/
+│   │   └── config.py           # Paths, CORS, GPU, DB config
+│   ├── cli/
+│   │   ├── train.py            # Training CLI with grid search
+│   │   ├── test.py             # Evaluation CLI
+│   │   └── predict.py          # CLI inference helper
 │   ├── routes/
 │   │   ├── annotation.py       # Grid, split, pipelines, evaluate, file serve
 │   │   ├── detect.py           # Upload & detect, bulk, result, log
@@ -38,10 +43,6 @@ backend/
 ├── models/best.pt              # Trained weights
 ├── dataset/                    # Images + annotations (gitignored)
 ├── .env.example
-├── app/core/config.py
-├── app/cli/train.py
-├── app/cli/test.py
-├── app/cli/predict.py
 └── data.yaml
 
 frontend/

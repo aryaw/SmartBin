@@ -21,7 +21,7 @@ Split: 70/15/15 from `raw/` via `POST /api/dataset/split`. Split endpoint self-c
 Model: YOLO26n (`yolo26n.pt`), batch=16, imgsz=640, augment=mosaic+HSV+geometric+erasing.
 GPU VRAM limit: 12GB. FP16 inference. Cache clear every 16 images.
 
-CLI: `python train.py --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640`
+CLI: `python -m app.cli.train --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640`
 Grid search: `--grid-search 10 20 40`
 
 ---
