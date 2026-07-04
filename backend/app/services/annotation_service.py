@@ -137,17 +137,25 @@ def _export_coco_viz():
     return {"viz_images": ok}
 
 
-def run_coco_pipeline():
+def run_coco_pipeline(progress_callback=None):
     logs = []
     t0 = time.time()
 
+    if progress_callback:
+        progress_callback({"step": "coco", "status": "start", "message": "Exporting COCO annotations..."})
     t = time.time()
     r1 = _export_coco()
     logs.append({"step": "export_coco", "duration_s": round(time.time() - t, 2), **r1, **try_log_gpu()})
+    if progress_callback:
+        progress_callback({"step": "coco", "status": "done", "message": "COCO annotations exported"})
 
+    if progress_callback:
+        progress_callback({"step": "coco_viz", "status": "start", "message": "Rendering COCO visualizations..."})
     t = time.time()
     r2 = _export_coco_viz()
     logs.append({"step": "export_coco_viz", "duration_s": round(time.time() - t, 2), **r2, **try_log_gpu()})
+    if progress_callback:
+        progress_callback({"step": "coco_viz", "status": "done", "message": "COCO visualizations rendered"})
 
     return {
         "pipeline": "coco",

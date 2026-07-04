@@ -132,17 +132,25 @@ def _clean_outputs():
         d.mkdir(parents=True, exist_ok=True)
 
 
-def run_yolo_pipeline():
+def run_yolo_pipeline(progress_callback=None):
     logs = []
     t0 = time.time()
 
+    if progress_callback:
+        progress_callback({"step": "yolo_inference", "status": "start", "message": "Running YOLO inference on train images..."})
     t = time.time()
     r1 = _run_yolo_inference()
     logs.append({"step": "yolo_inference_train", "duration_s": round(time.time() - t, 2), **r1, **try_log_gpu()})
+    if progress_callback:
+        progress_callback({"step": "yolo_inference", "status": "done", "message": "YOLO inference complete"})
 
+    if progress_callback:
+        progress_callback({"step": "yolo_viz", "status": "start", "message": "Rendering YOLO visualizations..."})
     t = time.time()
     r2 = _export_yolo_viz()
     logs.append({"step": "yolo_viz", "duration_s": round(time.time() - t, 2), **r2, **try_log_gpu()})
+    if progress_callback:
+        progress_callback({"step": "yolo_viz", "status": "done", "message": "YOLO visualizations rendered"})
 
     return {
         "pipeline": "yolo",

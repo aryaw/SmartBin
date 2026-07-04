@@ -11,13 +11,26 @@ from app.utils.gpu_utils import get_device
 
 def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
               patience: int, device: str, name: str, lr0: float = 0.001,
-              lrf: float = 0.01, warmup_epochs: float = 3.0) -> tuple:
+              lrf: float = 0.01, warmup_epochs: float = 3.0,
+              progress_callback=None) -> tuple:
     model = YOLO(pretrained)
+
+    if progress_callback:
+        def _on_epoch_end(trainer):
+            progress_callback({
+                "epoch": trainer.epoch,
+                "epochs": trainer.epochs,
+                "lr": round(trainer.lr[0] if isinstance(trainer.lr, list) else trainer.lr, 6),
+                "loss": round(float(trainer.loss), 4) if hasattr(trainer, "loss") and trainer.loss is not None else None,
+            })
+        model.add_callback("on_train_epoch_end", _on_epoch_end)
+
     results = model.train(
         data=data,
         epochs=epochs,
         batch=batch,
         imgsz=imgsz,
+        workers=0,
         patience=patience,
         device=device,
         augment=True,

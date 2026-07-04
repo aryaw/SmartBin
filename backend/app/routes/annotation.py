@@ -8,8 +8,8 @@ import time
 import torch
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 from ultralytics import YOLO
 
@@ -17,6 +17,7 @@ from app.config import BASE_DIR, MODEL_PATH, ORGANIC_CATEGORIES
 from app.services.annotation_service import run_coco_pipeline
 from app.services.yolo_service import run_yolo_pipeline, run_yolo_val_pipeline, run_yolo_seg_pipeline
 from app.utils.gpu_utils import get_device
+from app.utils.progress import ProgressEmitter
 
 router = APIRouter(prefix="/api/dataset", tags=["Dataset"])
 
@@ -474,6 +475,63 @@ async def pipeline_yolo_train_model():
         }
     except Exception as e:
         raise HTTPException(500, f"Full training pipeline failed: {str(e)}")
+
+
+@router.get("/pipeline/yolo/train/stream")
+async def pipeline_yolo_train_stream(request: Request):
+    loop = asyncio.get_running_loop()
+    emitter = ProgressEmitter(loop)
+
+    async def _run():
+        try:
+            emitter.emit("step", {"name": "coco", "status": "start", "message": "Exporting COCO annotations..."})
+            await loop.run_in_executor(None, lambda: run_coco_pipeline(progress_callback=lambda d: emitter.emit("step", d)))
+            emitter.emit("step", {"name": "coco", "status": "done", "message": "COCO pipeline complete"})
+
+            emitter.emit("step", {"name": "yolo_inference", "status": "start", "message": "Running YOLO inference on train images..."})
+            await loop.run_in_executor(None, lambda: run_yolo_pipeline(progress_callback=lambda d: emitter.emit("step", d)))
+            emitter.emit("step", {"name": "yolo_inference", "status": "done", "message": "YOLO inference complete"})
+
+            from app.train import train_one
+
+            def _train():
+                def _on_progress(d):
+                    d["step"] = "train"
+                    d["status"] = "epoch"
+                    emitter.emit("step", d)
+                model_path, map50 = train_one(
+                    pretrained="yolo11m.pt",
+                    data=str(BASE_DIR / "data.yaml"),
+                    epochs=int(os.environ.get("EPOCHS", "200")),
+                    batch=16,
+                    imgsz=640,
+                    patience=30,
+                    device=get_device(),
+                    name="api_train",
+                    progress_callback=_on_progress,
+                )
+                if model_path and model_path.exists():
+                    dest = MODEL_PATH
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(str(model_path), str(dest))
+                return {"map50": round(map50 * 100, 2), "best_path": str(model_path) if model_path else None}
+
+            emitter.emit("step", {"name": "train", "status": "start", "message": "Starting YOLO training..."})
+            train_result = await loop.run_in_executor(None, _train)
+            emitter.emit("step", {"name": "train", "status": "done", "message": "Training complete", **train_result})
+
+            emitter.emit("done", {"message": "Full training pipeline finished"})
+        except Exception as e:
+            emitter.emit("error", {"message": str(e)})
+
+    task = asyncio.create_task(_run())
+
+    async def event_stream():
+        async for msg in emitter:
+            yield msg
+        await task
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("/reset")
