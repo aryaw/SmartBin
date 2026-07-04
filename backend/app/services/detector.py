@@ -1,4 +1,5 @@
 import time
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -9,6 +10,8 @@ from ultralytics import YOLO
 
 from app.config import MODEL_PATH, RESULT_DIR
 from app.utils.gpu_utils import get_device, warmup_model
+
+logger = logging.getLogger(__name__)
 
 CATEGORY_MAP = {
     0: ("Organik", "Organik"),
@@ -34,9 +37,28 @@ def load_model():
     global _model
     if _model is not None:
         return _model
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(f"Model not found: {MODEL_PATH}")
+    if MODEL_PATH.stat().st_size < 1_000_000:
+        logger.warning(f"Model suspiciously small ({MODEL_PATH.stat().st_size} bytes)")
     _model = YOLO(str(MODEL_PATH))
     warmup_model(_model)
+    _validate_model()
     return _model
+
+
+def _validate_model():
+    if _model is None:
+        raise RuntimeError("Model not loaded")
+    if not hasattr(_model, "names") or len(_model.names) == 0:
+        raise RuntimeError("Model has no class names")
+    logger.info(f"Model loaded: {MODEL_PATH.name}, classes: {_model.names}")
+
+
+def reload_model():
+    global _model
+    _model = None
+    return load_model()
 
 
 def _draw_detections(img: np.ndarray, boxes, detected: list) -> np.ndarray:
@@ -70,12 +92,36 @@ def _draw_detections(img: np.ndarray, boxes, detected: list) -> np.ndarray:
     return cv2.addWeighted(overlay, 1, img, 0, 0)
 
 
+def _run_inference_stream(model, frame):
+    try:
+        return model(frame, device=get_device(), verbose=False, stream=True)
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+            logger.warning(f"GPU OOM in video inference, falling back to CPU: {e}")
+            import torch
+            torch.cuda.empty_cache()
+            return model(frame, device="cpu", verbose=False, stream=True)
+        raise
+
+
+def _run_inference(model, img):
+    try:
+        return model(img, device=get_device(), verbose=False)[0]
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower() or "cuda" in str(e).lower():
+            logger.warning(f"GPU OOM, falling back to CPU: {e}")
+            import torch
+            torch.cuda.empty_cache()
+            return model(img, device="cpu", verbose=False)[0]
+        raise
+
+
 def detect_image(image_path: Path) -> dict:
     model = load_model()
     img = cv2.imread(str(image_path))
     if img is None:
         raise ValueError(f"Cannot read image: {image_path}")
-    results = model(img, device=get_device(), verbose=False)[0]
+    results = _run_inference(model, img)
 
     detected = []
     annotated = _draw_detections(img, results.boxes, detected)
@@ -129,7 +175,7 @@ def detect_video(video_path: Path) -> dict:
             break
 
         if frame_count % frame_skip == 0:
-            results = model(frame, device=get_device(), verbose=False, stream=True)
+            results = _run_inference_stream(model, frame)
             for r in results:
                 det = []
                 annotated = _draw_detections(frame, r.boxes, det)

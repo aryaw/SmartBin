@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from PIL import Image, ImageDraw, ImageFont
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, ORGANIC_CATEGORIES
 from app.utils.gpu_utils import try_log_gpu
 
 DATASET_DIR = BASE_DIR / "dataset"
@@ -71,7 +71,7 @@ def _export_coco():
         out_txt = coco_out_dir / f"{Path(fpath.name).stem}.txt"
         with open(out_txt, "w") as f:
             for ann in anns:
-                cat_map = 0 if ann["category_id"] == 25 else 1
+                cat_map = 0 if ann["category_id"] in ORGANIC_CATEGORIES else 1
                 x, y, bw, bh = ann["bbox"]
                 x_center = ((x + bw / 2) * sx) / aw
                 y_center = ((y + bh / 2) * sy) / ah

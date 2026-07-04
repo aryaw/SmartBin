@@ -3,16 +3,13 @@ from pathlib import Path
 from collections import defaultdict
 from fastapi import HTTPException
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, ORGANIC_CATEGORIES
 
 random.seed(42)
 
 DATASET_DIR = BASE_DIR / "dataset"
 RAW_DIR = DATASET_DIR / "raw"
 ANNOTATIONS_FILE = BASE_DIR.parent / "datasource" / "annotations.json"
-
-ORGANIK_IDS = {25}
-
 
 def prepare_dataset(train_pct: float = 0.70, val_pct: float = 0.15, test_pct: float = 0.15):
     if not ANNOTATIONS_FILE.exists():
@@ -25,7 +22,7 @@ def prepare_dataset(train_pct: float = 0.70, val_pct: float = 0.15, test_pct: fl
 
     cat_map = {}
     for cat in data["categories"]:
-        cat_map[cat["id"]] = 0 if cat["id"] in ORGANIK_IDS else 1
+        cat_map[cat["id"]] = 0 if cat["id"] in ORGANIC_CATEGORIES else 1
 
     images = {img["id"]: img for img in data["images"]}
     img_anns = defaultdict(list)

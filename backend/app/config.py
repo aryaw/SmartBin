@@ -31,5 +31,30 @@ CORS_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
+# TACO category IDs that map to "Organik" (biodegradable/organic waste)
+# Paper, cardboard, food waste, and other compostable materials
+ORGANIC_CATEGORIES = {
+    13,   # Toilet tube (cardboard)
+    14,   # Other carton (cardboard)
+    15,   # Egg carton (cardboard)
+    16,   # Drink carton (cardboard)
+    17,   # Corrugated carton (cardboard)
+    18,   # Meal carton (cardboard)
+    19,   # Pizza box (cardboard)
+    20,   # Paper cup
+    25,   # Food waste
+    30,   # Magazine paper
+    31,   # Tissues
+    32,   # Wrapping paper
+    33,   # Normal paper
+    34,   # Paper bag
+    56,   # Paper straw
+}
+
+def is_organic(category_id: int) -> bool:
+    return category_id in ORGANIC_CATEGORIES
+
+ANNOTATIONS_FILE = BASE_DIR.parent / "datasource" / "annotations.json"
+
 for d in [UPLOAD_DIR, LOG_DIR, RESULT_DIR, MODEL_DIR]:
     d.mkdir(parents=True, exist_ok=True)

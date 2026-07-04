@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from PIL import Image
 from ultralytics import YOLO
 
-from app.config import BASE_DIR, MODEL_PATH
+from app.config import BASE_DIR, MODEL_PATH, ORGANIC_CATEGORIES
 from app.services.annotation_service import run_coco_pipeline
 from app.services.yolo_service import run_yolo_pipeline, run_yolo_val_pipeline, run_yolo_seg_pipeline
 from app.utils.gpu_utils import get_device
@@ -60,7 +60,7 @@ async def dataset_grid():
             if img_id not in coco_annotations:
                 coco_annotations[img_id] = []
             x, y, w, h = ann["bbox"]
-            cat_map = 0 if ann["category_id"] == 25 else 1
+            cat_map = 0 if ann["category_id"] in ORGANIC_CATEGORIES else 1
             coco_annotations[img_id].append({
                 "class_id": cat_map,
                 "category": "Organik" if cat_map == 0 else "Non-Organik",
@@ -355,6 +355,7 @@ async def dataset_download():
 @router.post("/split")
 async def dataset_split():
     import hashlib
+    random.seed(42)
 
     if not RAW_DIR.exists():
         raise HTTPException(400, "Raw directory not found")
@@ -379,7 +380,7 @@ async def dataset_split():
     random.shuffle(files)
     n = len(files)
     n_train = int(n * 0.7)
-    n_val = int(n * 0.15)
+    n_val = int(n * 0.15) 
     train_files = files[:n_train]
     val_files = files[n_train:n_train + n_val]
     test_files = files[n_train + n_val:]
@@ -410,7 +411,7 @@ async def dataset_split():
                     if anns:
                         with open(lbl_dir / f"{f.stem}.txt", "w") as lf:
                             for ann in anns:
-                                cat_map = 0 if ann["category_id"] == 25 else 1
+                                cat_map = 0 if ann["category_id"] in ORGANIC_CATEGORIES else 1
                                 x, y, bw, bh = ann["bbox"]
                                 x_center = (x + bw / 2) / img_info["width"]
                                 y_center = (y + bh / 2) / img_info["height"]

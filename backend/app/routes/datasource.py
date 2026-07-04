@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, ORGANIC_CATEGORIES
 
 router = APIRouter(prefix="/api/datasource", tags=["Datasource"])
 
@@ -49,7 +49,7 @@ async def datasource_grid():
             ann_by_image[img_id] = []
         x, y, w, h = ann["bbox"]
         cat_name = cat_map.get(ann["category_id"], f"class_{ann['category_id']}")
-        is_organik = ann["category_id"] == 25
+        is_organik = ann["category_id"] in ORGANIC_CATEGORIES
         ann_by_image[img_id].append({
             "id": ann["id"],
             "category_id": ann["category_id"],

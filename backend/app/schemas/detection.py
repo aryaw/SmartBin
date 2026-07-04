@@ -33,3 +33,8 @@ class ErrorResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     device: str
+    model_loaded: bool = False
+    model_exists: bool = False
+    cuda_available: bool = False
+    vram_gb: float = 0.0
+    uptime_hours: float = 0.0

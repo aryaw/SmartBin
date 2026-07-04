@@ -4,14 +4,13 @@ from urllib.request import urlopen, Request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, ORGANIC_CATEGORIES
 
 DATASOURCE_DIR = BASE_DIR.parent / "datasource"
 ANNOTATIONS_FILE = DATASOURCE_DIR / "annotations.json"
 DATASET_DIR = BASE_DIR / "dataset"
 RAW_DIR = DATASET_DIR / "raw"
 
-ORGANIK_IDS = {25}
 SPLITS = {"train": 0.70, "val": 0.15, "test": 0.15}
 MAX_WORKERS = 12
 
@@ -60,7 +59,7 @@ def _prepare_splits():
     data = json.loads(ANNOTATIONS_FILE.read_text())
     cat_map = {}
     for cat in data["categories"]:
-        cat_map[cat["id"]] = 0 if cat["id"] in ORGANIK_IDS else 1
+        cat_map[cat["id"]] = 0 if cat["id"] in ORGANIC_CATEGORIES else 1
     images = {img["id"]: img for img in data["images"]}
     img_anns = defaultdict(list)
     for ann in data["annotations"]:
