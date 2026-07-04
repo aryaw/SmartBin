@@ -5,6 +5,27 @@
         <h1 class="font-bold text-lg text-dark">BoundingBox Result</h1>
         <p class="text-sm text-dark/50">{{ cocoItems.length }} COCO annotated images</p>
       </div>
+      <button :disabled="training"
+        class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
+        @click="runFullTrain">
+        <svg v-if="training" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        {{ training ? 'Training...' : 'Train Model' }}
+      </button>
+    </div>
+
+    <div v-if="trainResult" class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">
+      <div class="flex items-center gap-2 font-medium mb-1">Training Complete</div>
+      <div v-for="log in trainResult.logs" :key="log.step" class="text-xs ml-2">
+        • {{ log.step }}: {{ log.duration_s }}s
+        <span v-if="log.map50"> (mAP@0.5: {{ log.map50 }}%)</span>
+      </div>
+      <div class="text-xs mt-1 font-medium">Total: {{ trainResult.total_duration_s }}s</div>
     </div>
 
     <div v-if="loading" class="flex justify-center py-12">
@@ -79,6 +100,8 @@ const loading = ref(true)
 const page = ref(1)
 const perPage = 10
 const zoomUrl = ref<string | null>(null)
+const training = ref(false)
+const trainResult = ref<any>(null)
 
 const cocoItems = computed(() => (data.value?.coco || []).filter((img: any) => img.annotation_count > 0))
 
@@ -86,6 +109,16 @@ const paginatedItems = computed(() => {
   const start = (page.value - 1) * perPage
   return cocoItems.value.slice(start, start + perPage)
 })
+
+async function runFullTrain() {
+  training.value = true; trainResult.value = null
+  try {
+    trainResult.value = await $fetch("/api/dataset/pipeline/yolo/train", { baseURL: apiBase, method: "POST" })
+    await load()
+  } catch (e: any) {
+    showError(e?.data?.detail || e?.message || 'Training failed')
+  } finally { training.value = false }
+}
 
 async function load() {
   loading.value = true

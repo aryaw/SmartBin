@@ -18,11 +18,8 @@ backend/static/result/
 backend/uploads/
 
 # Dataset (large files, not in repo)
-backend/dataset/raw/
-backend/dataset/train/
-backend/dataset/val/
-backend/dataset/test/
-backend/dataset/annotation*/
+backend/dataset/*
+backend/dataset/
 
 # Models (large binary)
 backend/models/*.pt

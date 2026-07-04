@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import random
 import shutil
 import time
@@ -429,6 +430,50 @@ async def pipeline_yolo_test():
         return run_yolo_test_pipeline()
     except Exception as e:
         raise HTTPException(500, f"YOLO test pipeline failed: {str(e)}")
+
+
+@router.post("/pipeline/yolo/train")
+async def pipeline_yolo_train_model():
+    loop = asyncio.get_running_loop()
+    logs = []
+    t0 = time.time()
+    try:
+        t = time.time()
+        run_coco_pipeline()
+        logs.append({"step": "coco", "duration_s": round(time.time() - t, 2)})
+
+        t = time.time()
+        run_yolo_pipeline()
+        logs.append({"step": "yolo_inference", "duration_s": round(time.time() - t, 2)})
+
+        t = time.time()
+        from train import train_one
+        def _train():
+            model_path, map50 = train_one(
+                pretrained="yolo11m.pt",
+                data=str(BASE_DIR / "data.yaml"),
+                epochs=int(os.environ.get("EPOCHS", "200")),
+                batch=16,
+                imgsz=640,
+                patience=30,
+                device=get_device(),
+                name="api_train",
+            )
+            if model_path and model_path.exists():
+                dest = MODEL_PATH
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(str(model_path), str(dest))
+            return {"map50": round(map50 * 100, 2), "best_path": str(model_path) if model_path else None}
+        train_result = await loop.run_in_executor(None, _train)
+        logs.append({"step": "train", "duration_s": round(time.time() - t, 2), **train_result})
+
+        return {
+            "pipeline": "full_train",
+            "total_duration_s": round(time.time() - t0, 2),
+            "logs": logs,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Full training pipeline failed: {str(e)}")
 
 
 @router.post("/reset")
