@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from PIL import Image, ImageDraw, ImageFont
 
-from app.config import BASE_DIR, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, ORGANIC_CATEGORIES
 from app.utils.gpu_utils import try_log_gpu
 
 DATASET_DIR = BASE_DIR / "dataset"

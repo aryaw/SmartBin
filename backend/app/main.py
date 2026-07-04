@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import CORS_ORIGINS, STATIC_DIR
+from app.core.config import CORS_ORIGINS, STATIC_DIR
 
 logging.basicConfig(
     level=logging.INFO,

@@ -8,7 +8,7 @@ import cvzone
 import numpy as np
 from ultralytics import YOLO
 
-from app.config import MODEL_PATH, RESULT_DIR
+from app.core.config import MODEL_PATH, RESULT_DIR
 from app.utils.gpu_utils import get_device, warmup_model
 
 logger = logging.getLogger(__name__)

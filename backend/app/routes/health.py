@@ -6,7 +6,7 @@ from fastapi import APIRouter
 
 from app.schemas.detection import HealthResponse
 from app.services.detector import _model, reload_model
-from app.config import MODEL_PATH
+from app.core.config import MODEL_PATH
 
 logger = logging.getLogger(__name__)
 

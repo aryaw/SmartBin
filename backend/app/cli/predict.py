@@ -2,10 +2,10 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.services.detector import detect_image, detect_video
-from app.config import ALLOWED_IMAGE_EXT, ALLOWED_VIDEO_EXT
+from app.core.config import ALLOWED_IMAGE_EXT, ALLOWED_VIDEO_EXT
 
 
 def main():

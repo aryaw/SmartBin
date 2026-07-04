@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 UPLOAD_DIR = BASE_DIR / "uploads"
 LOG_DIR = BASE_DIR / "log"
@@ -31,24 +31,9 @@ CORS_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-# TACO category IDs that map to "Organik" (biodegradable/organic waste)
-# Paper, cardboard, food waste, and other compostable materials
 ORGANIC_CATEGORIES = {
-    13,   # Toilet tube (cardboard)
-    14,   # Other carton (cardboard)
-    15,   # Egg carton (cardboard)
-    16,   # Drink carton (cardboard)
-    17,   # Corrugated carton (cardboard)
-    18,   # Meal carton (cardboard)
-    19,   # Pizza box (cardboard)
-    20,   # Paper cup
-    25,   # Food waste
-    30,   # Magazine paper
-    31,   # Tissues
-    32,   # Wrapping paper
-    33,   # Normal paper
-    34,   # Paper bag
-    56,   # Paper straw
+    13,  14,  15,  16,  17,  18,  19,  20,
+    25,  30,  31,  32,  33,  34,  56,
 }
 
 def is_organic(category_id: int) -> bool:

@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse, Response
 
-from app.config import BASE_DIR, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, ORGANIC_CATEGORIES
 
 router = APIRouter(prefix="/api/datasource", tags=["Datasource"])
 

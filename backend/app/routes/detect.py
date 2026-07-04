@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 
-from app.config import ALLOWED_IMAGE_EXT, RESULT_DIR
+from app.core.config import ALLOWED_IMAGE_EXT, RESULT_DIR
 from app.schemas.detection import DetectResponse, DetectedObject, Summary
 from app.services.detector import detect_image, detect_video
 from app.services.log_service import write_detection_log, read_detection_log

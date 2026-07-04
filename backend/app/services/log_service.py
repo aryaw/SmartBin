@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from app.config import LOG_DIR
+from app.core.config import LOG_DIR
 
 
 def _date_dir() -> Path:

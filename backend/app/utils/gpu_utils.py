@@ -2,7 +2,7 @@ import os
 
 import torch
 
-from app.config import DEVICE
+from app.core.config import DEVICE
 
 
 def init_gpu():

@@ -5,7 +5,7 @@ from collections import defaultdict
 import torch
 from PIL import Image, ImageDraw, ImageFont
 
-from app.config import BASE_DIR, MODEL_PATH
+from app.core.config import BASE_DIR, MODEL_PATH
 from app.services.detector import load_model
 from app.utils.gpu_utils import get_device, try_log_gpu
 

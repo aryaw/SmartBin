@@ -5,7 +5,7 @@ from pathlib import Path
 
 from ultralytics import YOLO
 
-from app.config import MODEL_DIR
+from app.core.config import MODEL_DIR
 from app.utils.gpu_utils import get_device
 
 

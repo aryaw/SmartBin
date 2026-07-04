@@ -4,7 +4,7 @@ from urllib.request import urlopen, Request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import defaultdict
 
-from app.config import BASE_DIR, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, ORGANIC_CATEGORIES
 
 DATASOURCE_DIR = BASE_DIR.parent / "datasource"
 ANNOTATIONS_FILE = DATASOURCE_DIR / "annotations.json"

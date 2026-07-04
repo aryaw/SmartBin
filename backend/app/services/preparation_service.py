@@ -3,7 +3,7 @@ from pathlib import Path
 from collections import defaultdict
 from fastapi import HTTPException
 
-from app.config import BASE_DIR, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, ORGANIC_CATEGORIES
 
 random.seed(42)
 

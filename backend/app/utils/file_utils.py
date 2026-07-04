@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import HTTPException, UploadFile
 
-from app.config import ALLOWED_IMAGE_EXT, ALLOWED_VIDEO_EXT, MAX_FILE_SIZE, UPLOAD_DIR
+from app.core.config import ALLOWED_IMAGE_EXT, ALLOWED_VIDEO_EXT, MAX_FILE_SIZE, UPLOAD_DIR
 
 
 def validate_upload(file: UploadFile):

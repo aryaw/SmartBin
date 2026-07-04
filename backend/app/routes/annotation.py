@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 from ultralytics import YOLO
 
-from app.config import BASE_DIR, MODEL_PATH, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, MODEL_PATH, ORGANIC_CATEGORIES
 from app.services.annotation_service import run_coco_pipeline
 from app.services.yolo_service import run_yolo_pipeline, run_yolo_val_pipeline, run_yolo_seg_pipeline
 from app.utils.gpu_utils import get_device
@@ -448,7 +448,7 @@ async def pipeline_yolo_train_model():
         logs.append({"step": "yolo_inference", "duration_s": round(time.time() - t, 2)})
 
         t = time.time()
-        from app.train import train_one
+        from app.cli.train import train_one
         def _train():
             model_path, map50 = train_one(
                 pretrained="yolo11m.pt",
@@ -492,7 +492,7 @@ async def pipeline_yolo_train_stream(request: Request):
             await loop.run_in_executor(None, lambda: run_yolo_pipeline(progress_callback=lambda d: emitter.emit("step", d)))
             emitter.emit("step", {"name": "yolo_inference", "status": "done", "message": "YOLO inference complete"})
 
-            from app.train import train_one
+            from app.cli.train import train_one
 
             def _train():
                 def _on_progress(d):
