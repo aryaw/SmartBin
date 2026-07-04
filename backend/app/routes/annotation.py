@@ -447,7 +447,7 @@ async def pipeline_yolo_train_model():
         logs.append({"step": "yolo_inference", "duration_s": round(time.time() - t, 2)})
 
         t = time.time()
-        from train import train_one
+        from app.train import train_one
         def _train():
             model_path, map50 = train_one(
                 pretrained="yolo11m.pt",

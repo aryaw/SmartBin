@@ -38,7 +38,9 @@ backend/
 ├── models/best.pt              # Trained weights
 ├── dataset/                    # Images + annotations (gitignored)
 ├── .env.example
-├── train.py
+├── app/train.py
+├── app/test.py
+├── app/predict.py
 └── data.yaml
 
 frontend/
@@ -98,7 +100,7 @@ docker compose up -d frontend
 
 1. **Prepare Data** - Download TACO images via dashboard or `POST /api/dataset/download`, then split via `POST /api/dataset/split` (70/15/15 train/val/test, auto-dedup by MD5)
 2. **Annotate** - Generate annotations via train-data page buttons: Generate Annotation (COCO bbox) and Generate Segmentation
-3. **Train** - `python train.py --model yolo26n.pt --data data.yaml --epochs 100`
+3. **Train** - `python -m app.train --model yolo26n.pt --data data.yaml --epochs 100`
 4. **Evaluate** - View mAP metrics at `/eval` or `GET /api/dataset/evaluate?split=all`
 5. **Detect** - Upload images at `/dashboard` for real-time classification
 
@@ -131,10 +133,16 @@ docker compose up -d frontend
 cd backend
 
 # Basic
-python train.py --model ../yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640
+python -m app.train --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640
 
 # Grid search over epochs
-python train.py --model ../yolo26n.pt --data data.yaml --grid-search 10 20 40
+python -m app.train --model yolo26n.pt --data data.yaml --grid-search 10 20 40
+
+# Evaluate
+python -m app.test --model models/best.pt --data data.yaml --split test
+
+# Predict single image
+python -m app.predict path/to/image.jpg
 ```
 
 ## Environment

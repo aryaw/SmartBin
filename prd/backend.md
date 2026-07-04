@@ -88,8 +88,9 @@ backend/
 ├── models/best.pt              # YOLO weights (trained)
 ├── .venv/                      # Python 3.12 (--copies, portable)
 ├── requirements.txt
-├── train.py                    # Training CLI with grid search
-├── predict.py                  # CLI inference helper
+├── app/train.py                # Training CLI with grid search
+├── app/test.py                 # Evaluation CLI
+├── app/predict.py              # CLI inference helper
 ├── data.yaml                   # Dataset config for YOLO
 ├── Dockerfile
 ├── log-wrapper.sh              # Entrypoint logging wrapper
@@ -130,10 +131,16 @@ backend/
 
 ```bash
 # Single run
-python train.py --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640
+python -m app.train --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640
 
 # Grid search (best model auto-copied to models/best.pt)
-python train.py --model yolo26n.pt --data data.yaml --grid-search 10 20 40
+python -m app.train --model yolo26n.pt --data data.yaml --grid-search 10 20 40
+
+# Evaluate on test set
+python -m app.test --model models/best.pt --data data.yaml --split test
+
+# Predict single image
+python -m app.predict path/to/image.jpg
 ```
 
 | Param | Value |
