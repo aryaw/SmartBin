@@ -52,6 +52,19 @@
           <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
           <span>{{ item.label }}</span>
         </NuxtLink>
+
+        <div class="mt-6 mb-2">
+          <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Pipeline</p>
+        </div>
+
+        <NuxtLink v-for="item in pipelineItems" :key="item.to"
+          :to="item.to"
+          class="w-full flex items-center h-10 pl-4 rounded-lg text-sm transition-colors text-gray-300 hover:text-white"
+          :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
+        >
+          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
+          <span>{{ item.label }}</span>
+        </NuxtLink>
       </nav>
 
       <div class="p-4 border-t border-gray-700 text-xs text-gray-400 text-center">
@@ -97,6 +110,10 @@ const annotationItems = [
   { to: "/segmentation-result", label: "Segmentation Result", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" /></svg>` },
 ]
 
+const pipelineItems = [
+  { to: "/kaggle-cms", label: "Kaggle CMS Pipeline", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>` },
+]
+
 function isActive(path: string) {
   return route.path === path
 }
@@ -112,6 +129,7 @@ const pageTitle = computed(() => {
 
     "/boundingbox-result": "BoundingBox Result",
     "/segmentation-result": "Segmentation Result",
+    "/kaggle-cms": "Kaggle CMS Pipeline",
   }
   return map[route.path] || "SmartBin"
 })

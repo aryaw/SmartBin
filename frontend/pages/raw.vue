@@ -8,15 +8,27 @@
       <div class="flex items-center gap-2">
         <button :disabled="downloading"
           class="bg-secondary hover:bg-blue-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-          @click="runDownload">
+          @click="runDownload('taco')">
           <svg v-if="downloading" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.707.707V19a2 2 0 01-2 2z" />
           </svg>
-          {{ downloading ? 'Downloading...' : 'Download Raw Data' }}
+          {{ downloading === 'taco' ? 'Downloading...' : 'Download TACO' }}
+        </button>
+        <button :disabled="downloading"
+          class="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
+          @click="runDownload('kaggle')">
+          <svg v-if="downloading === 'kaggle'" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {{ downloading === 'kaggle' ? 'Downloading...' : 'Download Kaggle' }}
         </button>
         <button :disabled="splitting"
           class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
@@ -49,7 +61,12 @@
       <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span>Downloaded {{ downloadResult.success }} images ({{ downloadResult.failed }} failed)</span>
+      <span v-if="downloadResult.pipeline === 'kaggle_download'">
+        Kaggle dataset: {{ downloadResult.total_images }} images ({{ downloadResult.edge_masks }} edge, {{ downloadResult.fallback_masks }} fallback masks) | {{ downloadResult.classes }} classes
+      </span>
+      <span v-else>
+        Downloaded {{ downloadResult.success }} images ({{ downloadResult.failed }} failed)
+      </span>
     </div>
 
     <div v-if="splitResult" class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-3">
@@ -113,10 +130,10 @@ const paginatedItems = computed(() => {
   return items.value.slice(start, start + perPage)
 })
 
-async function runDownload() {
-  downloading.value = true; downloadResult.value = null
+async function runDownload(source: string) {
+  downloading.value = source; downloadResult.value = null
   try {
-    downloadResult.value = await $fetch("/api/dataset/download", { baseURL: apiBase, method: "POST" })
+    downloadResult.value = await $fetch(`/api/dataset/download?source=${source}`, { baseURL: apiBase, method: "POST" })
     await load()
   } catch (e: any) { showError(e?.data?.detail || e?.message || 'Download failed') } finally { downloading.value = false }
 }
