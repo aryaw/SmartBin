@@ -2,7 +2,7 @@
 
 ## 1.1 Latar Belakang
 
-Permasalahan sampah global telah mencapai tingkat mengkhawatirkan. Produksi sampah global mencapai 2,01 miliar ton per tahun dan diproyeksikan meningkat 70% pada 2050. Di Indonesia, timbulan sampah nasional mencapai 175.000 ton per hari. Tantangan utama adalah pemilahan yang masih manual, tidak efisien, dan rawan error.
+Permasalahan sampah telah mencapai tingkat mengkhawatirkan, khususnya di Bali sebagai destinasi wisata global. Bali menghasilkan ~1.340 ton sampah per hari (DLHK Bali), dengan 60% berasal dari sektor pariwisata. Komposisi sampah didominasi organik (60%) dan plastik (30%). Tantangan utama adalah pemilahan yang masih manual, tidak efisien, dan rawan error.
 
 Perkembangan deep learning dalam computer vision membuka paradigma baru otomatisasi deteksi dan klasifikasi objek. Instance segmentation - yang memprediksi masker piksel-level untuk setiap objek - memberikan informasi lebih detail dibandingkan bounding box detection. Arsitektur YOLO (You Only Look Once) sebagai one-stage detector telah berevolusi hingga generasi YOLOv26 yang mendukung instance segmentation dengan berbagai fitur arsitektur baru.
 

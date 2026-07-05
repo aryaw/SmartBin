@@ -2,7 +2,43 @@
 
 **Deteksi dan Klasifikasi Sampah Menggunakan YOLOv26m-seg untuk Instance Segmentation dengan 18 Subkategori**
 
-Pipeline End-to-End: Dataset → Pseudo-Mask → Training YOLOv26m-seg → Evaluasi → Aplikasi Web
+```mermaid
+flowchart LR
+    subgraph Dataset[Dataset]
+        D1["phenomsg/waste-classification"] --> D2["2.917 images, 18 subkategori"]
+        D2 --> D3["backend/dataset/raw<br/>env: DATASET_PATH"]
+    end
+    
+    subgraph PseudoMask[Pseudo-Mask Generation]
+        M1["Edge Detection Otsu<br/>83,3%"] --> M3["Polygon 24 titik"]
+        M2["Fallback Geometris<br/>16,7%"] --> M3
+        M3 --> M4["Format YOLO-seg<br/>class_id + koordinat"]
+    end
+    
+    subgraph Training[Training YOLOv26m-seg]
+        T1["Stratified Split<br/>70/15/15"] --> T2["YOLOv26m-seg<br/>50 epoch, batch 16, imgsz 640"]
+        T2 --> T3["MuSGD Optimizer<br/>Cosine LR 0,01 hingga 0,0001"]
+        T3 --> T4["Augmentasi Online<br/>Mosaic, Mixup, Copy-Paste, HSV"]
+    end
+    
+    subgraph Evaluasi[Evaluasi]
+        E1["Box Metrics<br/>mAP@0.5: 48,5%"] --> E3["Per-Class Mask AP@50<br/>e-waste 78,6% hingga kitchen_waste 11,2%"]
+        E2["Mask Metrics<br/>mAP@0.5: 35,7%"] --> E3
+    end
+    
+    subgraph Web[Aplikasi Web CMS]
+        W1["FastAPI Backend<br/>REST API"] --- W2["Nuxt.js 3 Frontend<br/>4 Menu Pipeline"]
+        W2 --> W3["/raw/dataset<br/>Load & Profiling"]
+        W2 --> W4["/raw/preparation<br/>Convert & Visualize"]
+        W2 --> W5["/raw/training<br/>Train, Results, Evaluate"]
+        W2 --> W6["/raw/deployment<br/>Inference, Export, Verify"]
+    end
+    
+    Dataset --> PseudoMask
+    PseudoMask --> Training
+    Training --> Evaluasi
+    Evaluasi --> Web
+```
 
 *Selamat pagi/siang. Presentasi ini akan memaparkan penelitian mengenai deteksi dan klasifikasi sampah menggunakan YOLOv26m-seg untuk instance segmentation pada 18 subkategori. Penelitian mencakup pipeline end-to-end dari konversi dataset klasifikasi ke format segmentasi, pelatihan model, evaluasi, hingga implementasi aplikasi web.*
 
@@ -26,21 +62,22 @@ Pipeline End-to-End: Dataset → Pseudo-Mask → Training YOLOv26m-seg → Evalu
 
 ## Slide 3: Latar Belakang
 
-**Krisis Sampah Global:**
+**Krisis Sampah di Bali:**
 
-- Produksi sampah global: **2,01 miliar ton/tahun**
-- Proyeksi 2050: meningkat **70%** → ~3,4 miliar ton/tahun
-- Indonesia: **175.000 ton/hari** - pemilahan manual, tidak efisien
+- Bali menghasilkan **~1.340 ton sampah per hari** (DLHK Bali)
+- Pariwisata menyumbang **60% dari total sampah** - 3,6 juta ton/tahun dari sektor pariwisata
+- Komposisi: **60% organik, 30% plastik, 10% lainnya**
+- Pemilahan manual masih dominan - tidak efisien untuk volume sebesar ini
 
 **Solusi Deep Learning:**
 
 ```mermaid
 flowchart TD
-    A[Produksi Sampah Global<br/>2,01M ton/tahun] --> B[Pemilahan Manual<br/>Tidak Efisien]
-    B --> C[Deep Learning<br/>untuk Otomatisasi]
-    C --> D[Computer Vision<br/>Deteksi & Klasifikasi]
-    D --> E[Instance Segmentation<br/>Masker Piksel-level]
-    E --> F[YOLOv26m-seg<br/>One-Stage Segmentasi]
+    A["Bali: ~1.340 ton sampah/hari<br/>Sumber: DLHK Bali"] --> B["Pemilahan Manual<br/>Tidak Efisien"]
+    B --> C["Deep Learning<br/>untuk Otomatisasi"]
+    C --> D["Computer Vision<br/>Deteksi & Klasifikasi"]
+    D --> E["Instance Segmentation<br/>Masker Piksel-level"]
+    E --> F["YOLOv26m-seg<br/>One-Stage Segmentasi"]
 ```
 
 *Instance segmentation dipilih karena memberikan informasi lebih detail dibanding bounding box - mampu memprediksi masker piksel-level untuk setiap objek sampah, memungkinkan analisis bentuk dan ukuran yang lebih akurat.*
@@ -77,7 +114,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     T1[T1: Pipeline Konversi<br/>Klasifikasi → Segmentasi] --> T2
-    T2[T2: Training YOLOv26m-seg<br/>120 epoch, 18 kelas] --> T3
+    T2[T2: Training YOLOv26m-seg<br/>50 epoch, 18 kelas] --> T3
     T3[T3: Analisis Performa<br/>Per-class AP + Advice] --> T4
     T4[Aplikasi Web CMS<br/>Pipeline 12 Langkah]
 ```
@@ -293,7 +330,7 @@ flowchart LR
     end
     
     subgraph G3[Kelompok 3: Train & Eval]
-        C1[Train YOLOv26m-seg<br/>120 epoch] --> C2[Training Curves<br/>Results] --> C3[Evaluation<br/>Box + Mask Metrics]
+        C1[Train YOLOv26m-seg<br/>50 epoch] --> C2[Training Curves<br/>Results] --> C3[Evaluation<br/>Box + Mask Metrics]
     end
     
     subgraph G4[Kelompok 4: Inference & Export]
@@ -351,29 +388,29 @@ flowchart LR
 | Model | yolo26m-seg.pt (COCO pretrained) |
 | Image size | 640 |
 | Batch size | 16 |
-| Epochs | 120 (early stop patience=20) |
+| Epochs | 50 (early stop patience=30) |
 | Optimizer | SGD (triggers MuSGD mode) |
 | Learning rate | 0.01 → cosine → 0.0001 |
 | Box loss weight | 7.5 |
-| Cls loss weight | 1.5 |
+| Cls loss weight | 0.5 |
 
 **Augmentasi Online:**
 
 ```mermaid
 flowchart LR
     subgraph Online[Augmentasi Online Pipeline]
-        M[Mosaic 1.0<br/>Gabung 4 citra] --> MX[Mixup 0.2<br/>Interpolasi antar citra]
-        MX --> CP[Copy-Paste 0.15<br/>Objek antar citra]
-        CP --> H[HSV Jitter<br/>H=0.015, S=0.7, V=0.4]
-        H --> G[Geometric<br/>Rot ±10°, Scale ±50%, Trans ±10%]
-        G --> F[Flip LR 50%, UD 10%]
-        F --> E[Erasing 10%<br/>Occlusion simulation]
+        M[Mosaic 1.0<br/>Gabung 4 citra] --> MX[Mixup 0.3<br/>Blending antar citra]
+        MX --> CP[Copy-Paste 0.4<br/>Objek antar citra]
+        CP --> H[HSV Jitter<br/>H=0.05, S=0.8, V=0.5]
+        H --> G[Geometric<br/>Rot ±15°, Scale ±50%, Trans ±20%, Shear 5°]
+        G --> F[Flip LR 50%, UD 20%]
+        F --> E[Erasing 40%<br/>Occlusion simulation]
     end
     I[Input Image] --> Online
     Online --> O[Training Batch]
 ```
 
-*Augmentasi esensial untuk dataset ~2.917 citra. Close mosaic pada epoch akhir (min(10, epochs/2)) untuk stabilisasi distribusi.*
+*Augmentasi esensial untuk dataset ~2.917 citra. Close mosaic pada epoch akhir (epochs // 2) untuk stabilisasi distribusi.*
 
 ---
 
@@ -383,20 +420,23 @@ flowchart LR
 
 | Komponen | Spesifikasi |
 |----------|-------------|
-| **GPU** | Tesla T4 (15,6 GB VRAM) |
+| **CPU** | AMD Ryzen 7 8700F (8 core, 16 thread) |
+| **RAM** | 32 GB DDR5 (6000 MT/s) |
+| **GPU** | NVIDIA GeForce RTX 5060 Ti (16 GB VRAM) |
+| **CUDA** | 13.2, Driver 595.71.05 |
 | **DL Framework** | Ultralytics 8.4, PyTorch 2.9 |
+| **OS** | Ubuntu 25.10 |
 | **Backend** | FastAPI, Uvicorn |
 | **Frontend** | Nuxt.js 3 |
 | **Python** | 3.12 |
 | **Config** | env-driven (`backend/app/core/config.py`) |
-| **Training time** | ~4 jam (95 epoch, early stop di epoch 75) |
 
 **GPU Optimization:**
-- FP16 inference - reduksi VRAM ~44%
-- batch size 16 feasible pada 12GB VRAM
-- `torch.cuda.set_per_process_memory_fraction()` - cegah OOM
+- FP16 mixed precision - reduksi VRAM ~44%
+- batch size 16 feasible pada 16 GB VRAM
+- `cache=True` - dataset cached di RAM untuk akses lebih cepat
 
-*Lingkungan eksperimen menggunakan GPU Tesla T4 (cloud). Training selesai dalam ~4 jam dengan early stopping di epoch 75 dari maksimal 120.*
+*Lingkungan eksperimen menggunakan GPU lokal RTX 5060 Ti 16 GB. Training 50 epoch berjalan dalam beberapa jam tergantung konfigurasi.*
 
 ---
 
@@ -433,7 +473,7 @@ flowchart LR
 
 ## Slide 17: Hasil Pelatihan
 
-**Training:** 95 epoch (best model di epoch 75, early stopped patience=20). Total ~4 jam pada Tesla T4.
+**Training:** 50 epoch dengan early stopping patience=30.
 
 **Metrics - Box vs Mask:**
 
@@ -557,7 +597,7 @@ flowchart TD
 
 1. **Pipeline konversi klasifikasi → segmentasi** berhasil diimplementasikan: edge detection Otsu (83,3%) + fallback geometris (16,7%) menghasilkan pseudo-polygon mask 24 titik untuk 2.917 citra.
 
-2. **YOLOv26m-seg** berhasil dilatih pada 18 subkategori sampah dengan konfigurasi 120 epoch, batch 16, image size 640, SGD optimizer (MuSGD).
+2. **YOLOv26m-seg** berhasil dilatih pada 18 subkategori sampah dengan konfigurasi 50 epoch, batch 16, image size 640, optimizer SGD (MuSGD).
 
 3. **Performa model:** Box mAP@0.5 **48,5%**, Mask mAP@0.5 **35,7%** - dengan e-waste (78,6%) sebagai kelas terbaik dan kitchen_waste (11,2%) sebagai kelas terendah.
 

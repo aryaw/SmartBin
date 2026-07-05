@@ -245,10 +245,14 @@ flowchart TD
 
 | Komponen | Spesifikasi |
 |----------|-------------|
-| GPU | Tesla T4 (15.6 GB VRAM) |
+| CPU | AMD Ryzen 7 8700F (8 core, 16 thread) |
+| RAM | 32 GB DDR5 (2x16 GB 6000 MT/s, configured 5200 MT/s) |
+| GPU | NVIDIA GeForce RTX 5060 Ti (16 GB VRAM) |
+| CUDA | 13.2, Driver 595.71.05 |
 | DL Framework | Ultralytics 8.4, PyTorch 2.9 |
 | Backend | FastAPI, Uvicorn |
 | Frontend | Nuxt.js 3 |
 | Python | 3.12 |
+| OS | Ubuntu 25.10 |
 | Training time | ~4 jam (95 epoch) |
 | Konfigurasi | Environment-driven via backend/.env (DATASET_PATH, DEVICE, dll) |
