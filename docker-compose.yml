@@ -1,0 +1,45 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartbin-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DB_HOST=host.docker.internal
+      - API_BASE=http://backend:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/log:/app/log
+      - ./backend/static:/app/static
+      - ./backend/models:/app/models
+      - ./backend/dataset:/app/dataset
+      - ./datasource:/datasource
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartbin-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - API_BASE=http://backend:8000
+    volumes:
+      - ./frontend/log:/app/log
+    depends_on:
+      - backend
+    restart: unless-stopped

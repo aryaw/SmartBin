@@ -12,6 +12,8 @@ from app.utils.gpu_utils import get_device
 def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
               patience: int, device: str, name: str, lr0: float = 0.001,
               lrf: float = 0.01, warmup_epochs: float = 3.0,
+              optimizer: str = "auto",
+              mask_ratio: int = 4, overlap_mask: bool = True,
               progress_callback=None) -> tuple:
     model = YOLO(pretrained)
 
@@ -56,8 +58,9 @@ def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
         lrf=lrf,
         warmup_epochs=warmup_epochs,
         cos_lr=True,
-        label_smoothing=0.1,
-        fl_gamma=1.5,
+        optimizer=optimizer,
+        mask_ratio=mask_ratio,
+        overlap_mask=overlap_mask,
         name=name,
         exist_ok=True,
         deterministic=True,
@@ -72,11 +75,24 @@ def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
     recall = metrics.get("metrics/recall(B)", 0)
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
-    print(f"  mAP@0.5    : {map50 * 100:.1f}%")
-    print(f"  mAP@0.5:0.95: {map50_95 * 100:.1f}%")
-    print(f"  Precision  : {precision * 100:.1f}%")
-    print(f"  Recall     : {recall * 100:.1f}%")
-    print(f"  F1-Score   : {f1 * 100:.1f}%")
+    print(f"  Box   mAP@0.5    : {map50 * 100:.1f}%")
+    print(f"  Box   mAP@0.5:0.95: {map50_95 * 100:.1f}%")
+    print(f"  Box   Precision  : {precision * 100:.1f}%")
+    print(f"  Box   Recall     : {recall * 100:.1f}%")
+    print(f"  Box   F1-Score   : {f1 * 100:.1f}%")
+
+    seg_map50 = metrics.get("metrics/mAP50(M)", 0)
+    seg_map50_95 = metrics.get("metrics/mAP50-95(M)", 0)
+    seg_precision = metrics.get("metrics/precision(M)", 0)
+    seg_recall = metrics.get("metrics/recall(M)", 0)
+    seg_f1 = 2 * seg_precision * seg_recall / (seg_precision + seg_recall) if (seg_precision + seg_recall) > 0 else 0
+
+    if seg_map50 > 0:
+        print(f"  Mask  mAP@0.5    : {seg_map50 * 100:.1f}%")
+        print(f"  Mask  mAP@0.5:0.95: {seg_map50_95 * 100:.1f}%")
+        print(f"  Mask  Precision  : {seg_precision * 100:.1f}%")
+        print(f"  Mask  Recall     : {seg_recall * 100:.1f}%")
+        print(f"  Mask  F1-Score   : {seg_f1 * 100:.1f}%")
 
     if hasattr(val, "box") and hasattr(val.box, "ap_class_index"):
         cls_names = model.names if hasattr(model, "names") else {}
@@ -86,7 +102,7 @@ def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
             print(f"  {name_cls:>20s}: {ap * 100:.1f}%")
 
     best_path = Path(results.save_dir) / "weights" / "best.pt"
-    return best_path, map50
+    return best_path, max(map50, seg_map50)
 
 
 def main():

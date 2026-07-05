@@ -1,50 +1,93 @@
 # SmartBin - Product Requirements Document
 
-**Version:** 2.0
+**Version:** 3.0
 **Platform:** Web Application
-**Stack:** FastAPI + Nuxt 3 + YOLO26n
+**Stack:** FastAPI + Nuxt 3 + YOLOv26m-seg
 
 ---
 
 ## Dataset
 
-Source: TACO (Trash Annotations in Context), 1500 images, 4784 annotations.
+Source: phenomsg/waste-classification (Kaggle), ~2,917 images, 18 subcategories, 4 main categories.
 
-Class mapping: Organik (ID 0) = Food waste only (TACO category 25). Non-Organik (ID 1) = all other 59 categories.
+Main categories: Hazardous, Non-Recyclable, Organic, Recyclable.
 
-Split: 70/15/15 from `raw/` via `POST /api/dataset/split`. Split endpoint self-cleans existing train/val/test before re-splitting. `raw/` never deleted by split or rebuild script.
+Classes (18): batteries, e-waste, paints, pesticides, ceramic_product, diapers, platics_bags_wrappers, sanitary_napkin, stroform_product, coffee_tea_bags, egg_shells, food_scraps, kitchen_waste, yard_trimmings, cans_all_type, glass_containers, paper_products, plastic_bottles.
+
+Data stored at `backend/dataset/raw/` (configurable via `DATASET_PATH` env). Loaded into `backend/dataset/kaggle_waste/` via pipeline.
 
 ---
 
-## Training
+## Pipeline (4 Groups)
 
-Model: YOLO26n (`yolo26n.pt`), batch=16, imgsz=640, augment=mosaic+HSV+geometric+erasing.
-GPU VRAM limit: 12GB. FP16 inference. Cache clear every 16 images.
+Four pages, one per pipeline group:
 
-CLI: `python -m app.cli.train --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640`
-Grid search: `--grid-search 10 20 40`
+**Group 1: /dataset-prep — Dataset Preparation & Profiling**
+| Button | Endpoint |
+|--------|----------|
+| Load Dataset | POST /api/kaggle/download?source=local |
+| Dataset Profiling | GET /api/kaggle/explore |
+
+**Group 2: /convert-viz — Convert & Visualize Masks**
+| Button | Endpoint |
+|--------|----------|
+| Convert Masks | POST /api/kaggle/convert |
+| Visualize Samples | GET /api/kaggle/viz |
+
+**Group 3: /train-eval — Train, Results & Evaluation**
+| Button | Endpoint |
+|--------|----------|
+| Train Model | POST /api/kaggle/train |
+| Show Curves | GET /api/kaggle/results |
+| Evaluate | GET /api/kaggle/evaluate |
+
+**Group 4: /inference-export — Inference, Export & Verify**
+| Button | Endpoint |
+|--------|----------|
+| Upload & Infer | POST /api/kaggle/inference |
+| Batch Test | POST /api/kaggle/inference/batch |
+| Export Model | POST /api/kaggle/export |
+| Final Verify | GET /api/kaggle/verify |
+
+---
+
+## Model
+
+Architecture: YOLOv26m-seg (Medium Segmentation)
+- MuSGD Optimizer (SGD + Muon hybrid)
+- Semantic Segmentation Loss
+- Multi-Scale Proto Modules
+- NMS-Free End-to-End
+- No DFL (edge device support)
+- ProgLoss + STAL (small object detection)
+
+Training: 120 epochs, batch=16, imgsz=640, patience=20.
+Augmentation: mosaic=1.0, mixup=0.2, copy_paste=0.15.
 
 ---
 
 ## Backend
 
-FastAPI port 8000. 13+ REST endpoints across 4 routers: health, detect, annotation, datasource.
-
-Lifespan: GPU init + model load on startup. Model: `models/best.pt`.
-
-Build strategy: host `.venv` (Python 3.12 `--copies`) copied into Docker → `pip install` finds everything cached → zero download on rebuild (~2s).
+FastAPI port 8000. Routes:
+- `/api/kaggle/*` — CMS pipeline (16 endpoints)
+- `/api/dataset/*` — Dataset management (20 endpoints)
+- `/api/detect` — Live inference
+- `/health` — Health check
 
 ---
 
 ## Frontend
 
-Nuxt 3 port 3000. Tailwind CSS. Sidebar: 3 groups, 10 nav items, 10 unique routes.
+Nuxt 3 port 3000. Tailwind CSS.
 
-- **Main:** Dashboard Report, Test Upload
-- **Dataset:** All Raw Data, Train Data, Test Data, Evaluation Metrics
-- **Annotations:** BoundingBox Result, Segmentation Result, Inference, Test Inference
+Sidebar: Main (Dashboard) + Pipeline (4 groups).
 
-All grids: ZoomModal + Pagination.
+Pages:
+- `/dataset-prep` — Group 1: Load dataset + profiling report
+- `/convert-viz` — Group 2: Convert masks + visualize samples
+- `/train-eval` — Group 3: Train model + view curves + evaluate metrics
+- `/inference-export` — Group 4: Upload infer + batch test + export + verify
+- `/dashboard` — Live detection upload
 
 ---
 
@@ -52,12 +95,10 @@ All grids: ZoomModal + Pagination.
 
 | Script | Action |
 |--------|--------|
-| `restart-rebuild-api.sh` | Clean dataset (preserve `raw/`) → sync `.venv` → verify packages → build Docker → stop → start |
+| `restart-rebuild-api.sh` | Build backend Docker → stop → start |
 | `restart-rebuild-fe.sh` | Build frontend Docker → stop → start |
-| `start-api.sh` | Build image if missing → free port → `docker compose up -d backend` (fallback direct uvicorn) |
-| `start-fe.sh` | Free port → `docker compose up -d frontend` |
-| `stop-api.sh` | `docker compose stop backend` |
-| `stop-fe.sh` | `docker compose stop frontend` |
-| `setup.sh` | One-time: create `.venv`, build Docker images, create log dirs |
-
-All `.sh` files in `script/`.
+| `start-api.sh` | Start backend container |
+| `start-fe.sh` | Start frontend container |
+| `stop-api.sh` | Stop backend |
+| `stop-fe.sh` | Stop frontend |
+| `setup.sh` | One-time Docker build |

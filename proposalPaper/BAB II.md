@@ -17,6 +17,17 @@ Arsitektur modern terdiri dari:
 - **Neck:** Fusi fitur multi-skala (Feature Pyramid Network, PANet).
 - **Head:** Prediksi bounding box + kelas (decoupled head).
 
+```mermaid
+flowchart LR
+    A[Input Citra] --> B[Konvolusi: Filter W x H]
+    B --> C[Aktivasi: ReLU / SiLU]
+    C --> D[Pooling: Max Pooling]
+    D --> E[Feature Map]
+    E --> F[Backbone: CSPNet]
+    F --> G[Neck: FPN / PANet]
+    G --> H[Head: Prediksi BBox + Kelas]
+```
+
 ### 2.1.2 One-Stage vs Two-Stage Detector
 
 | Aspek | One-Stage (YOLO) | Two-Stage (Faster R-CNN) |
@@ -31,6 +42,32 @@ YOLO sebagai one-stage detector membagi citra menjadi grid $S \times S$. Setiap 
 ## 2.2 Arsitektur YOLO26
 
 YOLO26 adalah generasi terbaru Ultralytics YOLO dengan tiga komponen utama:
+
+```mermaid
+flowchart TD
+    subgraph Backbone[CSPDarknet Backbone]
+        A1[Input 640x640] --> A2[Conv SiLU x N]
+        A2 --> A3[CSP Stage 1]
+        A3 --> A4[CSP Stage 2]
+        A4 --> A5[CSP Stage 3]
+        A5 --> A6[SPP Layer]
+    end
+    
+    subgraph Neck[FPN + PAN Neck]
+        A6 --> B1[Top-Down FPN]
+        B1 --> B2[Bottom-Up PAN]
+    end
+    
+    subgraph Head[Decoupled Head]
+        B2 --> C1[Classification Branch]
+        B2 --> C2[Regression Branch]
+        B2 --> C3[Segmentation Branch]
+    end
+    
+    C1 --> D[Output: Kelas]
+    C2 --> E[Output: BBox]
+    C3 --> F[Output: Mask]
+```
 
 ### 2.2.1 Backbone: CSPNet Termodifikasi
 
@@ -58,7 +95,7 @@ Pemisahan memungkinkan setiap branch mengoptimalkan representasi berbeda.
 | yolo26s | 9,8M | 19 | 47,8% | 8,5 |
 | yolo26m | 21,2M | 42 | 52,5% | 13,2 |
 
-Penelitian ini menggunakan YOLO26n - optimal untuk edge deployment.
+Penelitian ini menggunakan YOLOv26m-seg (21,2M parameter) - varian medium dengan keseimbangan optimal antara akurasi dan komputasi untuk segmentasi 18 kelas sampah.
 
 ## 2.3 Bounding Box Regression dan Loss Functions
 
@@ -92,25 +129,51 @@ $$\mathcal{L}_{total} = w_{box} \cdot \mathcal{L}_{CIoU} + w_{cls} \cdot \mathca
 
 Dengan bobot default: $w_{box}=7.5$, $w_{cls}=0.5$, $w_{dfl}=1.5$.
 
+```mermaid
+flowchart TD
+    subgraph Loss[Total Loss Function]
+        L1[L_box = CIoU Loss<br/>weight: 7.5] --> L_total[L_total]
+        L2[L_cls = BCE Loss<br/>weight: 0.5] --> L_total
+        L3[L_dfl = DFL<br/>weight: 1.5] --> L_total
+    end
+    L_total --> O[Optimization: Backpropagation]
+```
+
 ## 2.4 Augmentasi Data
 
-Augmentasi meningkatkan generalisasi dan mencegah overfitting, terutama untuk dataset kecil (1.500 citra). Parameter dari implementasi:
+Augmentasi meningkatkan generalisasi dan mencegah overfitting, terutama untuk dataset (~2.917 citra). Parameter dari implementasi:
 
 | Augmentasi | Nilai | Efek |
 |------------|-------|------|
 | Mosaic | 1.0 | Gabung 4 citra, tingkatkan konteks |
-| HSV-Hue | 0.015 | Variasi warna |
-| HSV-Saturation | 0.7 | Variasi intensitas warna |
-| HSV-Value | 0.4 | Variasi brightness |
+| Mixup | 0.3 | Blending 2 citra, tingkatkan generalisasi |
+| Copy-paste | 0.4 | Salin objek antar citra (segmentation) |
+| HSV-Hue | 0.05 | Variasi warna |
+| HSV-Saturation | 0.8 | Variasi intensitas warna |
+| HSV-Value | 0.5 | Variasi brightness |
 | Scale | 0.5 | Multi-skala |
-| Translation | 0.1 | Pergeseran |
-| Rotation | 10° | Rotasi |
-| Shear | 2.0 | Distorsi affine |
+| Translation | 0.2 | Pergeseran |
+| Rotation | 15.0 | Rotasi |
+| Shear | 5.0 | Distorsi affine |
+| Perspective | 0.0001 | Transformasi perspektif |
 | Flip horizontal | 0.5 | Mirroring |
-| Flip vertical | 0.1 | Vertikal |
+| Flip vertical | 0.2 | Vertikal |
 | Random erasing | 0.4 | Occlusion simulation |
 
-Close mosaic pada epoch akhir ($\min(10, epochs/2)$) untuk stabilisasi.
+Close mosaic pada epoch akhir (epochs // 2) untuk stabilisasi.
+
+```mermaid
+flowchart LR
+    subgraph Online[Augmentasi Online]
+        M[Mosaic 1.0] --> H[HSV Jitter]
+        H --> G[Geometric: Rotate/Scale/Shear]
+        G --> F[Flip LR/UD]
+        F --> E[Erasing 0.4]
+    end
+    I[Input Image] --> Online
+    Online --> O[Training Batch]
+    
+```
 
 ## 2.5 Metrik Evaluasi Deteksi Objek
 
@@ -137,6 +200,17 @@ Interpolasi 101-point: $\text{AP} = \frac{1}{101} \sum_{r \in \{0,0.01,...,1\}} 
 mAP@0.5: AP dengan IoU threshold 0.5.
 mAP@0.5:0.95: rata-rata AP pada IoU 0.5 hingga 0.95 step 0.05 (standar COCO).
 
+```mermaid
+flowchart LR
+    A[Predictions] --> B[Threshold by Confidence]
+    B --> C[Compute IoU dengan GT]
+    C --> D[TP / FP per kelas]
+    D --> E[Precision-Recall Curve]
+    E --> F[AP = Area Under PR Curve]
+    F --> G[mAP@0.5 = Mean AP at IoU=0.5]
+    F --> H[mAP@0.5:0.95 = Mean AP 0.5-0.95]
+```
+
 ## 2.6 Penelitian Terkait
 
 | Peneliti | Arsitektur | Dataset | Kelas | mAP |
@@ -144,12 +218,12 @@ mAP@0.5:0.95: rata-rata AP pada IoU 0.5 hingga 0.95 step 0.05 (standar COCO).
 | Redmon et al. (2016) | YOLOv1 | PASCAL VOC | 20 | 63.4% mAP@0.5 |
 | Bochkovskiy et al. (2020) | YOLOv4 | MS COCO | 80 | 43.5% mAP@0.5:0.95 |
 | Ultralytics (2023) | YOLOv8n | MS COCO | 80 | 37.3% mAP@0.5:0.95 |
-| **Penelitian ini** | **YOLO26n** | **TACO** | **2** | **- (akan diukur)** |
+| **Penelitian ini** | **YOLOv26m-seg** | **waste-classification** | **18** | **Box 48.5% / Mask 35.7% mAP@0.5** |
 
 ## 2.7 Kerangka Konseptual
 
 Penelitian mencakup:
-1. **Pipeline Data:** Download TACO → konversi COCO→YOLO → stratified split 70/15/15 → augmentasi online
-2. **Pelatihan Model:** YOLO26n dengan CIoU + BCE + DFL loss, SGD optimizer, FP16
-3. **Evaluasi:** mAP@0.5, mAP@0.5:0.95, precision, recall, per-class AP
-4. **Aplikasi:** REST API minimal untuk inferensi
+1. **Pipeline Data:** Load dataset klasifikasi (18 kelas) → pseudo-polygon mask generation (Otsu edge detection + fallback geometris) → stratified split 70/15/15 → augmentasi online
+2. **Pelatihan Model:** YOLOv26m-seg dengan MuSGD optimizer, Semantic Segmentation Loss, CIoU + BCE + DFL, FP16, cosine LR scheduler
+3. **Evaluasi:** Box & Mask mAP@0.5, mAP@0.5:0.95, precision, recall, per-class mask AP@50
+4. **Aplikasi:** Web CMS 4-menu (/raw/dataset, /raw/preparation, /raw/training, /raw/deployment) dengan pipeline 12 langkah

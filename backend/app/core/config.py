@@ -3,16 +3,23 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-UPLOAD_DIR = BASE_DIR / "uploads"
-LOG_DIR = BASE_DIR / "log"
-STATIC_DIR = BASE_DIR / "static"
-RESULT_DIR = STATIC_DIR / "result"
-MODEL_DIR = BASE_DIR / "models"
-MODEL_PATH = MODEL_DIR / "best.pt"
+def _resolve_path(name: str, default: str) -> Path:
+    val = os.getenv(name, default)
+    p = Path(val)
+    return p if p.is_absolute() else BASE_DIR / p
+
+DATASET_PATH = BASE_DIR.parent / os.getenv("DATASET_PATH", "backend/dataset")
+
+UPLOAD_DIR = _resolve_path("UPLOAD_DIR", "uploads")
+LOG_DIR = _resolve_path("LOG_DIR", "log")
+STATIC_DIR = _resolve_path("STATIC_DIR", "static")
+RESULT_DIR = _resolve_path("RESULT_DIR", "static/result")
+MODEL_DIR = _resolve_path("MODEL_DIR", "models")
+MODEL_PATH = _resolve_path("MODEL_PATH", "models/best.pt")
 
 ALLOWED_IMAGE_EXT = {".jpg", ".jpeg", ".png"}
 ALLOWED_VIDEO_EXT = {".mp4", ".avi", ".mov"}
-MAX_FILE_SIZE = 200 * 1024 * 1024
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", str(200 * 1024 * 1024)))
 
 DEVICE = os.getenv("DEVICE", "cuda:0")
 CUDA_VISIBLE_DEVICES = os.getenv("CUDA_VISIBLE_DEVICES", "0")
@@ -39,7 +46,7 @@ ORGANIC_CATEGORIES = {
 def is_organic(category_id: int) -> bool:
     return category_id in ORGANIC_CATEGORIES
 
-ANNOTATIONS_FILE = BASE_DIR.parent / "datasource" / "annotations.json"
+ANNOTATIONS_FILE = _resolve_path("ANNOTATIONS_FILE", "../datasource/annotations.json")
 
 for d in [UPLOAD_DIR, LOG_DIR, RESULT_DIR, MODEL_DIR]:
     d.mkdir(parents=True, exist_ok=True)

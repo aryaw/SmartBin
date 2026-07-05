@@ -23,33 +23,7 @@
           class="w-full flex items-center h-10 pl-4 rounded-lg text-sm transition-colors text-gray-300 hover:text-white"
           :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
         >
-          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
-          <span>{{ item.label }}</span>
-        </NuxtLink>
-
-        <div class="mt-6 mb-2">
-          <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Dataset</p>
-        </div>
-
-        <NuxtLink v-for="item in datasetItems" :key="item.to"
-          :to="item.to"
-          class="w-full flex items-center h-10 pl-4 rounded-lg text-sm transition-colors text-gray-300 hover:text-white"
-          :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
-        >
-          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
-          <span>{{ item.label }}</span>
-        </NuxtLink>
-
-        <div class="mt-6 mb-2">
-          <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Annotations</p>
-        </div>
-
-        <NuxtLink v-for="item in annotationItems" :key="item.to"
-          :to="item.to"
-          class="w-full flex items-center h-10 pl-4 rounded-lg text-sm transition-colors text-gray-300 hover:text-white"
-          :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
-        >
-          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
+          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0" :class="isActive(item.to) ? 'text-white' : 'text-gray-300'" v-html="item.icon"></span>
           <span>{{ item.label }}</span>
         </NuxtLink>
 
@@ -57,12 +31,13 @@
           <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Pipeline</p>
         </div>
 
-        <NuxtLink v-for="item in pipelineItems" :key="item.to"
+        <NuxtLink v-for="item in pipelineItems" :key="item.key"
           :to="item.to"
-          class="w-full flex items-center h-10 pl-4 rounded-lg text-sm transition-colors text-gray-300 hover:text-white"
+          class="w-full flex items-center h-8 pl-4 rounded-lg text-xs transition-colors text-gray-300 hover:text-white"
           :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
         >
-          <span class="h-5 w-5 fill-current mr-3 flex-shrink-0 text-gray-300" v-html="item.icon"></span>
+          <span class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mr-2 flex-shrink-0"
+            :class="isActive(item.to) ? 'bg-tertiary text-white' : 'bg-gray-600 text-gray-300'">{{ item.num }}</span>
           <span>{{ item.label }}</span>
         </NuxtLink>
       </nav>
@@ -95,23 +70,14 @@
 const route = useRoute()
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard Report", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>` },
-  { to: "/test", label: "Test Upload", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>` },
-]
-
-const datasetItems = [
-  { to: "/raw", label: "All Raw Data", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>` },
-  { to: "/train-data", label: "Train Data", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>` },
-  { to: "/test-data", label: "Test Data", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 10.5a3 3 0 100-6 3 3 0 000 6z" /></svg>` },
-]
-
-const annotationItems = [
-  { to: "/boundingbox-result", label: "BoundingBox Result", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>` },
-  { to: "/segmentation-result", label: "Segmentation Result", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342" /></svg>` },
+  { to: "/dashboard", label: "Dashboard", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>` },
 ]
 
 const pipelineItems = [
-  { to: "/kaggle-cms", label: "Kaggle CMS Pipeline", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>` },
+  { key: "dataset", to: "/raw/dataset", label: "Dataset" },
+  { key: "preparation", to: "/raw/preparation", label: "Preparation" },
+  { key: "training", to: "/raw/training", label: "Training" },
+  { key: "deployment", to: "/raw/deployment", label: "Deployment" },
 ]
 
 function isActive(path: string) {
@@ -121,15 +87,11 @@ function isActive(path: string) {
 const pageTitle = computed(() => {
   const map: Record<string, string> = {
     "/": "Home",
-    "/dashboard": "Dashboard Report",
-    "/test": "Test Upload",
-    "/raw": "All Raw Data",
-    "/test-data": "Test Data",
-    "/train-data": "Train Data",
-
-    "/boundingbox-result": "BoundingBox Result",
-    "/segmentation-result": "Segmentation Result",
-    "/kaggle-cms": "Kaggle CMS Pipeline",
+    "/dashboard": "Dashboard",
+    "/raw/dataset": "Dataset",
+    "/raw/preparation": "Preparation",
+    "/raw/training": "Training",
+    "/raw/deployment": "Deployment",
   }
   return map[route.path] || "SmartBin"
 })

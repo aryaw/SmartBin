@@ -271,9 +271,9 @@
 
       <!-- Train Convert YOLO (COCO→YOLO) -->
       <div v-if="subKey === 'train_convert'">
-        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Train Convert YOLO (COCO → YOLO)</h3>
+        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Train Convert YOLO (COCO to YOLO)</h3>
         <div v-if="!paginatedTrainConvert.length" class="bg-white rounded-xl p-8 text-center border border-gray-100">
-          <p class="text-dark/40 text-sm">No converted annotations. Click "Convert COCO → YOLO".</p>
+          <p class="text-dark/40 text-sm">No converted annotations. Click "Convert COCO to YOLO".</p>
         </div>
         <template v-else>
           <YoloGrid :items="paginatedTrainConvert" :api-base="apiBase" @preview="previewUrl = $event" />
@@ -393,7 +393,7 @@
 
       <!-- Annotation Result Convert (report) -->
       <div v-if="subKey === 'convert_result'">
-        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Annotation Result Convert (COCO → YOLO)</h3>
+        <h3 class="font-bold text-tertiary uppercase tracking-wide text-sm mb-3">Annotation Result Convert (COCO to YOLO)</h3>
         <div v-if="!paginatedConvertResult.length" class="bg-white rounded-xl p-8 text-center border border-gray-100">
           <p class="text-dark/40 text-sm">No annotation results. Run "Annotation YOLO: From COCO" on Train Image page.</p>
         </div>

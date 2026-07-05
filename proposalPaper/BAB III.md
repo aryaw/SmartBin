@@ -2,195 +2,253 @@
 
 ## 3.1 Alur Penelitian
 
-Penelitian mengikuti pipeline sistematis empat tahap: (1) pra-pemrosesan data dan anotasi, (2) augmentasi dan pembagian data, (3) pelatihan model YOLO26n, (4) evaluasi dan inferensi.
+Penelitian mengikuti pipeline dalam 4 kelompok utama:
 
-```
-TACO JSON ─→ COCO→YOLO Convert ─→ Split 70/15/15 ─→ Augmentasi Online ─→ YOLO26n Training ─→ Evaluasi
-(datasource/)   (annotation_service.py)   (api/dataset/split)   (app/cli/train.py: mosaic+HSV+geo)   (ultralytics)   (mAP/precision/recall)
+```mermaid
+flowchart TD
+    subgraph G1[Dataset /raw/dataset]
+        A1[Load Dataset<br/>POST /api/kaggle/download] --> A2[Dataset Profiling<br/>GET /api/kaggle/explore]
+    end
+    
+    subgraph G2[Preparation /raw/preparation]
+        B1[Convert to YOLO-seg<br/>POST /api/kaggle/convert] --> B2[Visualize Masks<br/>GET /api/kaggle/viz]
+    end
+    
+    subgraph G3[Training /raw/training]
+        C1[Train YOLOv26m-seg<br/>POST /api/kaggle/train] --> C2[Results & Curves<br/>GET /api/kaggle/results]
+        C2 --> C3[Evaluate<br/>GET /api/kaggle/evaluate]
+    end
+    
+    subgraph G4[Deployment /raw/deployment]
+        D1[Inference<br/>POST /api/kaggle/inference] --> D2[Batch Inference<br/>POST /api/kaggle/inference/batch]
+        D2 --> D3[Export Model<br/>POST /api/kaggle/export]
+        D3 --> D4[Final Verification<br/>GET /api/kaggle/verify]
+    end
+    
+    A2 --> B1
+    B2 --> C1
+    C3 --> D1
 ```
 
-## 3.2 Dataset dan Anotasi
+---
+
+## 3.2 Dataset
 
 ### 3.2.1 Sumber Data
 
-TACO (Trash Annotations in Context) - citra sampah lingkungan nyata dari `datasource/annotations.json`.
+Dataset: phenomsg/waste-classification (~2.917 citra).
 
 | Karakteristik | Nilai |
 |---------------|-------|
-| Jumlah citra | 1.500 (official) |
-| Jumlah anotasi | 4.784 bounding box |
-| Kategori asli | 60 kelas |
-| Resolusi | 300×300 - 4000×3000 |
+| Jumlah citra | ~2.917 |
+| Kategori utama | 4 (Hazardous, Non-Recyclable, Organic, Recyclable) |
+| Subkategori | 18 |
+| Tipe | Klasifikasi (tanpa mask/bbox annotation) |
 
-### 3.2.2 Pemetaan Taksonomi ke Dua Kelas
+### 3.2.2 18 Subkategori
 
-60 kategori TACO dipetakan ke biner:
+| ID | Subkategori | Main Category |
+|----|-------------|---------------|
+| 0 | batteries | Hazardous |
+| 1 | e-waste | Hazardous |
+| 2 | paints | Hazardous |
+| 3 | pesticides | Hazardous |
+| 4 | ceramic_product | Non-Recyclable |
+| 5 | diapers | Non-Recyclable |
+| 6 | platics_bags_wrappers | Non-Recyclable |
+| 7 | sanitary_napkin | Non-Recyclable |
+| 8 | stroform_product | Non-Recyclable |
+| 9 | coffee_tea_bags | Organic |
+| 10 | egg_shells | Organic |
+| 11 | food_scraps | Organic |
+| 12 | kitchen_waste | Organic |
+| 13 | yard_trimmings | Organic |
+| 14 | cans_all_type | Recyclable |
+| 15 | glass_containers | Recyclable |
+| 16 | paper_products | Recyclable |
+| 17 | plastic_bottles | Recyclable |
 
-| Kelas Baru | ID | Kategori TACO Asli |
-|-----------|-----|--------------------|
-| Organik | 0 | Food waste (category_id 25) |
-| Non-Organik | 1 | Plastik, logam, kaca, kertas, tekstil, dll (59 kategori lain) |
+### 3.2.3 Stratified Split 70/15/15
 
-Pemetaan diimplementasikan di `backend/app/routes/annotation.py` fungsi `dataset_split` saat menulis label file: `cat_map = 0 if ann["category_id"] == 25 else 1`.
-
-### 3.2.3 Konversi ke Format YOLO
-
-COCO JSON → format YOLO per-file `.txt`:
-
-```
-<class_id> <x_center_norm> <y_center_norm> <width_norm> <height_norm>
-```
-
-Konversi bounding box:
-```python
-sx = actual_width / coco_width    # scale factor X
-sy = actual_height / coco_height  # scale factor Y
-# COCO: [x, y, width, height] → YOLO: [x_center, y_center, width, height]
-x_center = (x + width/2) * sx / actual_width   # → [0,1]
-y_center = (y + height/2) * sy / actual_height # → [0,1]
-w_norm = width * sx / actual_width              # → [0,1]
-h_norm = height * sy / actual_height            # → [0,1]
-```
-
-### 3.2.4 Stratified Split 70/15/15
-
-Random shuffle → 70% train (1.050), 15% val (225), 15% test (225). Implementasi di `POST /api/dataset/split`:
-
-```python
-random.shuffle(files)
-n_train = int(n * 0.7); n_val = int(n * 0.15)
-train = files[:n_train]; val = files[n_train:n_train+n_val]; test = files[n_train+n_val:]
-```
-
-Split endpoint self-cleans train/val/test dirs sebelum re-split. Raw dir preserved.
-
-## 3.3 Augmentasi Data Online
-
-Augmentasi diterapkan online saat training melalui Ultralytics engine:
-
-| Parameter | Nilai | Dampak Komputasi |
-|-----------|-------|-----------------|
-| mosaic | 1.0 | 4× komputasi per forward |
-| close_mosaic | min(10, epochs/2) | Stabilisasi akhir |
-| hsv_h / s / v | 0.015 / 0.7 / 0.4 | Color jitter |
-| scale | 0.5 | Multi-scale training |
-| translate | 0.1 | Shift invariance |
-| degrees | 10.0 | Rotasi kecil |
-| shear | 2.0 | Affine |
-| flipud/fliplr | 0.1 / 0.5 | Mirroring |
-| erasing | 0.4 | Cutout |
-
-Mosaic menggabung 4 citra menjadi 1, meningkatkan small object detection dan mengurangi overfitting.
-
-## 3.4 Arsitektur dan Pelatihan Model
-
-### 3.4.1 YOLO26n Architecture
+Stratified by class menggunakan `train_test_split` dengan `stratify` parameter:
 
 ```
-Input (640×640×3)
-    ↓
-Backbone (CSPNet modified)
-  ├── Conv-SiLU × N (stem)
-  ├── CSPStage × 4 (residual blocks, channel doubling)
-  └── SPPF (Spatial Pyramid Pooling Fast)
-    ↓
-Neck (Concatenation-based FPN)
-  ├── Upsample + Concat (P5 → P4 → P3)
-  └── Conv × 2 per level
-    ↓
-Head (Decoupled)
-  ├── Classification branch: Conv → Conv → sigmoid
-  └── Regression branch: Conv → Conv → bbox + IoU
-    ↓
-Output: S×S × (4 + 1 + C) per anchor
+Train: 2.041 images (70%)
+Val:     438 images (15%)
+Test:    438 images (15%)
+Total: 2.917 images
 ```
 
-### 3.4.2 Hyperparameter
-
-| Hyperparameter | Nilai | Dasar Pemilihan |
-|----------------|-------|-----------------|
-| Model | YOLO26n (pretrained COCO) | Transfer learning |
-| Image size | 640×640 | YOLO default, 2-class ringan |
-| Batch size | 16 | VRAM limit 12GB |
-| Optimizer | SGD (momentum=0.937, lr=0.01) | YOLO default |
-| Epochs | 100 (default) | Early stopping |
-| Patience | 20 epoch | Tanpa perbaikan → stop |
-| Device | CUDA (auto) | GPU priority |
-
-### 3.4.3 Loss Function
-
-$$\mathcal{L}_{total} = 7.5 \cdot \mathcal{L}_{CIoU} + 0.5 \cdot \mathcal{L}_{BCE} + 1.5 \cdot \mathcal{L}_{DFL}$$
-
-Bobot box tinggi (7.5) menekankan regresi bounding box yang akurat. Bobot cls rendah (0.5) karena binary classification lebih sederhana. DFL memodelkan distribusi posisi.
-
-### 3.4.4 GPU Memory Management
-
-```python
-vram_gb = float(os.getenv("VRAM_LIMIT_GB", "12"))
-device = get_device()  # cuda:0
-torch.cuda.set_per_process_memory_fraction(vram_gb * 1024**3 / total)
-torch.cuda.empty_cache()  # setiap 16 gambar
-half = True  # FP16 inference
+```mermaid
+pie title Dataset Split 70/15/15
+    "Train: 2.041 images" : 70
+    "Val: 438 images" : 15
+    "Test: 438 images" : 15
 ```
 
-FP16 menggunakan tensor half-precision mengurangi VRAM ~50% dengan minimal akurasi loss.
+---
 
-### 3.4.5 Model Output
+## 3.3 Pseudo-Polygon Mask Generation
 
-Model terbaik disimpan ke `backend/models/best.pt` berdasarkan mAP@0.5 val terbaik.
+Karena dataset adalah klasifikasi (tanpa anotasi), pipeline mengenerate polygon mask:
 
-## 3.5 Evaluasi Model
+### 3.3.1 Edge Detection (strategi utama, ~83%)
 
-### 3.5.1 Metrik
-
-- **mAP@0.5:** AP pada IoU threshold 0.5 (standar PASCAL VOC)
-- **mAP@0.5:0.95:** Rata-rata AP pada IoU 0.5 hingga 0.95 (standar COCO)
-- **Precision:** TP / (TP + FP)
-- **Recall:** TP / (TP + FN)
-- **Per-class AP:** AP terpisah untuk kelas Organik dan Non-Organik
-
-### 3.5.2 Protokol Evaluasi
-
-Evaluasi dilakukan pada setiap split (train/val/test) melalui YOLO `model.val()`. Sampel per-kelas untuk mengidentifikasi bias.
-
-### 3.5.3 Inference Pipeline
-
-```python
-def detect_image(image_path):
-    img = cv2.imread(str(image_path))
-    results = model(img, device=device, verbose=False)
-    # decode boxes, filter by conf_threshold=0.25
-    for box in results.boxes:
-        cls_id, conf = int(box.cls[0]), float(box.conf[0])
-        x1, y1, x2, y2 = map(int, box.xyxy[0])
-        # draw with cvzone cornerRect + putTextRect
-    return {"detected_objects": [...], "summary": {...}}
+```
+1. Convert RGB → Grayscale
+2. Gaussian Blur (5x5)
+3. Otsu thresholding → binary mask
+4. Invert if mean > 127 (white background)
+5. Morphological close (5x5, 2 iter) + open (1 iter)
+6. Find contours, ambil largest
+7. Skip if area < 20% total image
+8. Approximate polygon (epsilon = 0.01 * arcLength)
+9. Sample to 24 points, normalize ke [0, 1]
 ```
 
-Confidence threshold 0.25. Boxes < threshold ditapis. Visualisasi: green untuk Organik, blue untuk Non-Organik.
+### 3.3.2 Fallback Geometris (~17%)
+
+Jika edge detection gagal (contour area < 20%):
+- 60%: Elliptical polygon (20 titik, randomize untuk train)
+- 40%: Rounded rectangle polygon (20 titik)
+
+### 3.3.3 Format Label YOLO-seg
+
+```
+<class_id> x1 y1 x2 y2 x3 y3 ... xn yn
+```
+Semua koordinat dinormalisasi ke [0, 1].
+
+```mermaid
+flowchart TD
+    I[Input Image RGB] --> GRAY[Convert to Grayscale]
+    GRAY --> BLUR[Gaussian Blur 5x5]
+    BLUR --> OTSU[Otsu Thresholding]
+    OTSU --> INV{Mean > 127?}
+    INV -->|Ya| INVERT[Invert Binary Mask]
+    INV -->|Tidak| MORPH[Morphological Close 5x5]
+    INVERT --> MORPH
+    MORPH --> CONT[Find Contours]
+    CONT --> AREA{Area >= 20%?}
+    AREA -->|Ya| EDGE[Edge Detection Mask]
+    AREA -->|Tidak| FALLBACK{60% Elliptical<br/>40% Rounded Rect}
+    EDGE --> POLY[Approximate Polygon]
+    FALLBACK --> POLY
+    POLY --> NORM[Normalize ke [0,1]]
+    NORM --> OUT[YOLO-seg Label]
+```
+
+---
+
+## 3.4 Arsitektur YOLOv26m-seg
+
+Fitur arsitektur yang digunakan:
+
+| Fitur | Status | Manfaat |
+|-------|--------|---------|
+| MuSGD Optimizer | Active | SGD + Muon hybrid, konvergensi stabil |
+| Semantic Segmentation Loss | Active | Kualitas mask pixel-level |
+| Multi-Scale Proto Modules | Active | Mask multi-resolusi untuk boundary detail |
+| NMS-Free End-to-End | Active | Prediksi langsung tanpa post-processing |
+| No DFL | Active | Ekspor lebih sederhana, edge device support |
+| ProgLoss + STAL | Active | Deteksi objek kecil lebih baik |
+
+### 3.4.1 Hyperparameter
+
+| Hyperparameter | Nilai |
+|----------------|-------|
+| Model | yolo26m-seg.pt (COCO pretrained) |
+| Image size | 640 |
+| Batch size | 16 |
+| Epochs | 50 (patience=30) |
+| Optimizer | SGD (triggers MuSGD) |
+| Learning rate | 0.01 (cosine decay to 0.0001) |
+| Box loss weight | 7.5 |
+| Cls loss weight | 0.5 |
+
+```mermaid
+flowchart TD
+    subgraph ModelConfig[Model Configuration]
+        M[Model: yolo26m-seg.pt]
+        I[Image Size: 640]
+        B[Batch Size: 16]
+        E[Epochs: 50 patience=30]
+    end
+    
+    subgraph Optimizer[Optimizer]
+        O[SGD -> MuSGD]
+        LR[LR: 0.01 cosine decay 0.0001]
+    end
+    
+    subgraph LossWeight[Loss Weights]
+        L1[Box: 7.5]
+        L2[Cls: 1.5]
+    end
+    
+    ModelConfig --> Training[YOLOv26m-seg Training]
+    Optimizer --> Training
+    LossWeight --> Training
+    Training --> Result[Best Model Epoch 75]
+```
+
+### 3.4.2 Augmentasi
+
+| Augmentasi | Nilai |
+|------------|-------|
+| Mosaic | 1.0 |
+| Mixup | 0.3 |
+| Copy-paste | 0.4 |
+| Rotation | +/- 15 deg |
+| Translation | +/- 20% |
+| Scale | +/- 50% |
+| Shear | 5.0 |
+| Perspective | 0.0001 |
+| HSV jitter | H=0.05, S=0.8, V=0.5 |
+| Flip LR | 50% |
+| Flip UD | 20% |
+| Erasing | 40% |
+| Auto augment | randaugment |
+
+---
+
+## 3.5 Evaluasi
+
+### 3.5.1 Metrik Utama
+
+- Box mAP@0.5 dan mAP@0.5:0.95
+- Mask mAP@0.5 dan mAP@0.5:0.95
+- Per-class mask AP@50
+
+### 3.5.2 Recycling Advice
+
+Mapping 18 subkategori ke 4 kategori utama dengan advice:
+
+| Kategori | Advice |
+|----------|--------|
+| Organic | Compost bin. Biodegradable. |
+| Non-Recyclable | General trash. Cannot be recycled. |
+| Hazardous | Hazardous waste facility. |
+| Recyclable | Recycling bin (Plastic, Paper, Glass, Metal). |
+
+```mermaid
+flowchart TD
+    D[Detection Result] --> C{Main Category}
+    C -->|Organic| OA[Compost bin<br/>Biodegradable]
+    C -->|Non-Recyclable| NA[General trash<br/>Cannot be recycled]
+    C -->|Hazardous| HA[Hazardous waste facility]
+    C -->|Recyclable| RA[Recycling bin<br/>Plastic, Paper, Glass, Metal]
+```
+
+---
 
 ## 3.6 Lingkungan Eksperimen
 
 | Komponen | Spesifikasi |
 |----------|-------------|
-| GPU | NVIDIA CUDA (VRAM limit 12GB) |
-| DL Framework | Ultralytics 8.4, PyTorch 2.x |
-| Backend | FastAPI 0.115, Uvicorn |
-| Frontend | Nuxt.js 3 (minimal) |
+| GPU | Tesla T4 (15.6 GB VRAM) |
+| DL Framework | Ultralytics 8.4, PyTorch 2.9 |
+| Backend | FastAPI, Uvicorn |
+| Frontend | Nuxt.js 3 |
 | Python | 3.12 |
-| CV | OpenCV, cvzone, Supervision |
-
-## 3.7 Implementasi Pipeline (REST API)
-
-Endpoint untuk menjalankan pipeline:
-
-| Endpoint | Fungsi | DS/ML Aspect |
-|----------|--------|-------------|
-| POST `/api/dataset/download` | Download TACO images → raw/ | Data collection |
-| POST `/api/dataset/split` | COCO→YOLO convert + stratified split | Data preprocessing |
-| POST `/api/dataset/pipeline/coco` | Generate COCO annotation viz | Data validation |
-| POST `/api/dataset/pipeline/yolo` | YOLO inference on train | Model inference |
-| POST `/api/dataset/pipeline/yolo/val` | YOLO inference on val | Model validation |
-| POST `/api/dataset/pipeline/yolo/test` | YOLO inference on test | Model testing |
-| GET `/api/dataset/evaluate` | mAP/precision/recall | Model evaluation |
-| POST `/api/detect` | Upload → detect | Model deployment |
+| Training time | ~4 jam (95 epoch) |
+| Konfigurasi | Environment-driven via backend/.env (DATASET_PATH, DEVICE, dll) |

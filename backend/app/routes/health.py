@@ -31,7 +31,7 @@ async def health_check():
         model_exists=model_exists,
         cuda_available=cuda_avail,
         vram_gb=vram,
-        uptime_hours=uptime,
+        uptime_hours=uptime / 3600,
     )
 
 

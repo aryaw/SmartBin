@@ -17,7 +17,7 @@ echo "[API] Starting backend..."
 sudo docker compose up -d backend || {
   echo "[API] Docker failed, starting directly..."
   cd "$PROJECT_DIR/backend"
-  nohup .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+  nohup .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$PROJECT_DIR/backend/log/$(date +%d-%m-%Y)-backend.log" 2>&1 &
   disown
   sleep 3
 }

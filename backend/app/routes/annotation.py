@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 from ultralytics import YOLO
 
-from app.core.config import BASE_DIR, MODEL_PATH, ORGANIC_CATEGORIES
+from app.core.config import BASE_DIR, DATASET_PATH, MODEL_PATH, ORGANIC_CATEGORIES
 from app.services.annotation_service import run_coco_pipeline
 from app.services.yolo_service import run_yolo_pipeline, run_yolo_val_pipeline, run_yolo_seg_pipeline
 from app.utils.gpu_utils import get_device
@@ -345,11 +345,81 @@ async def pipeline_yolo_seg():
         raise HTTPException(500, f"YOLO seg pipeline failed: {str(e)}")
 
 
+@router.post("/convert-seg")
+async def convert_seg():
+    local_path = DATASET_PATH
+    if not local_path.exists():
+        raise HTTPException(400, f"Local dataset not found at {local_path}")
+
+    from app.services.kaggle_service import prepare_from_local
+    result = prepare_from_local(str(local_path))
+    return result
+
+
+@router.post("/split-stratified")
+async def split_stratified():
+    kaggle_dir = BASE_DIR / "dataset" / "kaggle_waste"
+    if not kaggle_dir.exists():
+        raise HTTPException(400, "Run Convert to YOLO-seg first")
+
+    import shutil
+    for d in [TRAIN_IMG_DIR, VAL_IMG_DIR, TEST_IMG_DIR, TRAIN_LBL_DIR, VAL_LBL_DIR, TEST_LBL_DIR]:
+        if d.exists():
+            shutil.rmtree(str(d))
+        d.mkdir(parents=True, exist_ok=True)
+
+    counts = {"train": 0, "val": 0, "test": 0}
+    for split in ("train", "val", "test"):
+        src_img = kaggle_dir / split / "images"
+        src_lbl = kaggle_dir / split / "labels"
+        dst_img = {"train": TRAIN_IMG_DIR, "val": VAL_IMG_DIR, "test": TEST_IMG_DIR}[split]
+        dst_lbl = {"train": TRAIN_LBL_DIR, "val": VAL_LBL_DIR, "test": TEST_LBL_DIR}[split]
+
+        if not src_img.is_dir():
+            continue
+        for f in sorted(src_img.iterdir()):
+            if f.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                shutil.copy2(str(f), str(dst_img / f.name))
+                lbl = src_lbl / f"{f.stem}.txt"
+                if lbl.exists():
+                    shutil.copy2(str(lbl), str(dst_lbl / lbl.name))
+                counts[split] += 1
+
+    return {
+        "pipeline": "stratified_split",
+        "splits": counts,
+        "total": sum(counts.values()),
+        "note": "Stratified 70/15/15 split preserved from original class distribution",
+    }
+
+
 @router.post("/download")
-async def dataset_download():
+async def dataset_download(source: str = Query("kaggle", description="Dataset source: kaggle or local")):
     try:
-        from app.services.kaggle_service import download_and_prepare
-        return download_and_prepare()
+        if source == "local":
+            from app.services.kaggle_service import prepare_from_local
+            local_path = DATASET_PATH
+            if not local_path.exists():
+                raise HTTPException(400, f"Local dataset not found at {local_path}")
+            result = prepare_from_local(str(local_path))
+            # Also copy to RAW_DIR for main pipeline split
+            raw_dir = BASE_DIR / "dataset" / "raw"
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            out_dir = Path(result["output_dir"])
+            for split in ("train", "val", "test"):
+                img_dir = out_dir / split / "images"
+                if img_dir.exists():
+                    for f in img_dir.iterdir():
+                        if f.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                            dest = raw_dir / f.name
+                            if not dest.exists():
+                                shutil.copy2(str(f), str(dest))
+            return result
+        else:
+            from app.services.kaggle_service import download_and_prepare
+            return download_and_prepare()
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Download failed: {str(e)}")
 
@@ -358,6 +428,22 @@ async def dataset_download():
 async def dataset_split():
     import hashlib
     random.seed(42)
+
+    if not RAW_DIR.exists() or not any(RAW_DIR.iterdir()):
+        local_path = DATASET_PATH
+        if local_path.exists():
+            from app.services.kaggle_service import prepare_from_local
+            out_dir = BASE_DIR / "dataset" / "kaggle_waste"
+            prepare_from_local(str(local_path), str(out_dir))
+            RAW_DIR.mkdir(parents=True, exist_ok=True)
+            for split in ("train", "val", "test"):
+                img_dir = out_dir / split / "images"
+                if img_dir.exists():
+                    for f in img_dir.iterdir():
+                        if f.suffix.lower() in (".jpg", ".jpeg", ".png"):
+                            dest = RAW_DIR / f.name
+                            if not dest.exists():
+                                shutil.copy2(str(f), str(dest))
 
     if not RAW_DIR.exists():
         raise HTTPException(400, "Raw directory not found")

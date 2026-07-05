@@ -102,13 +102,13 @@ if [ "$USE_DOCKER" = "true" ]; then
   else
     echo "[API] Docker start failed, starting directly..."
     cd "$PROJECT_DIR/backend"
-    setsid .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+    setsid .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$PROJECT_DIR/backend/log/$(date +%d-%m-%Y)-backend.log" 2>&1 &
     sleep 4
   fi
 else
   echo "[API] USE_DOCKER=false — starting directly..."
   cd "$PROJECT_DIR/backend"
-  setsid .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+  setsid .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$PROJECT_DIR/backend/log/$(date +%d-%m-%Y)-backend.log" 2>&1 &
   sleep 4
 fi
 

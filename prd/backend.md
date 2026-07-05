@@ -6,153 +6,101 @@
 
 ## 1. Tech Stack
 
-| Komponen      | Teknologi                          |
-|---------------|------------------------------------|
-| Framework     | FastAPI 0.115                      |
-| ASGI Server   | Uvicorn                            |
-| Python        | 3.12 (host `.venv` + Docker)       |
-| DL Framework  | PyTorch 2.x + CUDA                 |
-| Model         | Ultralytics YOLO (`models/best.pt`) |
-| CV Library    | OpenCV, Supervision, cvzone, Pillow |
-| File Handling | python-multipart, aiofiles         |
-| Validation    | Pydantic v2                        |
-| HTTP Client   | httpx                              |
-| Database      | PostgreSQL via asyncpg + SQLAlchemy 2.0 |
-| DB Driver     | asyncpg                            |
-| HEIC Support  | pi-heif                            |
-| CORS          | `["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000", "http://127.0.0.1:8000"]` |
+| Komponen | Teknologi |
+|----------|-----------|
+| Framework | FastAPI 0.115 |
+| ASGI Server | Uvicorn |
+| Python | 3.12 |
+| DL Framework | PyTorch 2.x + CUDA |
+| Model | Ultralytics YOLO (yolo26m-seg.pt) |
+| CV Library | OpenCV, Pillow |
+| Validation | Pydantic v2 |
+| Database | PostgreSQL via asyncpg + SQLAlchemy 2.0 |
 
 ---
 
-## 2. GPU & Memory
-
-- VRAM limit: 12GB via `VRAM_LIMIT_GB=12` env var
-- `half=True` (FP16) for inference
-- `imgsz=640`
-- `torch.cuda.empty_cache()` every 16 images
-- `torch.cuda.set_per_process_memory_fraction()` caps GPU usage
-- Device configurable via `DEVICE` env var (default `cuda:0`)
-
----
-
-## 3. Build Strategy (Docker)
-
-1. Host `.venv` created with `python3.12 -m venv --copies .venv` (no symlinks → portable)
-2. All packages installed from `requirements.txt`
-3. Symlinks resolved to real files for Docker compat
-4. Shebangs rewritten from host path to `/app/.venv/bin/python3.12`
-5. `.venv` copied into Docker image (`COPY .venv .venv`)
-6. `ENV PATH=/app/.venv/bin:$PATH`
-7. `pip install --break-system-packages -r requirements.txt` - finds all packages already in `.venv` → zero download
-8. `--mount=type=cache,target=/root/.cache/pip` - fallback cache
-
-Rebuild: ~2s (no pip download, just copy `.venv` + source code).
-
----
-
-## 4. Directory Structure
+## 2. Directory Structure
 
 ```
 backend/
 ├── app/
-│   ├── main.py                 # FastAPI entry (lifespan: GPU init + model load)
-│   ├── core/
-│   │   └── config.py           # Paths, CORS, DB, GPU config
+│   ├── main.py                 # FastAPI entry
+│   ├── core/config.py          # Paths, CORS, GPU config
 │   ├── cli/
-│   │   ├── train.py            # Training CLI with grid search
+│   │   ├── train.py            # Training with optimizer + mask params
 │   │   ├── test.py             # Evaluation CLI
-│   │   └── predict.py          # CLI inference helper
+│   │   └── predict.py          # CLI inference
 │   ├── routes/
+│   │   ├── kaggle_cms.py       # /api/kaggle/* (16 pipeline endpoints)
+│   │   ├── annotation.py       # /api/dataset/* (dataset management)
+│   │   ├── detect.py           # POST /api/detect
 │   │   ├── health.py           # GET /health
-│   │   ├── detect.py           # POST /api/detect, /detect/bulk, /result, /log
-│   │   ├── annotation.py       # Dataset grid, split, pipelines, file serving, evaluate
-│   │   └── datasource.py       # /api/datasource/* (TACO annotations proxy)
+│   │   └── datasource.py       # TACO datasource
 │   ├── services/
-│   │   ├── detector.py         # YOLO inference (image/video) with cvzone bbox drawing
-│   │   ├── annotation_service.py   # COCO pipeline (COCO→YOLO conversion viz)
-│   │   ├── yolo_service.py         # YOLO train/val/test inference pipelines
-│   │   ├── datapreparation_service.py  # Download + split TACO data
-│   │   └── log_service.py       # Detection logging to PostgreSQL
-│   ├── schemas/
-│   │   └── detection.py        # Pydantic models for detect response
+│   │   ├── kaggle_service.py   # Dataset loading + mask generation
+│   │   ├── detector.py         # YOLO inference singleton
+│   │   ├── yolo_service.py     # Train/val/test pipelines
+│   │   ├── annotation_service.py   # COCO conversion
+│   │   ├── datapreparation_service.py
+│   │   └── log_service.py
 │   ├── utils/
-│   │   ├── gpu_utils.py        # GPU init, memory limit, warmup
-│   │   ├── file_utils.py       # Upload validation, save, cleanup
+│   │   ├── gpu_utils.py        # GPU init, memory limit
 │   │   └── progress.py         # SSE progress emitter
-│   ├── models/
-│   │   └── database.py         # SQLAlchemy async engine + models
-│   └── datapreparation/        # Dataset download & split scripts
+│   └── schemas/detection.py    # Pydantic models
 ├── dataset/
-│   ├── raw/                    # 1500 images (TACO) - NEVER deleted
-│   ├── train/images+labels/    # 70% split
-│   ├── val/images+labels/      # 15% split
-│   ├── test/images+labels/     # 15% split
-│   ├── coco_gt_bbox{,_img}/      # COCO ground truth bbox + viz
-│   ├── yolo_train_bbox{,_img}/   # YOLO train predictions + viz
-│   ├── yolo_train_seg{,_img}/    # YOLO train segmentation + viz
-│   ├── yolo_val_bbox{,_img}/     # YOLO val predictions + viz
-│   └── yolo_test_bbox{,_img}/    # YOLO test predictions + viz
-├── models/best.pt              # YOLO weights (trained)
-├── .venv/                      # Python 3.12 (--copies, portable)
-├── requirements.txt
-├── data.yaml                   # Dataset config for YOLO
-├── Dockerfile
-├── log-wrapper.sh              # Entrypoint logging wrapper
-└── static/result/              # Annotated detection outputs
+│   ├── kaggle_waste/           # 18-class dataset (train/val/test)
+│   ├── raw/                    # Raw images
+│   └── train/val/test/         # Split datasets
+├── models/best.pt              # Trained YOLO weights
+├── data.yaml                   # Dataset config
+└── requirements.txt
 ```
 
 ---
 
-## 5. API Endpoints (15+)
+## 3. Kaggle CMS Endpoints by Pipeline Group
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check + device info |
-| POST | `/api/detect` | Upload file → detect objects |
-| POST | `/api/detect/bulk` | Batch detection |
-| GET | `/api/result/{filename}` | Serve annotated result |
-| GET | `/api/log/{timestamp}` | Detection log from DB |
-| GET | `/api/dataset/grid` | All dataset stats + images |
-| GET | `/api/dataset/evaluate` | Model metrics (mAP, precision, recall) |
-| GET | `/api/dataset/file/{source}/{file}` | Serve images/viz |
-| POST | `/api/dataset/download` | Download TACO images → `raw/` |
-| POST | `/api/dataset/split` | Self-cleaning 70/15/15 split from raw |
-| POST | `/api/dataset/prepare` | Download + split combined |
-| POST | `/api/dataset/reset` | Wipe all dataset dirs, recreate empty |
-| POST | `/api/dataset/pipeline/coco` | Generate COCO annotation viz |
-| POST | `/api/dataset/pipeline/yolo` | YOLO train inference |
-| POST | `/api/dataset/pipeline/yolo/val` | YOLO val inference |
-| POST | `/api/dataset/pipeline/yolo/test` | YOLO test inference |
-| GET | `/api/dataset/annotation/{type}/{file}` | Annotation detail |
-| GET | `/api/datasource/grid` | TACO annotations |
-| GET | `/api/datasource/image` | Proxy + cache Flickr |
-| GET | `/api/datasource/file/{file}` | Serve datasource files |
-| GET | `/api/datasource/annotations` | Full JSON |
+### Group 1: /dataset-prep
+| POST /api/kaggle/download | Load from local dataset path |
+| GET /api/kaggle/download-status | Check dataset existence |
+| GET /api/kaggle/explore | Class distribution report |
+
+### Group 2: /convert-viz
+| POST /api/kaggle/convert | Generate polygon masks |
+| GET /api/kaggle/viz | Sample mask visualizations |
+
+### Group 3: /train-eval
+| POST /api/kaggle/train | Train YOLOv26m-seg |
+| GET /api/kaggle/results | Training plots |
+| GET /api/kaggle/evaluate | Box + Mask metrics |
+
+### Group 4: /inference-export
+| POST /api/kaggle/inference | Single image with masks |
+| POST /api/kaggle/inference/batch | Batch test set inference |
+| GET /api/kaggle/categories | Recycling advice mapping |
+| POST /api/kaggle/export | ONNX/TorchScript export |
+| GET /api/kaggle/verify | Per-class verification |
 
 ---
 
-## 6. Training Config
+## 4. Training Config
 
-```bash
-# Single run
-python -m app.cli.train --model yolo26n.pt --data data.yaml --epochs 100 --batch 16 --imgsz 640
-
-# Grid search (best model auto-copied to models/best.pt)
-python -m app.cli.train --model yolo26n.pt --data data.yaml --grid-search 10 20 40
-
-# Evaluate on test set
-python -m app.cli.test --model models/best.pt --data data.yaml --split test
-
-# Predict single image
-python -m app.cli.predict path/to/image.jpg
+```
+Model: yolo26m-seg.pt (COCO pretrained)
+Task: Instance Segmentation (18 classes)
+Epochs: 120 (patience=20)
+Batch: 16
+Imgsz: 640
+Optimizer: SGD (triggers MuSGD internally)
+Loss: box=7.5, cls=1.5, mask_ratio=4, overlap_mask=True
+Augmentation: mosaic=1.0, mixup=0.2, copy_paste=0.15
 ```
 
-| Param | Value |
-|-------|-------|
-| Model | YOLO26n (`yolo26n.pt` from project root) |
-| Batch | 16 |
-| Imgsz | 640 |
-| Augment | mosaic=1.0, HSV (h=0.015, s=0.7, v=0.4), scale=0.5, translate=0.1, degrees=10, shear=2, flipud=0.1, fliplr=0.5, erasing=0.4 |
-| Patience | 20 |
-| Device | auto (GPU if available) |
-| Val | Runs automatically after training, prints per-class mAP |
+## 5. Polygon Mask Generation
+
+3 strategies (tried in order):
+1. Edge detection (Otsu threshold + contour) — ~83%
+2. Elliptical polygon — ~10%
+3. Rounded rectangle — ~7%
+
+Min contour area threshold: 20% of image (reduces noise).

@@ -1,10 +1,13 @@
 import asyncio
+import json
 import os
 import random
 import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+import yaml
 
 import cv2
 import numpy as np
@@ -15,13 +18,32 @@ from fastapi.responses import FileResponse
 from ultralytics import YOLO
 
 from app.cli.train import train_one
-from app.core.config import BASE_DIR, MODEL_PATH
-from app.services.kaggle_service import download_and_prepare, _generate_mask
+from app.core.config import BASE_DIR, DATASET_PATH, MODEL_PATH
+from app.services.kaggle_service import download_and_prepare, _generate_mask, SEED
 
 router = APIRouter(prefix="/api/kaggle", tags=["Kaggle CMS"])
 
 KAGGLE_DIR = BASE_DIR / "dataset" / "kaggle_waste"
 TRAIN_RUN_DIR = BASE_DIR / "runs" / "detect" / "api_train"
+
+CATEGORY_TO_SUBS = {
+    "Hazardous": ["batteries", "e-waste", "paints", "pesticides"],
+    "Non-Recyclable": ["ceramic_product", "diapers", "platics_bags_wrappers", "sanitary_napkin", "stroform_product"],
+    "Organic": ["coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"],
+    "Recyclable": ["cans_all_type", "glass_containers", "paper_products", "plastic_bottles"],
+}
+
+SUB_TO_MAIN = {}
+for main_cat, subs in CATEGORY_TO_SUBS.items():
+    for sub in subs:
+        SUB_TO_MAIN[sub] = main_cat
+
+RECYCLING_ADVICE = {
+    "Organic": "Place in compost bin. Biodegradable waste.",
+    "Non-Recyclable": "Dispose in general trash. Cannot be recycled.",
+    "Hazardous": "Handle carefully! Dispose at hazardous waste facility.",
+    "Recyclable": "Sort into recycling bin (Plastic, Paper, Glass, Metal).",
+}
 
 _executor = ThreadPoolExecutor(max_workers=1)
 
@@ -39,11 +61,64 @@ def _draw_polygon(img_bgr, poly):
     return cv2.addWeighted(overlay, 0.5, img_bgr, 0.5, 0)
 
 
-@router.post("/download")
-async def download():
+@router.post("/pipeline/run-full")
+async def run_full_pipeline(
+    epochs: int = Query(50, description="Training epochs"),
+    batch: int = Query(16, description="Batch size"),
+):
+    results = {}
     try:
-        result = download_and_prepare()
-        return result
+        from app.services.kaggle_service import prepare_from_local
+        local_path = DATASET_PATH
+        if not local_path.exists():
+            raise HTTPException(400, f"Dataset not found at {local_path}")
+        dl = prepare_from_local(str(local_path))
+        results["download"] = {"total_images": dl["total_images"], "classes": dl["classes"]}
+
+        data_yaml = KAGGLE_DIR / "data.yaml"
+        if data_yaml.exists():
+            best_path, map50 = train_one(
+                pretrained="yolo26m-seg.pt",
+                data=str(data_yaml),
+                epochs=epochs,
+                batch=batch,
+                imgsz=640,
+                patience=30,
+                device="cuda:0",
+                name="full_pipeline",
+                lr0=0.01,
+                optimizer="SGD",
+            )
+            if best_path and Path(best_path).exists():
+                MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(str(best_path), str(MODEL_PATH))
+            results["train"] = {"best_model": str(best_path), "map50": map50}
+
+        return {
+            "status": "Pipeline complete",
+            "results": results,
+            "message": "Model trained. Go to dashboard and upload an image to detect organic/non-organic waste.",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Pipeline failed: {e}")
+
+
+@router.post("/download")
+async def download(source: str = Query("local", description="Dataset source: local (Waste_Classification_Dataset) or kaggle")):
+    try:
+        if source == "local":
+            from app.services.kaggle_service import prepare_from_local
+            local_path = DATASET_PATH
+            if not local_path.exists():
+                raise HTTPException(400, f"Local dataset not found at {local_path}")
+            result = prepare_from_local(str(local_path))
+            result["source"] = "local"
+            return result
+        return download_and_prepare()
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, f"Download failed: {e}")
 
@@ -53,7 +128,7 @@ async def convert():
     if not KAGGLE_DIR.exists():
         raise HTTPException(400, "Dataset not found. Download first.")
 
-    counts = {"train": 0, "val": 0, "test": 0}
+    counts = {"skipped_existing": 0, "generated": 0}
 
     for split in ("train", "val", "test"):
         img_dir = KAGGLE_DIR / split / "images"
@@ -66,20 +141,18 @@ async def convert():
         for img_path in sorted(img_dir.iterdir()):
             if img_path.suffix.lower() not in (".jpg", ".jpeg", ".png"):
                 continue
+
+            lbl_path = lbl_dir / f"{img_path.stem}.txt"
+            if lbl_path.exists():
+                counts["skipped_existing"] += 1
+                continue
+
             try:
                 img = Image.open(img_path).convert("RGB")
                 poly, _ = _generate_mask(img, randomize=(split == "train"))
                 coords = " ".join(f"{v:.6f}" for v in poly)
-
-                existing_lbl = lbl_dir / f"{img_path.stem}.txt"
-                cls_id = "0"
-                if existing_lbl.exists():
-                    content = existing_lbl.read_text().strip()
-                    if content:
-                        cls_id = content.split()[0]
-
-                (lbl_dir / f"{img_path.stem}.txt").write_text(f"{cls_id} {coords}\n")
-                counts[split] += 1
+                lbl_path.write_text(f"0 {coords}\n")
+                counts["generated"] += 1
             except Exception:
                 continue
 
@@ -175,7 +248,7 @@ async def train(
 
     def _train():
         best_path, map50 = train_one(
-            pretrained="yolo11m.pt",
+            pretrained="yolo26m-seg.pt",
             data=str(data_yaml),
             epochs=epochs,
             batch=batch,
@@ -184,6 +257,7 @@ async def train(
             device="cuda:0",
             name="api_train",
             lr0=lr0,
+            optimizer="SGD",
         )
         if best_path and Path(best_path).exists():
             MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -228,6 +302,77 @@ async def results_image(filename: str):
     return FileResponse(str(fpath))
 
 
+@router.get("/explore")
+async def explore():
+    local_path = DATASET_PATH
+    if not local_path.exists():
+        raise HTTPException(400, f"Dataset not found at {local_path}")
+
+    CLASS_NAMES = []
+    CLASS_MAP = {}
+    CATEGORY_TO_SUBS = {}
+    all_paths = []
+
+    categories = sorted(os.listdir(local_path))
+    cid = 0
+    for cat in categories:
+        inner = local_path / cat / cat
+        if not inner.is_dir():
+            inner = local_path / cat
+            if not inner.is_dir():
+                continue
+        subs = sorted(os.listdir(inner))
+        CATEGORY_TO_SUBS[cat] = subs
+        for sub in subs:
+            sub_path = inner / sub
+            if not sub_path.is_dir():
+                continue
+            CLASS_NAMES.append(sub)
+            CLASS_MAP[sub] = cid
+            for f in sorted(os.listdir(sub_path)):
+                if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp")):
+                    all_paths.append((str(sub_path / f), cid, sub))
+            cid += 1
+
+    NC = len(CLASS_NAMES)
+    class_counts = {}
+    class_samples = {}
+    for img_path, cid, sub in all_paths:
+        class_counts[sub] = class_counts.get(sub, 0) + 1
+        if sub not in class_samples:
+            class_samples[sub] = f"/api/dataset/file/raw/{Path(img_path).name}"
+
+    distribution = []
+    for cid in range(NC):
+        name = CLASS_NAMES[cid]
+        count = class_counts.get(name, 0)
+        distribution.append({
+            "class_id": cid,
+            "name": name,
+            "count": count,
+            "sample_url": class_samples.get(name),
+        })
+
+    distribution.sort(key=lambda x: x["count"], reverse=True)
+
+    return {
+        "num_classes": NC,
+        "class_names": CLASS_NAMES,
+        "category_to_subs": CATEGORY_TO_SUBS,
+        "distribution": distribution,
+        "total_images": len(all_paths),
+    }
+
+
+@router.get("/categories")
+async def categories():
+    return {
+        "category_to_subs": CATEGORY_TO_SUBS,
+        "sub_to_main": SUB_TO_MAIN,
+        "recycling_advice": RECYCLING_ADVICE,
+    }
+
+
 @router.get("/evaluate")
 async def evaluate():
     if not MODEL_PATH.exists():
@@ -241,14 +386,144 @@ async def evaluate():
         model = YOLO(str(MODEL_PATH))
         val_results = model.val(data=str(data_yaml), split="test")
         metrics = val_results.results_dict
-        return {
-            "mAP50": metrics.get("metrics/mAP50(B)", 0),
-            "mAP50_95": metrics.get("metrics/mAP50-95(B)", 0),
-            "precision": metrics.get("metrics/precision(B)", 0),
-            "recall": metrics.get("metrics/recall(B)", 0),
+
+        result = {
+            "box_mAP50": metrics.get("metrics/mAP50(B)", 0),
+            "box_mAP50_95": metrics.get("metrics/mAP50-95(B)", 0),
+            "box_precision": metrics.get("metrics/precision(B)", 0),
+            "box_recall": metrics.get("metrics/recall(B)", 0),
+            "mask_mAP50": metrics.get("metrics/mAP50(M)", 0),
+            "mask_mAP50_95": metrics.get("metrics/mAP50-95(M)", 0),
+            "mask_precision": metrics.get("metrics/precision(M)", 0),
+            "mask_recall": metrics.get("metrics/recall(M)", 0),
         }
+
+        if hasattr(val_results, "box") and hasattr(val_results.box, "ap_class_index"):
+            cls_names = model.names if hasattr(model, "names") else {}
+            box_per_class = {}
+            for i, c in enumerate(val_results.box.ap_class_index):
+                name_cls = cls_names.get(int(c), str(c))
+                ap = val_results.box.ap[i] if hasattr(val_results.box, "ap") and i < len(val_results.box.ap) else 0
+                box_per_class[str(int(c))] = {"name": name_cls, "box_ap50": float(ap)}
+            result["box_per_class"] = box_per_class
+
+        if hasattr(val_results, "seg") and hasattr(val_results.seg, "ap_class_index"):
+            cls_names = model.names if hasattr(model, "names") else {}
+            seg_per_class = {}
+            for i, c in enumerate(val_results.seg.ap_class_index):
+                name_cls = cls_names.get(int(c), str(c))
+                ap = val_results.seg.ap[i] if hasattr(val_results.seg, "ap") and i < len(val_results.seg.ap) else 0
+                seg_per_class[str(int(c))] = {"name": name_cls, "mask_ap50": float(ap)}
+            result["mask_per_class"] = seg_per_class
+
+        return result
     except Exception as e:
         raise HTTPException(500, f"Evaluation failed: {e}")
+
+
+@router.post("/export")
+async def export_model(format: str = Query("onnx", description="Export format: onnx, torchscript, all")):
+    best_path = MODEL_PATH
+    if not best_path.exists():
+        raise HTTPException(400, "No trained model found")
+
+    export_dir = KAGGLE_DIR / "exports"
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    model = YOLO(str(best_path))
+    results = {}
+
+    try:
+        if format in ("onnx", "all"):
+            onnx_path = model.export(format="onnx", imgsz=640, simplify=True)
+            dest = export_dir / "waste_yolo26seg_e2e.onnx"
+            if Path(onnx_path).exists():
+                shutil.copy(str(onnx_path), str(dest))
+                results["onnx"] = {"path": str(dest), "size_mb": round(dest.stat().st_size / 1e6, 1)}
+    except Exception as e:
+        results["onnx"] = {"error": str(e)}
+
+    try:
+        if format in ("torchscript", "all"):
+            ts_path = model.export(format="torchscript", imgsz=640)
+            dest = export_dir / "waste_yolo26seg.torchscript"
+            if Path(ts_path).exists():
+                shutil.copy(str(ts_path), str(dest))
+                results["torchscript"] = {"path": str(dest), "size_mb": round(dest.stat().st_size / 1e6, 1)}
+    except Exception as e:
+        results["torchscript"] = {"error": str(e)}
+
+    return {"export_dir": str(export_dir), "formats": results}
+
+
+@router.post("/inference/batch")
+async def inference_batch():
+    if not MODEL_PATH.exists():
+        raise HTTPException(400, "No trained model found")
+    if not KAGGLE_DIR.exists():
+        raise HTTPException(400, "Dataset not found")
+
+    test_img_dir = KAGGLE_DIR / "test" / "images"
+    if not test_img_dir.is_dir():
+        raise HTTPException(400, "Test images not found")
+
+    model = YOLO(str(MODEL_PATH))
+    output_dir = KAGGLE_DIR / ".." / "batch_inference"
+    output_dir = output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    total = 0
+    class_detections = {}
+    images_processed = 0
+
+    img_files = sorted(
+        f for f in test_img_dir.iterdir()
+        if f.suffix.lower() in (".jpg", ".jpeg", ".png")
+    )
+
+    for img_path in img_files:
+        try:
+            results = model(str(img_path), retina_masks=True, verbose=False)
+            r = results[0]
+
+            annotated = r.plot(masks=True, boxes=True, labels=True, conf=True)
+            out_path = output_dir / f"batch_{img_path.name}"
+            cv2.imwrite(str(out_path), annotated)
+
+            if r.boxes is not None:
+                for box in r.boxes:
+                    cls_id = int(box.cls)
+                    conf = float(box.conf)
+                    name = model.names.get(cls_id, str(cls_id))
+                    if name not in class_detections:
+                        class_detections[name] = {"count": 0, "max_conf": 0, "class_id": cls_id}
+                    class_detections[name]["count"] += 1
+                    class_detections[name]["max_conf"] = max(class_detections[name]["max_conf"], conf)
+                    total += 1
+
+            images_processed += 1
+        except Exception:
+            continue
+
+    advice_list = []
+    for name, det in sorted(class_detections.items(), key=lambda x: x[1]["count"], reverse=True):
+        main_cat = SUB_TO_MAIN.get(name, "Unknown")
+        advice = RECYCLING_ADVICE.get(main_cat, "")
+        advice_list.append({
+            "class_name": name,
+            "class_id": det["class_id"],
+            "count": det["count"],
+            "max_confidence": round(det["max_conf"], 4),
+            "category": main_cat,
+            "advice": advice,
+        })
+
+    return {
+        "images_processed": images_processed,
+        "total_detections": total,
+        "per_class": advice_list,
+        "output_dir": str(output_dir),
+    }
 
 
 @router.post("/inference")
@@ -268,18 +543,70 @@ async def inference(file: UploadFile = File(...)):
 
     try:
         model = YOLO(str(MODEL_PATH))
-        results = model(tmp_path)
-        annotated = results[0].plot()
+        results = model(tmp_path, retina_masks=True)
+        annotated = results[0].plot(masks=True, boxes=True, labels=True, conf=True)
 
         out_path = tmp_path + "_annotated.jpg"
         cv2.imwrite(out_path, annotated)
+
+        detections = []
+        if results[0].boxes is not None:
+            for box in results[0].boxes:
+                cls_id = int(box.cls)
+                conf = float(box.conf)
+                name = model.names.get(cls_id, str(cls_id))
+                detections.append({"class": name, "class_id": cls_id, "confidence": round(conf, 4)})
 
         return FileResponse(
             out_path,
             media_type="image/jpeg",
             filename=f"annotated_{file.filename}",
+            headers={"X-Detections": json.dumps(detections)},
         )
     except Exception as e:
         raise HTTPException(500, f"Inference failed: {e}")
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+
+@router.get("/verify")
+async def verify():
+    if not MODEL_PATH.exists():
+        raise HTTPException(400, "No trained model found")
+
+    data_yaml = KAGGLE_DIR / "data.yaml"
+    if not data_yaml.exists():
+        raise HTTPException(400, "Dataset data.yaml not found")
+
+    model = YOLO(str(MODEL_PATH))
+    results = model.val(data=str(data_yaml), split="test", imgsz=640, batch=16)
+
+    per_class = []
+    if hasattr(results, "seg") and hasattr(results.seg, "ap_class_index"):
+        cls_names = model.names if hasattr(model, "names") else {}
+        for i, c in enumerate(results.seg.ap_class_index):
+            name = cls_names.get(int(c), str(c))
+            ap50 = float(results.seg.ap50[i]) if hasattr(results.seg, "ap50") and i < len(results.seg.ap50) else 0
+            ap = float(results.seg.ap[i]) if hasattr(results.seg, "ap") and i < len(results.seg.ap) else 0
+            main_cat = SUB_TO_MAIN.get(name, "Unknown")
+            per_class.append({
+                "class_id": int(c),
+                "name": name,
+                "category": main_cat,
+                "mask_ap50": round(ap50, 4),
+                "mask_ap50_95": round(ap, 4),
+            })
+
+    per_class.sort(key=lambda x: x["mask_ap50"], reverse=True)
+
+    return {
+        "model": "yolo26m-seg",
+        "num_classes": len(per_class),
+        "summary": {
+            "box_mAP50": round(results.box.map50, 4) if hasattr(results, "box") else 0,
+            "box_mAP50_95": round(results.box.map, 4) if hasattr(results, "box") else 0,
+            "mask_mAP50": round(results.seg.map50, 4) if hasattr(results, "seg") else 0,
+            "mask_mAP50_95": round(results.seg.map, 4) if hasattr(results, "seg") else 0,
+        },
+        "per_class": per_class,
+    }

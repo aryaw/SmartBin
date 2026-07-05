@@ -4,41 +4,106 @@
 
 Berdasarkan penelitian yang telah dilakukan:
 
-1. **Pipeline transformasi anotasi COCO→YOLO** berhasil diimplementasikan dengan normalisasi koordinat bounding box menggunakan scale factor berdasarkan resolusi aktual citra. Pemetaan 60 kategori TACO → 2 kelas (Organik/Non-Organik) menghasilkan dataset dengan 1.050 train, 225 val, 225 test. Konversi mempertahankan integritas spasial bounding box melalui scaling adaptif.
+1. **Pipeline konversi dataset klasifikasi ke instance segmentation** berhasil diimplementasikan dengan pseudo-polygon mask generation menggunakan Otsu thresholding edge detection (~83,3%) dan fallback geometris (~16,7%). Dataset phenomsg/waste-classification dengan 2.917 citra, 18 subkategori, dan 4 kategori utama berhasil dikonversi ke format YOLO-seg dengan stratified split 70/15/15 (train 2.041, val 438, test 438).
 
-2. **Augmentasi data online** - mosaic 1.0, HSV perturbation, geometric transform, random erasing 0.4 - diterapkan dalam training pipeline untuk mengatasi keterbatasan dataset 1.500 citra. Close mosaic di epoch akhir mencegah distribusi shift. Augmentasi esensial untuk mencegah overfitting.
+2. **Augmentasi data online** - mosaic 1.0, mixup 0.3, copy-paste 0.4, HSV jitter, geometric transform, random erasing 0.4, dan auto augment randaugment - diterapkan untuk mengatasi keterbatasan dataset ~2.917 citra. Close mosaic di epoch akhir (epochs // 2) mencegah distribusi shift.
 
-3. **Arsitektur YOLO26n** (2,7M parameter, 5,0 MB) diimplementasikan sebagai one-stage detector dengan backbone CSPNet, neck concatenation-based FPN, dan decoupled head. Loss function: CIoU (regresi bbox) + BCE (klasifikasi) + DFL (distribusi posisi) dengan bobot 7.5/0.5/1.5.
+3. **Arsitektur YOLOv26m-seg** (21,2M parameter) diimplementasikan sebagai one-stage segmentasi dengan backbone CSPNet, neck concatenation-based FPN, decoupled head dengan segmentation branch, serta fitur MuSGD Optimizer, Semantic Segmentation Loss, Multi-Scale Proto Modules, dan NMS-Free End-to-End.
 
-4. **GPU memory management** menggunakan FP16 inference mengurangi VRAM ~44%, batch size 16 feasible pada 12GB VRAM. `torch.cuda.set_per_process_memory_fraction()` mencegah OOM.
+4. **GPU memory management** menggunakan FP16 mixed precision training dan `cache=True` mengoptimalkan utilisasi VRAM ~11,3GB pada Tesla T4 (15,6 GB). Batch size 16 feasible dengan image size 640.
 
-5. **Model dievaluasi** dengan mAP@0.5, mAP@0.5:0.95, precision, recall per split dan per-kelas untuk mengidentifikasi bias class imbalance (rasio organik:non-organik ~1:31).
+5. **Model dievaluasi** dengan metrik box dan mask: Box mAP@0.5=48,5%, Mask mAP@0.5=35,7%. Per-class mask AP@50 menunjukkan variasi signifikan: e-waste 78,6% (tertinggi) hingga kitchen_waste 11,2% (terendah), dipengaruhi oleh jumlah citra per kelas dan kompleksitas bentuk objek.
+
+```mermaid
+flowchart TD
+    subgraph Input[Input]
+        I1["Dataset: waste-classification"]
+        I2["~2.917 citra, 18 subkategori"]
+        I3["Klasifikasi (tanpa mask)"]
+    end
+    
+    subgraph Process[Pipeline]
+        P1["Pseudo-Polygon Mask Generation"]
+        P1 --> P2["Edge Detection Otsu ~83%"]
+        P1 --> P3["Fallback Geometris ~17%"]
+        P2 --> P4["Stratified Split 70/15/15"]
+        P3 --> P4
+        P4 --> P5["YOLOv26m-seg Training"]
+    end
+    
+    subgraph Output[Output]
+        O1["Box mAP@0.5: 48,5%"]
+        O2["Mask mAP@0.5: 35,7%"]
+        O3["Web CMS 4 Menu Pipeline"]
+    end
+    
+    Input --> Process
+    Process --> Output
+```
 
 ## 5.2 Saran
 
 ### 5.2.1 Pengembangan Model
 
-1. **Focal Loss:** Gantikan BCE dengan focal loss untuk mengatasi class imbalance - down-weight easy negatives, fokus ke hard positives.
-2. **Class-weighted loss:** Naikkan bobot kelas organik di loss function.
-3. **Model scaling:** Uji YOLO26s/m untuk lihat trade-off parameter vs akurasi.
-4. **Cross-dataset validation:** Validasi pada TrashNet, WaDaBa, TACO-subset berbeda.
+1. **Class-weighted loss:** Implementasikan `cls_pw` untuk menangani class imbalance 18 kelas - beri bobot lebih pada kelas dengan sample sedikit (kitchen_waste 114, batteries 110, sanitary_napkin 110).
+2. **Focal Loss:** Gantikan BCE dengan focal loss untuk down-weight easy negatives dan fokus ke hard positives.
+3. **Optimizer tuning:** Ekspos optimizer多样化 (AdamW, MuSGD auto) melalui API untuk eksperimen lebih lanjut.
+4. **Cross-dataset validation:** Validasi pada dataset sampah lain (TrashNet, WaDaBa, TACO).
 
 ### 5.2.2 Pengembangan Data
 
-1. **Data augmentation tambahan:** MixUp, CutMix untuk meningkatkan variasi.
-2. **Oversampling organik:** Duplikasi sampel organik saat training.
-3. **Pseudo-labeling:** Gunakan model trained untuk label data TACO unofficial.
-4. **Ekspansi sumber:** Tambah citra dari lingkungan berbeda (pantai, pasar, jalan).
+1. **Ekspansi dataset:** Tambah citra dari lingkungan berbeda (pantai, pasar, jalan, rumah tangga).
+2. **Citra per kelas seimbang:** Target minimal 300 citra per subkategori untuk mengurangi bias class imbalance.
+3. **Pseudo-labeling:** Gunakan model trained untuk memperluas dataset dengan data tambahan.
+4. **Augmentasi lanjutan:** Eksplorasi CutMix dan MixUp dengan rasio berbeda.
+
+```mermaid
+flowchart LR
+    subgraph Now[Saat Ini]
+        N["YOLOv26m-seg<br/>18 Classes<br/>2.917 Images<br/>48.5% Box mAP"]
+    end
+    
+    subgraph Next[Pengembangan Model]
+        N1["Class-weighted Loss"]
+        N2["Focal Loss"]
+        N3["Optimizer Tuning"]
+        N4["Cross-dataset Validation"]
+    end
+    
+    subgraph Future[Pengembangan Data]
+        F1["Ekspansi Dataset"]
+        F2["Citra per Kelas Seimbang"]
+        F3["Pseudo-labeling"]
+        F4["Augmentasi Lanjutan"]
+    end
+    
+    Now --> Next
+    Next --> Future
+```
 
 ### 5.2.3 Pengembangan Aplikasi
 
-1. Deployment REST API ke cloud untuk akses luas.
-2. Real-time webcam detection via WebSocket streaming.
+1. **Parameter tuning via API:** Tambahkan endpoint untuk mengontrol optimizer, learning rate scheduler, dan augmentation toggle dari frontend CMS.
+2. **Real-time inference:** Implementasi webcam detection via WebSocket streaming.
+3. **Cloud deployment:** Deployment REST API ke cloud untuk akses luas.
 
 ## 5.3 Kontribusi Penelitian
 
-1. **Kontribusi Metodologis:** Pipeline data dan pelatihan deep learning untuk deteksi sampah biner menggunakan YOLO26n - mencakup transformasi anotasi, konfigurasi augmentasi, hyperparameter tuning, dan GPU memory optimization.
+1. **Kontribusi Metodologis:** Pipeline end-to-end untuk konversi dataset klasifikasi sampah 18 kelas ke instance segmentation menggunakan pseudo-polygon mask generation - mencakup edge detection Otsu, fallback geometris, konfigurasi augmentasi, dan hyperparameter YOLOv26m-seg.
 
-2. **Kontribusi Praktis:** REST API untuk inferensi deteksi sampah yang dapat diintegrasikan ke sistem pengelolaan sampah eksisting.
+2. **Kontribusi Praktis:** Web CMS dengan 4 menu pipeline (/raw/dataset, /raw/preparation, /raw/training, /raw/deployment) yang menyederhanakan 12 langkah teknis menjadi antarmuka visual untuk pengguna non-teknis.
 
-3. **Kontribusi Empiris:** Analisis dampak class imbalance, augmentasi, dan transfer learning pada dataset sampah TACO dengan YOLO26n.
+3. **Kontribusi Empiris:** Analisis performa segmentasi per-subkategori pada 18 kelas sampah dengan YOLOv26m-seg, termasuk identifikasi kelas dengan performa tinggi (e-waste 78,6%, plastics_bags 75,2%) dan rendah (kitchen_waste 11,2%, ceramic 16,5%) serta faktor-faktor yang memengaruhinya.
+
+```mermaid
+flowchart TD
+    subgraph Kontribusi[Kontribusi Penelitian]
+        KM["Metodologis:<br/>Pipeline pseudo-mask generation"]
+        KP["Praktis:<br/>Web CMS 4 menu pipeline"]
+        KE["Empiris:<br/>Analisis 18 kelas dengan YOLOv26m-seg"]
+    end
+    
+    KM --> Impact["Dampak: Sistem Klasifikasi Sampah Otomatis"]
+    KP --> Impact
+    KE --> Impact
+```

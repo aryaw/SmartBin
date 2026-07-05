@@ -38,7 +38,7 @@ def _generate_edge_polygon(img, n_points=24):
         if not contours:
             return None
         largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) < 0.10 * h * w:
+        if cv2.contourArea(largest) < 0.20 * h * w:
             return None
         epsilon = 0.01 * cv2.arcLength(largest, True)
         approx = cv2.approxPolyDP(largest, epsilon, True)
@@ -219,6 +219,129 @@ def download_and_prepare():
     print(f"Done. {stats['total']} images processed ({stats['edge']} edge, {stats['fallback']} fallback)")
     return {
         "pipeline": "kaggle_download",
+        "total_images": stats["total"],
+        "edge_masks": stats["edge"],
+        "fallback_masks": stats["fallback"],
+        "classes": NC,
+        "splits": {
+            "train": len(train_p),
+            "val": len(val_p),
+            "test": len(test_p),
+        },
+        "output_dir": str(out_dir),
+    }
+
+
+def prepare_from_local(source_dir, output_dir=None):
+    """Read Waste_Classification_Dataset from local path, generate YOLO-seg masks, split."""
+    _ensure_cv2()
+    random.seed(SEED)
+    np.random.seed(SEED)
+
+    source_path = Path(source_dir)
+    if not source_path.is_dir():
+        raise FileNotFoundError(f"Source not found: {source_dir}")
+
+    out_dir = Path(output_dir or BASE_DIR / "dataset" / "kaggle_waste")
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+
+    CLASS_NAMES = []
+    CLASS_MAP = {}
+    all_paths = []
+
+    categories = sorted(os.listdir(source_path))
+    cid = 0
+    for cat in categories:
+        inner = source_path / cat / cat
+        if not inner.is_dir():
+            inner = source_path / cat
+            if not inner.is_dir():
+                continue
+        subs = sorted(os.listdir(inner))
+        for sub in subs:
+            sub_path = inner / sub
+            if not sub_path.is_dir():
+                continue
+            CLASS_NAMES.append(sub)
+            CLASS_MAP[sub] = cid
+            for f in sorted(os.listdir(sub_path)):
+                if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp")):
+                    all_paths.append((str(sub_path / f), cid, sub))
+            cid += 1
+
+    NC = len(CLASS_NAMES)
+    if NC == 0:
+        raise ValueError(f"No subcategories found in {source_dir}")
+
+    print(f"Found {len(all_paths)} images across {NC} subcategories from {source_dir}")
+
+    paths = [x[0] for x in all_paths]
+    cls_ids = [x[1] for x in all_paths]
+
+    train_p, temp_p, train_id, temp_id = train_test_split(
+        paths, cls_ids, test_size=0.3, random_state=SEED, stratify=cls_ids
+    )
+    val_p, test_p, val_id, test_id = train_test_split(
+        temp_p, temp_id, test_size=0.5, random_state=SEED, stratify=temp_id
+    )
+
+    for split in ("train", "val", "test"):
+        (out_dir / split / "images").mkdir(parents=True, exist_ok=True)
+        (out_dir / split / "labels").mkdir(parents=True, exist_ok=True)
+
+    stats = {"edge": 0, "fallback": 0, "total": 0}
+    for split_name, split_paths, split_ids in [
+        ("train", train_p, train_id),
+        ("val", val_p, val_id),
+        ("test", test_p, test_id),
+    ]:
+        img_dir = out_dir / split_name / "images"
+        lbl_dir = out_dir / split_name / "labels"
+        do_rand = split_name == "train"
+
+        for i, (img_path, cls_id) in enumerate(zip(split_paths, split_ids)):
+            try:
+                with Image.open(img_path) as img:
+                    if img.mode in ("RGBA", "P", "LA", "L"):
+                        img = img.convert("RGB")
+                    ext = Path(img_path).suffix.lower()
+                    if ext not in (".jpg", ".jpeg", ".png"):
+                        ext = ".jpg"
+                    new_name = f"{split_name}_{i:05d}{ext}"
+                    img.save(str(img_dir / new_name), quality=95)
+
+                    poly, poly_type = _generate_mask(img, randomize=do_rand)
+                    if poly_type == "edge":
+                        stats["edge"] += 1
+                    else:
+                        stats["fallback"] += 1
+                    stats["total"] += 1
+
+                    coords = " ".join(f"{v:.6f}" for v in poly)
+                    lbl_path = lbl_dir / f"{Path(new_name).stem}.txt"
+                    lbl_path.write_text(f"{cls_id} {coords}\n")
+            except Exception:
+                pass
+
+    data_yaml = {
+        "path": str(out_dir),
+        "train": "train/images",
+        "val": "val/images",
+        "test": "test/images",
+        "nc": NC,
+        "names": {i: n for i, n in enumerate(CLASS_NAMES)},
+    }
+    with open(out_dir / "data.yaml", "w") as f:
+        yaml.dump(data_yaml, f, default_flow_style=False, sort_keys=False)
+
+    with open(out_dir / "class_names.json", "w") as f:
+        json.dump({"nc": NC, "names": CLASS_NAMES}, f, indent=2)
+
+    print(f"Done. {stats['total']} images processed ({stats['edge']} edge, {stats['fallback']} fallback)")
+    return {
+        "pipeline": "local_prepare",
+        "source": str(source_dir),
         "total_images": stats["total"],
         "edge_masks": stats["edge"],
         "fallback_masks": stats["fallback"],

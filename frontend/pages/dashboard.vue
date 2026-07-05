@@ -7,28 +7,28 @@
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
       <div>
-        <h2 class="font-bold text-dark text-sm uppercase tracking-wide">Data Preparation</h2>
-        <p class="text-xs text-dark/50">Download dataset from TACO & split to train/val/test</p>
+        <h2 class="font-bold text-dark text-sm uppercase tracking-wide">Full Pipeline</h2>
+        <p class="text-xs text-dark/50">Load dataset -> Convert masks -> Train YOLOv26m-seg -> Then infer on your images</p>
       </div>
-      <button :disabled="preparing"
+      <button :disabled="pipelineRunning"
         class="bg-tertiary hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 disabled:opacity-50"
-        @click="runPrepare">
-        <svg v-if="preparing" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+        @click="runFullPipeline">
+        <svg v-if="pipelineRunning" class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
-        {{ preparing ? 'Preparing...' : 'Prepare Data' }}
+        {{ pipelineRunning ? 'Running pipeline...' : 'Run Full Pipeline' }}
       </button>
     </div>
 
-    <div v-if="prepareResult" class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-3">
+    <div v-if="pipelineResult" class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-3">
       <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span>Downloaded {{ prepareResult.logs?.[0]?.success || 0 }} images | Split done</span>
+      <span>{{ pipelineResult }}</span>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border-2 border-dashed border-secondary p-10 text-center cursor-pointer hover:border-tertiary hover:bg-secondary/10 transition-all"
@@ -136,8 +136,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const result = ref<any>(null)
 const fileItem = ref<{ file: File } | null>(null)
-const preparing = ref(false)
-const prepareResult = ref<any>(null)
+const pipelineRunning = ref(false)
+const pipelineResult = ref<string | null>(null)
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -173,10 +173,11 @@ async function detect() {
   } finally { loading.value = false }
 }
 
-async function runPrepare() {
-  preparing.value = true; prepareResult.value = null
+async function runFullPipeline() {
+  pipelineRunning.value = true; pipelineResult.value = null
   try {
-    prepareResult.value = await $fetch("/api/dataset/prepare", { baseURL: apiBase, method: "POST" })
-  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Prepare failed') } finally { preparing.value = false }
+    const res = await $fetch("/api/kaggle/pipeline/run-full?epochs=50&batch=16", { baseURL: apiBase, method: "POST" }) as any
+    pipelineResult.value = res.message || "Pipeline complete. Model is ready. Upload an image below to detect."
+  } catch (e: any) { showError(e?.data?.detail || e?.message || 'Pipeline failed') } finally { pipelineRunning.value = false }
 }
 </script>

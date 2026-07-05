@@ -25,7 +25,10 @@ def _export_coco():
     img_lookup = {}
     for img in data["images"]:
         key = img["file_name"].replace("/", "_")
-        img_lookup[key.lower()] = img
+        key_lower = key.lower()
+        if key_lower in img_lookup:
+            key_lower = f"{key_lower}_{img['id']}"
+        img_lookup[key_lower] = img
 
     train_keys = set(f.name.lower() for f in train_img_dir.iterdir()
                      if f.suffix.lower() in {".jpg", ".jpeg", ".png"})
