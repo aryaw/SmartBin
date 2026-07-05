@@ -10,7 +10,7 @@
 | GPU | Tesla T4 (CUDA) |
 | Dataset Path | backend/dataset/raw (configurable via DATASET_PATH env) |
 | Dataset Images | ~2,917 |
-| Dataset Classes | 18 |
+| Dataset Classes | 2 main (Organik/Non-Organik), Non-Organik → Anorganik (recyclable) + Residu (landfill) per Pergub No.47/2019 |
 
 ## Commands Executed
 

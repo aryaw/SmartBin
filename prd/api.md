@@ -13,7 +13,7 @@ Grouped by frontend page:
 |--------|------|-------------|
 | POST | `/api/kaggle/download` | Load dataset from local path (DATASET_PATH env) |
 | GET | `/api/kaggle/download-status` | Check if dataset + labels exist |
-| GET | `/api/kaggle/explore` | Class distribution + sample image URLs |
+| GET | `/api/kaggle/explore` | Class distribution (Organik/Non-Organik with Anorganik/Residu subtypes) + sample image URLs |
 
 **Group 2 (/convert-viz):**
 | Method | Path | Description |
@@ -34,10 +34,10 @@ Grouped by frontend page:
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/kaggle/inference` | Upload image -> mask overlay + detections |
-| POST | `/api/kaggle/inference/batch` | Batch inference on test set + recycling advice |
+| POST | `/api/kaggle/inference/batch` | Batch inference on test set + Organik/Non-Organik recycling advice with Anorganik/Residu mapping |
 | POST | `/api/kaggle/export` | Export model (ONNX/TorchScript) |
-| GET | `/api/kaggle/categories` | Category hierarchy + recycling advice |
-| GET | `/api/kaggle/verify` | Per-class mask mAP final verification |
+| GET | `/api/kaggle/categories` | Class hierarchy + recycling advice |
+| GET | `/api/kaggle/verify` | Per-class mask mAP final verification (Organik/Non-Organik) |
 
 ---
 

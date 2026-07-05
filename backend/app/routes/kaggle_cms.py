@@ -26,23 +26,30 @@ router = APIRouter(prefix="/api/kaggle", tags=["Kaggle CMS"])
 KAGGLE_DIR = BASE_DIR / "dataset" / "kaggle_waste"
 TRAIN_RUN_DIR = BASE_DIR / "runs" / "detect" / "api_train"
 
-CATEGORY_TO_SUBS = {
-    "Hazardous": ["batteries", "e-waste", "paints", "pesticides"],
-    "Non-Recyclable": ["ceramic_product", "diapers", "platics_bags_wrappers", "sanitary_napkin", "stroform_product"],
-    "Organic": ["coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"],
-    "Recyclable": ["cans_all_type", "glass_containers", "paper_products", "plastic_bottles"],
-}
-
 SUB_TO_MAIN = {}
-for main_cat, subs in CATEGORY_TO_SUBS.items():
-    for sub in subs:
-        SUB_TO_MAIN[sub] = main_cat
+SUB_TO_SUBTYPE = {}
+CATEGORY_FILE = BASE_DIR / "dataset" / "kaggle_waste" / "category_map.json"
+_loaded = False
+
+def _load_category_map():
+    global SUB_TO_MAIN, SUB_TO_SUBTYPE, _loaded
+    if _loaded:
+        return
+    SUB_TO_MAIN.clear()
+    SUB_TO_SUBTYPE.clear()
+    cat_path = CATEGORY_FILE
+    if cat_path.exists():
+        with open(cat_path) as f:
+            data = json.load(f)
+            for entry in data:
+                SUB_TO_MAIN[entry["subcategory"]] = entry["main"]
+                SUB_TO_SUBTYPE[entry["subcategory"]] = entry.get("subtype", entry["main"])
+    _loaded = True
 
 RECYCLING_ADVICE = {
-    "Organic": "Place in compost bin. Biodegradable waste.",
-    "Non-Recyclable": "Dispose in general trash. Cannot be recycled.",
-    "Hazardous": "Handle carefully! Dispose at hazardous waste facility.",
-    "Recyclable": "Sort into recycling bin (Plastic, Paper, Glass, Metal).",
+    "Organik": "Compost bin. Biodegradable waste suitable for composting or eco-enzyme.",
+    "Anorganik": "Recycling bin. Sort plastic, paper, glass, metal for Bank Sampah or recycling facility.",
+    "Residu": "General trash. Send to TPA (final disposal). Cannot be recycled or composted.",
 }
 
 _executor = ThreadPoolExecutor(max_workers=1)
@@ -365,9 +372,10 @@ async def explore():
 
 
 @router.get("/categories")
-async def categories():
+async def get_categories():
+    _load_category_map()
     return {
-        "category_to_subs": CATEGORY_TO_SUBS,
+        "categories": list(RECYCLING_ADVICE.keys()),
         "sub_to_main": SUB_TO_MAIN,
         "recycling_advice": RECYCLING_ADVICE,
     }
@@ -505,16 +513,19 @@ async def inference_batch():
         except Exception:
             continue
 
+    _load_category_map()
     advice_list = []
     for name, det in sorted(class_detections.items(), key=lambda x: x[1]["count"], reverse=True):
         main_cat = SUB_TO_MAIN.get(name, "Unknown")
-        advice = RECYCLING_ADVICE.get(main_cat, "")
+        subtype = SUB_TO_SUBTYPE.get(name, main_cat)
+        advice = RECYCLING_ADVICE.get(subtype, RECYCLING_ADVICE.get(main_cat, ""))
         advice_list.append({
             "class_name": name,
             "class_id": det["class_id"],
             "count": det["count"],
             "max_confidence": round(det["max_conf"], 4),
             "category": main_cat,
+            "subtype": subtype,
             "advice": advice,
         })
 
@@ -581,6 +592,7 @@ async def verify():
     model = YOLO(str(MODEL_PATH))
     results = model.val(data=str(data_yaml), split="test", imgsz=640, batch=16)
 
+    _load_category_map()
     per_class = []
     if hasattr(results, "seg") and hasattr(results.seg, "ap_class_index"):
         cls_names = model.names if hasattr(model, "names") else {}

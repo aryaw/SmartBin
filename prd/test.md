@@ -16,7 +16,7 @@
 |----------|----------|
 | `GET /health` | `{"status":"ok"}` |
 | `GET /api/kaggle/download-status` | Dataset exists or not |
-| `GET /api/kaggle/explore` | Class distribution with 18 classes |
+| `GET /api/kaggle/explore` | Class distribution with 2 classes (Organik/Non-Organik) |
 | `POST /api/kaggle/train` | Training starts with yolo26m-seg.pt |
 
 ## Frontend Pages
@@ -33,17 +33,15 @@
 
 ```
 backend/dataset/raw/
-  ├── Hazardous/{batteries, e-waste, paints, pesticides}/
-  ├── Non-Recyclable/.../
-  ├── Organic/.../
-  └── Recyclable/.../
+  ├── Organik/
+  └── Non-Organik/  (subtypes: Anorganik recyclable, Residu landfill)
         │
         ▼ (POST /api/kaggle/download?source=local)
 backend/dataset/kaggle_waste/
   ├── train/ (2041 images + labels)
   ├── val/ (438 images + labels)
   ├── test/ (438 images + labels)
-  └── data.yaml (18 classes)
+  └── data.yaml (2 classes)
         │
         ▼ (POST /api/kaggle/train)
 backend/models/best.pt (YOLOv26m-seg)

@@ -1,7 +1,7 @@
 
 🗑️ YOLOv26-seg — Waste Instance Segmentation (Pixel-Level Masks)
 
-Dataset: phenomsg/waste-classification (4 categories, 18 subcategories, ~2,884 images)
+Dataset: phenomsg/waste-classification (2 classes: Organik/Non-Organik, ~2,884 images)
 Model: yolo26m-seg.pt (Medium Segmentation — best accuracy/speed for this dataset)
 Task: Instance Segmentation — pixel-precise object boundaries + class labels
 YOLOv26-seg Architecture Features Used:
@@ -91,7 +91,7 @@ waste-classification/
 ├── Hazardous/Hazardous/{pesticides, batteries, paints, e-waste}/
 └── Recyclable/Recyclable/{cans_all_type, plastic_bottles, glass_containers, paper_products}/
 
-We use the 18 subcategories as detection/segmentation classes.
+We use 2 classes (Organik/Non-Organik) as detection/segmentation classes.
 
 # ============================================================
 # EXPLORE THE ORIGINAL CLASSIFICATION DATASET
@@ -107,7 +107,7 @@ print(f"Main categories ({len(categories)}): {categories}\n")
 
 # Map out the full structure
 class_id = 0
-CLASS_NAMES = []          # ordered list of 18 subcategory names
+CLASS_NAMES = []          # ordered list of subcategory names
 CLASS_MAP = {}            # subcategory_folder -> class_id
 CATEGORY_TO_SUBS = {}     # main_category -> [subcategory_names]
 
@@ -954,7 +954,7 @@ print("   MuSGD optimizer:            USED for all parameter updates")
 ======================================================================
   Model:      yolo26m-seg (COCO pretrained, transfer learning)
   Dataset:    2041 train / 438 val / 438 test
-  Classes:    18 subcategories
+  Classes:    2 (Organik/Non-Organik)
   Task:       Instance Segmentation (polygon masks)
 ======================================================================
 

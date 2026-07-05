@@ -1,6 +1,6 @@
 # SmartBin
 
-Waste instance segmentation web app using YOLOv26m-seg. Classifies waste into 18 subcategories across 4 main categories: Hazardous, Non-Recyclable, Organic, Recyclable. Provides full CMS pipeline from dataset exploration to model deployment.
+Waste instance segmentation web app using YOLOv26m-seg. Classifies waste into 2 main classes: **Organik** (Organic) and **Non-Organik** (Non-Organic), matching Bali government standard (Pergub No.47/2019). Non-Organik splits into **Anorganik** (recyclable: paper, glass, plastic, metal) and **Residu** (landfill: diapers, sanitary napkin, styrofoam, ceramic, hazardous). Provides full CMS pipeline from dataset exploration to model deployment.
 
 ## Tech Stack
 
@@ -16,32 +16,18 @@ Waste instance segmentation web app using YOLOv26m-seg. Classifies waste into 18
 ## Dataset
 
 - **Source:** phenomsg/waste-classification (Kaggle)
-- **~2,917 images**, 18 subcategories, 4 main categories
+- **~2,917 images**, 2 main classes (Organik / Non-Organik) aligned with Bali Pergub No.47/2019
+- Non-Organik subdivided into **Anorganik** (recyclable) and **Residu** (landfill) per Bali government standard
 - Classification dataset (no masks) — pipeline generates pseudo-polygon masks via Otsu edge detection (~83%) and geometric fallback (~17%)
 - Configurable via `DATASET_PATH` env var (default: `backend/dataset/raw`)
 
-### 18 Subcategories
+### 2 Main Classes (Pergub No.47/2019)
 
-| ID | Subcategory | Category |
-|----|-------------|----------|
-| 0 | batteries | Hazardous |
-| 1 | e-waste | Hazardous |
-| 2 | paints | Hazardous |
-| 3 | pesticides | Hazardous |
-| 4 | ceramic_product | Non-Recyclable |
-| 5 | diapers | Non-Recyclable |
-| 6 | platics_bags_wrappers | Non-Recyclable |
-| 7 | sanitary_napkin | Non-Recyclable |
-| 8 | stroform_product | Non-Recyclable |
-| 9 | coffee_tea_bags | Organic |
-| 10 | egg_shells | Organic |
-| 11 | food_scraps | Organic |
-| 12 | kitchen_waste | Organic |
-| 13 | yard_trimmings | Organic |
-| 14 | cans_all_type | Recyclable |
-| 15 | glass_containers | Recyclable |
-| 16 | paper_products | Recyclable |
-| 17 | plastic_bottles | Recyclable |
+| Main Class | Subtypes | Examples |
+|------------|----------|---------|
+| Organik | — | food_scraps, kitchen_waste, yard_trimmings, egg_shells, coffee_tea_bags |
+| Non-Organik → **Anorganik** (recyclable) | — | paper, glass, plastic_bottles, cans, e-waste, batteries |
+| Non-Organik → **Residu** (landfill) | — | diapers, sanitary_napkin, stroform, ceramic, paints, pesticides |
 
 ## Project Structure
 

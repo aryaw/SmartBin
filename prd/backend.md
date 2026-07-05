@@ -48,7 +48,7 @@ backend/
 │   │   └── progress.py         # SSE progress emitter
 │   └── schemas/detection.py    # Pydantic models
 ├── dataset/
-│   ├── kaggle_waste/           # 18-class dataset (train/val/test)
+│   ├── kaggle_waste/           # 2-class dataset (Organik/Non-Organik, Anorganik/Residu subtypes) (train/val/test)
 │   ├── raw/                    # Raw images
 │   └── train/val/test/         # Split datasets
 ├── models/best.pt              # Trained YOLO weights
@@ -87,7 +87,7 @@ backend/
 
 ```
 Model: yolo26m-seg.pt (COCO pretrained)
-Task: Instance Segmentation (18 classes)
+Task: Instance Segmentation (2 classes: Organik/Non-Organik)
 Epochs: 120 (patience=20)
 Batch: 16
 Imgsz: 640

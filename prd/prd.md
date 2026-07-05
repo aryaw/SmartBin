@@ -8,11 +8,9 @@
 
 ## Dataset
 
-Source: phenomsg/waste-classification (Kaggle), ~2,917 images, 18 subcategories, 4 main categories.
+Source: phenomsg/waste-classification (Kaggle), ~2,917 images, 2 main classes aligned with Bali Pergub No.47/2019.
 
-Main categories: Hazardous, Non-Recyclable, Organic, Recyclable.
-
-Classes (18): batteries, e-waste, paints, pesticides, ceramic_product, diapers, platics_bags_wrappers, sanitary_napkin, stroform_product, coffee_tea_bags, egg_shells, food_scraps, kitchen_waste, yard_trimmings, cans_all_type, glass_containers, paper_products, plastic_bottles.
+Classes: **Organik** (Organic) and **Non-Organik** (Non-Organic). Non-Organik subdivided into **Anorganik** (recyclable: paper, glass, plastic, cans, e-waste, batteries) and **Residu** (landfill: diapers, sanitary_napkin, styrofoam, ceramic, paints, pesticides) per Bali government standard.
 
 Data stored at `backend/dataset/raw/` (configurable via `DATASET_PATH` env). Loaded into `backend/dataset/kaggle_waste/` via pipeline.
 

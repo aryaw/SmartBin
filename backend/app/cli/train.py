@@ -107,7 +107,7 @@ def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
 
 def main():
     parser = argparse.ArgumentParser(description="Train YOLO model for SmartBin")
-    parser.add_argument("--model", type=str, default="yolo11m.pt")
+    parser.add_argument("--model", type=str, default="yolo26m-seg.pt")
     parser.add_argument("--data", type=str, default="data.yaml")
     parser.add_argument("--epochs", type=int, default=int(os.getenv("EPOCHS", "200")))
     parser.add_argument("--batch", type=int, default=16)

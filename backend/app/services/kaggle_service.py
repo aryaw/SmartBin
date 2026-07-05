@@ -270,6 +270,9 @@ def prepare_from_local(source_dir, output_dir=None):
                     all_paths.append((str(sub_path / f), cid, sub))
             cid += 1
 
+    ORGANIC_SUBS = {"coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"}
+    BIN_MAP = {i: 0 if CLASS_NAMES[i] in ORGANIC_SUBS else 1 for i in range(len(CLASS_NAMES))}
+
     NC = len(CLASS_NAMES)
     if NC == 0:
         raise ValueError(f"No subcategories found in {source_dir}")
@@ -320,7 +323,7 @@ def prepare_from_local(source_dir, output_dir=None):
 
                     coords = " ".join(f"{v:.6f}" for v in poly)
                     lbl_path = lbl_dir / f"{Path(new_name).stem}.txt"
-                    lbl_path.write_text(f"{cls_id} {coords}\n")
+                    lbl_path.write_text(f"{BIN_MAP[cls_id]} {coords}\n")
             except Exception:
                 pass
 
@@ -329,14 +332,15 @@ def prepare_from_local(source_dir, output_dir=None):
         "train": "train/images",
         "val": "val/images",
         "test": "test/images",
-        "nc": NC,
-        "names": {i: n for i, n in enumerate(CLASS_NAMES)},
+        "nc": 2,
+        "names": {0: "Organik", 1: "Non-Organik"},
     }
     with open(out_dir / "data.yaml", "w") as f:
         yaml.dump(data_yaml, f, default_flow_style=False, sort_keys=False)
 
+    BIN_CLASS_NAMES = ["Organik", "Non-Organik"]
     with open(out_dir / "class_names.json", "w") as f:
-        json.dump({"nc": NC, "names": CLASS_NAMES}, f, indent=2)
+        json.dump({"nc": 2, "names": BIN_CLASS_NAMES}, f, indent=2)
 
     print(f"Done. {stats['total']} images processed ({stats['edge']} edge, {stats['fallback']} fallback)")
     return {
@@ -345,7 +349,7 @@ def prepare_from_local(source_dir, output_dir=None):
         "total_images": stats["total"],
         "edge_masks": stats["edge"],
         "fallback_masks": stats["fallback"],
-        "classes": NC,
+        "classes": 2,
         "splits": {
             "train": len(train_p),
             "val": len(val_p),

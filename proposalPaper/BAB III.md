@@ -41,32 +41,16 @@ Dataset: phenomsg/waste-classification (~2.917 citra).
 | Karakteristik | Nilai |
 |---------------|-------|
 | Jumlah citra | ~2.917 |
-| Kategori utama | 4 (Hazardous, Non-Recyclable, Organic, Recyclable) |
-| Subkategori | 18 |
+| Kelas | 2 (Organik, Non-Organik) |
 | Tipe | Klasifikasi (tanpa mask/bbox annotation) |
 
-### 3.2.2 18 Subkategori
+### 3.2.2 2 Kelas
 
-| ID | Subkategori | Main Category |
-|----|-------------|---------------|
-| 0 | batteries | Hazardous |
-| 1 | e-waste | Hazardous |
-| 2 | paints | Hazardous |
-| 3 | pesticides | Hazardous |
-| 4 | ceramic_product | Non-Recyclable |
-| 5 | diapers | Non-Recyclable |
-| 6 | platics_bags_wrappers | Non-Recyclable |
-| 7 | sanitary_napkin | Non-Recyclable |
-| 8 | stroform_product | Non-Recyclable |
-| 9 | coffee_tea_bags | Organic |
-| 10 | egg_shells | Organic |
-| 11 | food_scraps | Organic |
-| 12 | kitchen_waste | Organic |
-| 13 | yard_trimmings | Organic |
-| 14 | cans_all_type | Recyclable |
-| 15 | glass_containers | Recyclable |
-| 16 | paper_products | Recyclable |
-| 17 | plastic_bottles | Recyclable |
+| Kelas | Subkategori yang Dikelompokkan | Subkelas (Pergub No.47/2019) |
+|------|-------------------------------|-------------------------------|
+| Organik | coffee_tea_bags, egg_shells, food_scraps, kitchen_waste, yard_trimmings | - |
+| Non-Organik | e-waste, cans_all_type, glass_containers, paper_products, plastic_bottles | Anorganik (recyclable) |
+| Non-Organik | batteries, paints, pesticides, ceramic_product, diapers, plastics_bags_wrappers, sanitary_napkin, stroform_product | Residu (landfill) |
 
 ### 3.2.3 Stratified Split 70/15/15
 
@@ -85,6 +69,8 @@ pie title Dataset Split 70/15/15
     "Val: 438 images" : 15
     "Test: 438 images" : 15
 ```
+
+**Pendekatan 2 Kelas:** Klasifikasi 2 kelas (Organik/Non-Organik) dipilih karena tidak memerlukan keahlian khusus untuk validasi. Pengguna umum dapat langsung memverifikasi hasil deteksi tanpa pengetahuan mendalam tentang subkategori sampah. Non-Organik kemudian dipetakan ke subkelas Anorganik (recyclable) dan Residu (landfill) mengikuti Pergub Bali No.47/2019 untuk memberikan recycling advice yang lebih spesifik.
 
 ---
 
@@ -221,23 +207,13 @@ flowchart TD
 
 ### 3.5.2 Recycling Advice
 
-Mapping 18 subkategori ke 4 kategori utama dengan advice:
+Recycling advice diberikan dalam 3-tier sesuai standar Pemerintah Bali (Pergub No.47/2019). Non-Organik dibagi menjadi Anorganik (recyclable) dan Residu (landfill):
 
-| Kategori | Advice |
-|----------|--------|
-| Organic | Compost bin. Biodegradable. |
-| Non-Recyclable | General trash. Cannot be recycled. |
-| Hazardous | Hazardous waste facility. |
-| Recyclable | Recycling bin (Plastic, Paper, Glass, Metal). |
-
-```mermaid
-flowchart TD
-    D[Detection Result] --> C{Main Category}
-    C -->|Organic| OA[Compost bin<br/>Biodegradable]
-    C -->|Non-Recyclable| NA[General trash<br/>Cannot be recycled]
-    C -->|Hazardous| HA[Hazardous waste facility]
-    C -->|Recyclable| RA[Recycling bin<br/>Plastic, Paper, Glass, Metal]
-```
+| Kategori | Subkelas | Advice |
+|----------|----------|--------|
+| Organik | - | Compost bin. Biodegradable waste for composting or eco-enzyme. |
+| Non-Organik | Anorganik (recyclable) | Recycling bin. Sort plastic, paper, glass, metal for Bank Sampah. |
+| Non-Organik | Residu (landfill) | General trash. Send to TPA (final disposal). Cannot be recycled. |
 
 ---
 
