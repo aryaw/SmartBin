@@ -45,5 +45,7 @@ def is_organic(category_id: int) -> bool:
 
 ANNOTATIONS_FILE = _resolve_path("ANNOTATIONS_FILE", "../datasource/annotations.json")
 
-for d in [UPLOAD_DIR, LOG_DIR, RESULT_DIR, MODEL_DIR]:
+VIZ_DIR = BASE_DIR.parent / "waste_datasource" / "visualization"
+
+for d in [UPLOAD_DIR, LOG_DIR, RESULT_DIR, MODEL_DIR, VIZ_DIR]:
     d.mkdir(parents=True, exist_ok=True)

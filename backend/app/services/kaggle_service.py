@@ -12,7 +12,7 @@ import yaml
 from PIL import Image
 from sklearn.model_selection import train_test_split
 
-from app.core.config import BASE_DIR
+from app.core.config import BASE_DIR, VIZ_DIR
 
 KAGGLE_DS = "phenomsg/waste-classification"
 SEED = 42
@@ -418,6 +418,30 @@ def prepare_from_local(source_dir, output_dir=None):
         },
         "output_dir": str(out_dir),
     }
+
+
+def run_visualization_pipeline(process_name=None, progress_callback=None):
+    from app.scripts.generate_visualizations import run_all, run_single
+    try:
+        if process_name:
+            name, result = run_single(process_name, progress_callback)
+            results = {name: result}
+        else:
+            results = run_all(progress_callback=progress_callback)
+        success = all(v.get("success") for v in results.values())
+        return {
+            "success": success,
+            "results": results,
+            "output_path": str(VIZ_DIR),
+        }
+    except Exception as e:
+        if progress_callback:
+            progress_callback({"step": "error", "status": "error", "message": str(e)})
+        return {
+            "success": False,
+            "error": str(e),
+            "output_path": str(VIZ_DIR),
+        }
 
 
 if __name__ == "__main__":

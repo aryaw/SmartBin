@@ -1,7 +1,7 @@
 # Pipeline Visualization Export Plan
 
 ## Goal
-Generate step-by-step visualization images for 4 pipeline processes to use in presentations and documentation. Output: `waste_datasource/visualization/`.
+Generate step-by-step visualization images for 6 pipeline processes to use in presentations and documentation. Output: `waste_datasource/visualization/`.
 
 ---
 
@@ -118,107 +118,89 @@ Output: `waste_datasource/visualization/backbone/`
 
 ---
 
-## Output Directory Structure (Each Step Folder Contains ALL Input Images)
+## Process 5: Backend API Flow
+
+Input: API routes from `backend/app/routes/`
+Output: `waste_datasource/visualization/backend/`
+
+### Visualizations
+
+| # | Image | Description | Type |
+|---|-------|-------------|------|
+| 1 | api_detection_flow.jpg | Full request-response flow: User upload -> FastAPI receive -> Validate -> Save -> YOLO inference -> Annotate -> Save result -> Return JSON. Each step labeled with code file reference | Flowchart |
+| 2 | inference_pipeline.jpg | YOLO inference internals: load_model (lazy) -> _run_inference -> _draw_detections -> _get_recommendation. Show detector.py function call chain | Flowchart |
+| 3 | training_pipeline_api.jpg | POST /api/kaggle/pipeline/run-full flow: prepare_from_local -> train_one -> validate -> copy best.pt. Show kaggle_service.py + kaggle_cms.py interaction | Flowchart |
+| 4 | backend_routes_overview.jpg | All route groups: /api/detect, /api/dataset/*, /api/kaggle/*, /api/annotation/*, /health. Show router file names (detect.py, annotation.py, etc.) | Diagram |
+| 5 | detect_request_response.jpg | Side-by-side: HTTP Request (multipart file upload) -> Response JSON schema (DetectResponse model from schemas/detection.py). Show exact field names and types | Schema |
+| 6 | model_lifecycle.jpg | Model loading lifecycle: startup (lazy) -> first request (load) -> inference -> reload endpoint. Show singleton pattern with _model global variable | Flowchart |
+| 7 | error_handling_flow.jpg | Error paths: invalid file type -> 400, detection fail -> 500, model not found -> 500. Show try/except/catch chain | Flowchart |
+
+### Code References for Diagrams
+
+| Step | File | Function/Line |
+|------|------|--------------|
+| 1 (detection flow) | `routes/detect.py` | `detect()` line 17 |
+| 2 (inference) | `services/detector.py` | `detect_image()` line 119, `load_model()` line 36 |
+| 3 (training) | `routes/kaggle_cms.py` | `run_full_pipeline()` line 72 |
+| 3 (prepare) | `services/kaggle_service.py` | `prepare_from_local()` line 235 |
+| 4 (routes) | `main.py` | line 67-73 |
+| 5 (schema) | `schemas/detection.py` | DetectResponse model |
+| 6 (model lifecycle) | `services/detector.py` | `_model` global line 33 |
+
+---
+
+## Process 6: Frontend UI Flow
+
+Input: Vue pages from `frontend/pages/` and components from `frontend/components/`
+Output: `waste_datasource/visualization/frontend/`
+
+### Visualizations
+
+| # | Image | Description | Type |
+|---|-------|-------------|------|
+| 1 | sidebar_navigation.jpg | Sidebar structure: Main (Dashboard) + Report (Training Eval, Validation, Test Results, Inference). Show active state and routing | Wireframe |
+| 2 | detection_ux_flow.jpg | User journey: Open /dashboard -> Drag-drop file -> See preview -> Click Deteksi -> Loading state -> See annotated result + summary cards + recommendation | Wireframe |
+| 3 | component_tree.jpg | Component hierarchy: layouts/default.vue -> pages/ (dashboard.vue, test.vue) -> components/ (FileUpload, DetectionResult, BoundingBoxReport, ZoomModal). Show parent-child relationships | Tree |
+| 4 | api_integration_flow.jpg | Frontend-backend interaction: Component -> $fetch -> FastAPI -> Response -> Reactive state update. Show useFetch/$fetch calls per page | Sequence |
+| 5 | batch_detect_flow.jpg | /test page multi-file flow: Select multiple -> Preview each -> Click Deteksi Sekarang -> Sequential POST /api/detect/bulk -> Results grid -> History saved to localStorage | Flowchart |
+| 6 | responsive_layout.jpg | Page layout breakdown: Sidebar (fixed 64px) + Header (sticky, h-20) + Main (flex-1, p-6). Show slot-based content area | Wireframe |
+| 7 | state_management.jpg | All reactive states per page: dashboard.vue (loading, error, result, fileItem), test.vue (files[], results[], errors[], loading). Show how states drive template rendering | Diagram |
+
+### Page-Code Mapping
+
+| Page | File | Key States | Key Functions |
+|------|------|-----------|--------------|
+| Dashboard | `pages/dashboard.vue` | loading, error, result, fileItem | addFile(), detect(), clearFile() |
+| Test | `pages/test.vue` | files[], results[], errors[], loading | detectAll(), addFile(), previewFile() |
+| Result | `pages/result.vue` | route.query.data | - |
+| Train Eval | `pages/train-eval.vue` | (metrics data) | - |
+
+### Component-Prop Mapping
+
+| Component | File | Props | Events |
+|-----------|------|-------|--------|
+| FileUpload | `components/FileUpload.vue` | - | select, drop |
+| DetectionResult | `components/DetectionResult.vue` | result | - |
+| BoundingBoxReport | `components/BoundingBoxReport.vue` | objects, fileType, framesProcessed, resultUrl | - |
+| ZoomModal | `components/ZoomModal.vue` | url, caption | close |
+
+---
+
+## Output Directory Structure (All Folders Combined)
 
 ```
 waste_datasource/visualization/
-├── pseudo_mask/
-│   ├── 01_original_rgb/
-│   │   ├── batch_1_000000.jpg
-│   │   ├── batch_1_000001.jpg
-│   │   ├── batch_1_000003.jpg
-│   │   └── batch_1_000004.jpg
-│   ├── 02_grayscale/
-│   │   ├── batch_1_000000.jpg
-│   │   ├── batch_1_000001.jpg
-│   │   ├── batch_1_000003.jpg
-│   │   └── batch_1_000004.jpg
-│   ├── 03_gaussian_blur_5x5/
-│   │   └── ... (same 4 images)
-│   ├── 04_otsu_threshold/
-│   │   └── ... (same 4 images)
-│   ├── 05_mean_check_diagram/
-│   │   └── ... (same 4 images, each with its own mean value)
-│   ├── 06a_invert_mask/
-│   │   └── ... (same 4 images)
-│   ├── 06b_morphological_close/
-│   │   └── ... (same 4 images)
-│   ├── 07_find_contours/
-│   │   └── ... (same 4 images, contours drawn)
-│   ├── 08_area_check_diagram/
-│   │   └── ... (same 4 images)
-│   ├── 09a_edge_success_mask/
-│   │   └── ... (edge-detected images)
-│   ├── 09b_fallback_ellipse/
-│   │   └── ... (images that needed ellipse fallback)
-│   ├── 09c_fallback_rounded_rect/
-│   │   └── ... (images that needed rect fallback)
-│   ├── 10_approximate_polygon/
-│   │   └── ... (same 4 images, polygon overlay)
-│   ├── 11_normalized_coordinates/
-│   │   └── ... (same 4 images, coords displayed)
-│   ├── 12_yolo_seg_label/
-│   │   └── ... (same 4 images, label text)
-│   └── summary_collage_4x4/
-│       └── step_comparison.jpg  (single collage of all steps)
-├── stratified_split/
-│   ├── 01_split_bar_chart/
-│   │   └── chart.jpg
-│   ├── 02_split_pie_chart/
-│   │   └── chart.jpg
-│   ├── 03_class_distribution_chart/
-│   │   └── chart.jpg
-│   └── 04_split_table/
-│       └── table.jpg
-├── augmentation/
-│   ├── 01_original/
-│   │   └── ... (all input images)
-│   ├── 02_mosaic/
-│   │   └── ... (mosaic composites)
-│   ├── 03_mixup/
-│   │   └── ... (blended pairs)
-│   ├── 04_copy_paste/
-│   │   └── ... (pasted composites)
-│   ├── 05a_hsv_hue/
-│   │   └── ... (all images, hue shifted)
-│   ├── 05b_hsv_saturation/
-│   │   └── ... (all images, saturation shifted)
-│   ├── 05c_hsv_value/
-│   │   └── ... (all images, value shifted)
-│   ├── 06a_rotate/
-│   │   └── ... (all images, rotated)
-│   ├── 06b_scale/
-│   │   └── ... (all images, scaled)
-│   ├── 06c_shear/
-│   │   └── ... (all images, sheared)
-│   ├── 07_flip_horizontal/
-│   │   └── ... (all images, flipped)
-│   ├── 08_augmentation_pipeline_collage/
-│   │   └── collage_per_image.jpg  (one collage per image)
-│   └── 09_summary_grid_3x3/
-│       └── grid.jpg
-└── backbone/
-    ├── 01_overview_flowchart/
-    │   └── diagram.jpg
-    ├── 02_csp_stage_detail/
-    │   └── diagram.jpg
-    ├── 03_resolution_progression/
-    │   └── diagram.jpg
-    ├── 04_feature_map_evolution/
-    │   └── diagram.jpg
-    ├── 05_csp_vs_standard/
-    │   └── diagram.jpg
-    ├── 06_spp_multi_scale/
-    │   └── diagram.jpg
-    └── 07_full_flow_annotated/
-        └── diagram.jpg
+├── pseudo_mask/         (16 folders, ALL 2,715 images per folder)
+├── stratified_split/     (4 folders, 1 chart each)
+├── augmentation/         (13 folders, ALL 3,973 images per folder)
+├── backbone/             (7 folders, 1 diagram each)
+├── backend/              (7 folders, 1 diagram each)
+└── frontend/             (7 folders, 1 diagram each)
+
+Total: 16 + 4 + 13 + 7 + 7 + 7 = 54 folders
 ```
 
-**Key design: each step folder can contain multiple images. You pick any image (e.g., batch_1_000001.jpg) and trace it through 01 → 02 → 03 → ... → 12 to see its full pipeline history.**
-
-Total step folders: 16 + 4 + 13 + 7 = 40 folders. Images per folder vary (4 for pseudo-mask demo, all dataset for augmentations).
-
-## Implementation Notes
+---
 
 ## Cross-Reference: Every Step → One Folder (Contains N Images)
 
@@ -278,7 +260,29 @@ Total step folders: 16 + 4 + 13 + 7 = 40 folders. Images per folder vary (4 for 
 | 6 (SPP Multi-Scale) | `06_spp_multi_scale/` | SPP layer diagram | diagram.jpg |
 | 7 (Full Flow) | `07_full_flow_annotated/` | Complete annotated flow | diagram.jpg |
 
-**Total: 40 folders. Pseudo-mask processes ALL 2,715 images. Augmentation processes ALL 3,973 images. Trace any image by filename across folders 01→02→03→...→12.**
+### Backend API (7 step folders)
+| Step # | Folder | Contains | Files |
+|---|---|---|---|
+| 1 (Detection Flow) | `01_api_detection_flow/` | Request-response flowchart | diagram.jpg |
+| 2 (Inference Pipeline) | `02_inference_pipeline/` | YOLO inference internals | diagram.jpg |
+| 3 (Training Pipeline) | `03_training_pipeline_api/` | Full pipeline flow | diagram.jpg |
+| 4 (Routes Overview) | `04_backend_routes_overview/` | All route groups | diagram.jpg |
+| 5 (Request-Response) | `05_detect_request_response/` | JSON schema diagram | diagram.jpg |
+| 6 (Model Lifecycle) | `06_model_lifecycle/` | Loading/inference/reload flow | diagram.jpg |
+| 7 (Error Handling) | `07_error_handling_flow/` | Error paths diagram | diagram.jpg |
+
+### Frontend UI (7 step folders)
+| Step # | Folder | Contains | Files |
+|---|---|---|---|
+| 1 (Sidebar) | `01_sidebar_navigation/` | Sidebar structure wireframe | wireframe.jpg |
+| 2 (Detection UX) | `02_detection_ux_flow/` | User journey wireframe | wireframe.jpg |
+| 3 (Component Tree) | `03_component_tree/` | Component hierarchy | tree.jpg |
+| 4 (API Integration) | `04_api_integration_flow/` | Frontend-backend interaction | sequence.jpg |
+| 5 (Batch Detect) | `05_batch_detect_flow/` | Multi-file upload flow | flowchart.jpg |
+| 6 (Layout) | `06_responsive_layout/` | Page layout breakdown | wireframe.jpg |
+| 7 (State Management) | `07_state_management/` | Reactive states per page | diagram.jpg |
+
+**Total: 16 + 4 + 13 + 7 + 7 + 7 = 54 folders. Pseudo-mask processes ALL 2,715 images. Augmentation processes ALL 3,973 images. Trace any image by filename across folders 01→02→03→...→12.**
 
 ---
 

@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 from ultralytics import YOLO
 
 from app.cli.train import train_one
-from app.core.config import BASE_DIR, DATASET_PATH, MODEL_PATH
+from app.core.config import BASE_DIR, DATASET_PATH, MODEL_PATH, VIZ_DIR
 from app.services.kaggle_service import download_and_prepare, _generate_mask, SEED
 
 router = APIRouter(prefix="/api/kaggle", tags=["Kaggle CMS"])
@@ -104,10 +104,20 @@ async def run_full_pipeline(
                 shutil.copy(str(best_path), str(MODEL_PATH))
             results["train"] = {"best_model": str(best_path), "map50": map50}
 
+        from app.services.kaggle_service import run_visualization_pipeline
+        try:
+            viz_result = run_visualization_pipeline()
+            results["visualization"] = {
+                "success": viz_result["success"],
+                "output_path": viz_result["output_path"],
+            }
+        except Exception as ve:
+            results["visualization"] = {"success": False, "error": str(ve)}
+
         return {
             "status": "Pipeline complete",
             "results": results,
-            "message": "Model trained. Go to dashboard and upload an image to detect organic/non-organic waste.",
+            "message": "Model trained and visualizations generated. Go to dashboard to detect waste or /visualization to view pipeline images.",
         }
     except HTTPException:
         raise
@@ -325,6 +335,21 @@ async def results_image(filename: str):
     if not fpath.exists():
         raise HTTPException(404, "Result file not found")
     return FileResponse(str(fpath))
+
+
+@router.post("/visualization/run")
+async def run_visualization(process: str = Query(None, description="Single process name to regenerate, or all if omitted")):
+    from app.services.kaggle_service import run_visualization_pipeline
+    try:
+        result = run_visualization_pipeline(process_name=process)
+        return {
+            "success": result["success"],
+            "message": "Visualization pipeline complete" if result["success"] else "Visualization pipeline failed",
+            "output_path": result["output_path"],
+            "details": result.get("results"),
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Visualization failed: {e}")
 
 
 @router.get("/explore")

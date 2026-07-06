@@ -79,6 +79,7 @@ const reportItems = [
   { to: "/val-result", label: "Validation", num: "2" },
   { to: "/test-result", label: "Test Results", num: "3" },
   { to: "/inference-export", label: "Inference", num: "4" },
+  { to: "/visualization", label: "Visualization", num: "5" },
 ]
 
 function isActive(path: string) {

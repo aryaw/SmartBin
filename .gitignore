@@ -30,6 +30,8 @@ backend/dataset/
 datasource/
 waste_datasource/waste_raw_dataset/*
 waste_datasource/inferencedata/*
+waste_datasource/visualization/*
+waste_datasource/waste_raw_dataset/*
 
 # Models (large binary)
 *.pt

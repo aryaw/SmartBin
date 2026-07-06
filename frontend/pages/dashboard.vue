@@ -18,17 +18,28 @@
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
         <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
-        {{ pipelineRunning ? 'Running pipeline...' : 'Run Full Pipeline' }}
+        {{ pipelineRunning ? 'Running pipeline + viz...' : 'Run Full Pipeline' }}
       </button>
+    </div>
+
+    <div v-if="pipelineRunning" class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-700 flex items-center gap-3">
+      <svg class="w-5 h-5 flex-shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+      </svg>
+      <span>Training model + generating visualizations (6 processes in parallel)...</span>
     </div>
 
     <div v-if="pipelineResult" class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 flex items-center gap-3">
       <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span>{{ pipelineResult }}</span>
+      <div>
+        <span>{{ pipelineResult }}</span>
+        <NuxtLink to="/visualization" class="ml-2 underline font-medium hover:text-green-800">View visualizations</NuxtLink>
+      </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border-2 border-dashed border-secondary p-10 text-center cursor-pointer hover:border-tertiary hover:bg-secondary/10 transition-all"
