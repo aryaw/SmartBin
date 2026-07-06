@@ -345,6 +345,15 @@ Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_
 - mAP naik konsisten, tidak overfitting
 - Gap train-val mAP < 5% - model generalisasi baik
 
+```mermaid
+xychart-beta
+    title "Training Progress (80 Epoch)"
+    x-axis ["0", "20", "40", "60", "80"]
+    y-axis "mAP@0.5" 0 --> 100
+    line "Box mAP" [10, 45, 65, 75, 80.4]
+    line "Mask mAP" [5, 25, 38, 45, 49.7]
+```
+
 ### Key Takeaway
 
 | Metrik | Box | Mask |
