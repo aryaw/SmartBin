@@ -5,7 +5,7 @@
 6. Train YOLOv26m-seg with Optimized Hyperparameters
 7. Training Results & Curves
 8. Validation & Test Evaluation (Box + Mask Metrics)
-9. 🎯 Inference — Output Images with Segmentation Masks & Labels
+9.  Inference - Output Images with Segmentation Masks & Labels
 10. Run on Original Dataset Images + Recycling Advice
 11. Export & Package for Deployment
 12. Final Verification

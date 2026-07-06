@@ -1,17 +1,17 @@
 
-🗑️ YOLOv26-seg — Waste Instance Segmentation (Pixel-Level Masks)
+ YOLOv26-seg - Waste Instance Segmentation (Pixel-Level Masks)
 
 Dataset: phenomsg/waste-classification (2 classes: Organik/Non-Organik, ~2,884 images)
-Model: yolo26m-seg.pt (Medium Segmentation — best accuracy/speed for this dataset)
-Task: Instance Segmentation — pixel-precise object boundaries + class labels
+Model: yolo26m-seg.pt (Medium Segmentation - best accuracy/speed for this dataset)
+Task: Instance Segmentation - pixel-precise object boundaries + class labels
 YOLOv26-seg Architecture Features Used:
 Feature 	Status 	Description
-MuSGD Optimizer 	✅ Active 	SGD + Muon hybrid (from Moonshot AI’s Kimi K2) — stable convergence
-Semantic Segmentation Loss 	✅ Active 	Improved model convergence for mask quality
-Multi-Scale Proto Modules 	✅ Active 	Leverages multi-scale info for superior mask quality
-NMS-Free End-to-End 	✅ Active 	No post-processing needed — direct predictions
-No DFL 	✅ Active 	Simpler export, broader edge device support
-ProgLoss + STAL 	✅ Active 	Better small-object detection
+MuSGD Optimizer 	 Active 	SGD + Muon hybrid (from Moonshot AI’s Kimi K2) - stable convergence
+Semantic Segmentation Loss 	 Active 	Improved model convergence for mask quality
+Multi-Scale Proto Modules 	 Active 	Leverages multi-scale info for superior mask quality
+NMS-Free End-to-End 	 Active 	No post-processing needed - direct predictions
+No DFL 	 Active 	Simpler export, broader edge device support
+ProgLoss + STAL 	 Active 	Better small-object detection
 Pipeline:
 
     Explore classification dataset structure
@@ -67,7 +67,7 @@ print("  Features: MuSGD | Semantic Seg Loss | Multi-Scale Proto")
 print("="*60)
 
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 19.2 MB/s eta 0:00:00
-Creating new Ultralytics Settings v0.0.6 file ✅ 
+Creating new Ultralytics Settings v0.0.6 file  
 View Ultralytics Settings with 'yolo settings' or at '/root/.config/Ultralytics/settings.json'
 Update Settings with 'yolo settings key=value', i.e. 'yolo settings runs_dir=path/to/dir'. For help see https://docs.ultralytics.com/quickstart/#ultralytics-settings.
 Ultralytics version: 8.4.19
@@ -140,27 +140,27 @@ print(f"Classes: {CLASS_NAMES}")
 Main categories (4): ['Hazardous', 'Non-Recyclable', 'Organic', 'Recyclable']
 
 
-📦 Hazardous
+ Hazardous
    [ 0] batteries                       110 images
    [ 1] e-waste                         538 images
    [ 2] paints                          153 images
    [ 3] pesticides                      138 images
 
-📦 Non-Recyclable
+ Non-Recyclable
    [ 4] ceramic_product                 138 images
    [ 5] diapers                         145 images
    [ 6] platics_bags_wrappers           134 images
    [ 7] sanitary_napkin                 110 images
    [ 8] stroform_product                118 images
 
-📦 Organic
+ Organic
    [ 9] coffee_tea_bags                 157 images
    [10] egg_shells                      125 images
    [11] food_scraps                     147 images
    [12] kitchen_waste                   114 images
    [13] yard_trimmings                  131 images
 
-📦 Recyclable
+ Recyclable
    [14] cans_all_type                   272 images
    [15] glass_containers                140 images
    [16] paper_products                  121 images
@@ -272,7 +272,7 @@ for root, dirs, files in os.walk(YOLO_BASE):
     indent = ' ' * 2 * level
     print(f"{indent}{os.path.basename(root)}/")
 
-✅ YOLO-seg directory structure created:
+ YOLO-seg directory structure created:
 waste_yolo_seg_dataset/
   test/
     images/
@@ -498,7 +498,7 @@ def generate_polygon_mask(img, randomize=True, prefer_edge_detection=True):
 print("\u2705 Polygon mask generation functions defined")
 print("   Strategies: Edge detection \u2192 Elliptical \u2192 Rounded rectangle")
 
-✅ Polygon mask generation functions defined
+ Polygon mask generation functions defined
    Strategies: Edge detection → Elliptical → Rounded rectangle
 
 # ============================================================
@@ -611,7 +611,7 @@ Split     Images  Errors   Edge Det   Fallback
   VAL        438       0        372         66
   TEST       438       0        364         74
 
-✅ Dataset conversion complete!
+ Dataset conversion complete!
    Edge detection masks: 2429 (83.3%)
    Fallback polygons:    488 (16.7%)
 
@@ -652,9 +652,9 @@ with open(sample_lbl) as f:
 
 YOLO-seg Dataset Verification:
 ============================================================
-  TRAIN : 2041 images, 2041 labels ✅
-  VAL   :  438 images,  438 labels ✅
-  TEST  :  438 images,  438 labels ✅
+  TRAIN : 2041 images, 2041 labels 
+  VAL   :  438 images,  438 labels 
+  TEST  :  438 images,  438 labels 
 
 Sample YOLO-seg label (polygon format):
 ------------------------------------------------------------
@@ -688,7 +688,7 @@ print("-" * 50)
 with open(DATA_YAML_PATH) as f:
     print(f.read())
 
-✅ data.yaml saved to /kaggle/working/data.yaml
+ data.yaml saved to /kaggle/working/data.yaml
 --------------------------------------------------
 path: /kaggle/working/waste_yolo_seg_dataset
 train: train/images
@@ -784,7 +784,7 @@ plt.savefig('/kaggle/working/polygon_mask_visualization.png', dpi=150)
 plt.show()
 print("\u2705 Polygon masks look correct \u2014 ready for YOLO26-seg training!")
 
-✅ Polygon masks look correct — ready for YOLO26-seg training!
+ Polygon masks look correct - ready for YOLO26-seg training!
 
 6. Train YOLOv26m-seg with Optimized Hyperparameters
 Architecture Features Active During Training:
@@ -842,14 +842,14 @@ print(f"   Transfer learning to: {NC} waste classes")
   Image size:     640px
   Epochs:         120 (patience=20)
   Batch size:     16
-  Optimizer:      MuSGD (auto) — SGD + Muon hybrid
-  Seg Loss:       Semantic segmentation loss (✅ active)
-  Proto Module:   Multi-scale proto (✅ active)
-  NMS-Free:       End-to-end dual head (✅ active)
+  Optimizer:      MuSGD (auto) - SGD + Muon hybrid
+  Seg Loss:       Semantic segmentation loss ( active)
+  Proto Module:   Multi-scale proto ( active)
+  NMS-Free:       End-to-end dual head ( active)
 =================================================================
 
 Downloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26m-seg.pt to 'yolo26m-seg.pt': 100% ━━━━━━━━━━━━ 52.2MB 180.2MB/s 0.3s
-✅ yolo26m-seg.pt loaded successfully
+ yolo26m-seg.pt loaded successfully
    Pretrained on: COCO (80 classes, segmentation)
    Transfer learning to: 18 waste classes
 
@@ -949,8 +949,8 @@ print("   Multi-scale proto modules:  ACTIVE for mask generation")
 print("   MuSGD optimizer:            USED for all parameter updates")
 
 ======================================================================
-  YOLOv26-seg TRAINING — WASTE INSTANCE SEGMENTATION
-  ✔ MuSGD Optimizer  ✔ Semantic Seg Loss  ✔ Multi-Scale Proto
+  YOLOv26-seg TRAINING - WASTE INSTANCE SEGMENTATION
+   MuSGD Optimizer   Semantic Seg Loss   Multi-Scale Proto
 ======================================================================
   Model:      yolo26m-seg (COCO pretrained, transfer learning)
   Dataset:    2041 train / 438 val / 438 test
@@ -958,8 +958,8 @@ print("   MuSGD optimizer:            USED for all parameter updates")
   Task:       Instance Segmentation (polygon masks)
 ======================================================================
 
-WARNING ⚠️ 'label_smoothing' is deprecated and will be removed in the future.
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
+WARNING  'label_smoothing' is deprecated and will be removed in the future.
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
 engine/trainer: agnostic_nms=False, amp=True, angle=1.0, augment=False, auto_augment=randaugment, batch=16, bgr=0.0, box=7.5, cache=False, cfg=None, classes=None, close_mosaic=15, cls=1.5, compile=False, conf=None, copy_paste=0.15, copy_paste_mode=flip, cos_lr=True, cutmix=0.0, data=/kaggle/working/data.yaml, degrees=10.0, deterministic=True, device=0, dfl=1.5, dnn=False, dropout=0.0, dynamic=False, embed=None, end2end=None, epochs=120, erasing=0.1, exist_ok=True, fliplr=0.5, flipud=0.1, format=torchscript, fraction=1.0, freeze=None, half=False, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, imgsz=640, int8=False, iou=0.7, keras=False, kobj=1.0, line_width=None, lr0=0.01, lrf=0.01, mask_ratio=4, max_det=300, mixup=0.2, mode=train, model=yolo26m-seg.pt, momentum=0.937, mosaic=1.0, multi_scale=0.0, name=waste_yolo26_seg, nbs=64, nms=False, opset=None, optimize=False, optimizer=auto, overlap_mask=True, patience=20, perspective=0.0001, plots=True, pose=12.0, pretrained=True, profile=False, project=/kaggle/working/runs, rect=False, resume=False, retina_masks=False, rle=1.0, save=True, save_conf=False, save_crop=False, save_dir=/kaggle/working/runs/waste_yolo26_seg, save_frames=False, save_json=False, save_period=10, save_txt=False, scale=0.5, seed=42, shear=2.0, show=False, show_boxes=True, show_conf=True, show_labels=True, simplify=True, single_cls=False, source=None, split=val, stream_buffer=False, task=segment, time=None, tracker=botsort.yaml, translate=0.1, val=True, verbose=True, vid_stride=1, visualize=False, warmup_bias_lr=0.1, warmup_epochs=5, warmup_momentum=0.8, weight_decay=0.0005, workers=4, workspace=None
 Downloading https://ultralytics.com/assets/Arial.ttf to '/root/.config/Ultralytics/Arial.ttf': 100% ━━━━━━━━━━━━ 755.1KB 15.4MB/s 0.0s
 Overriding model.yaml nc=80 with nc=18
@@ -994,12 +994,12 @@ YOLO26m-seg summary: 329 layers, 27,000,534 parameters, 27,000,534 gradients, 13
 Transferred 890/904 items from pretrained weights
 AMP: running Automatic Mixed Precision (AMP) checks...
 Downloading https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n.pt to 'yolo26n.pt': 100% ━━━━━━━━━━━━ 5.3MB 63.1MB/s 0.1s
-AMP: checks passed ✅
-train: Fast image access ✅ (ping: 0.0±0.0 ms, read: 2224.2±1380.7 MB/s, size: 624.7 KB)
+AMP: checks passed 
+train: Fast image access  (ping: 0.0±0.0 ms, read: 2224.2±1380.7 MB/s, size: 624.7 KB)
 train: Scanning /kaggle/working/waste_yolo_seg_dataset/train/labels... 2041 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 2041/2041 1.2Kit/s 1.6s
 train: New cache created: /kaggle/working/waste_yolo_seg_dataset/train/labels.cache
 albumentations: Blur(p=0.01, blur_limit=(3, 7)), MedianBlur(p=0.01, blur_limit=(3, 7)), ToGray(p=0.01, method='weighted_average', num_output_channels=3), CLAHE(p=0.01, clip_limit=(1.0, 4.0), tile_grid_size=(8, 8))
-val: Fast image access ✅ (ping: 0.0±0.0 ms, read: 528.8±127.5 MB/s, size: 201.7 KB)
+val: Fast image access  (ping: 0.0±0.0 ms, read: 528.8±127.5 MB/s, size: 201.7 KB)
 val: Scanning /kaggle/working/waste_yolo_seg_dataset/val/labels... 438 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 438/438 1.1Kit/s 0.4s
 val: New cache created: /kaggle/working/waste_yolo_seg_dataset/val/labels.cache
 optimizer: 'optimizer=auto' found, ignoring 'lr0=0.01' and 'momentum=0.937' and determining best 'optimizer', 'lr0' and 'momentum' automatically... 
@@ -1922,7 +1922,7 @@ Optimizer stripped from /kaggle/working/runs/waste_yolo26_seg/weights/last.pt, 5
 Optimizer stripped from /kaggle/working/runs/waste_yolo26_seg/weights/best.pt, 54.5MB
 
 Validating /kaggle/working/runs/waste_yolo26_seg/weights/best.pt...
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
 YOLO26m-seg summary (fused): 149 layers, 23,521,346 parameters, 0 gradients, 121.2 GFLOPs
                  Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Mask(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 14/14 1.6it/s 8.9s
                    all        438        438       0.53      0.481      0.485      0.337      0.398      0.392      0.357       0.18
@@ -1947,7 +1947,7 @@ YOLO26m-seg summary (fused): 149 layers, 23,521,346 parameters, 0 gradients, 121
 Speed: 0.2ms preprocess, 13.5ms inference, 0.0ms loss, 0.7ms postprocess per image
 Results saved to /kaggle/working/runs/waste_yolo26_seg
 
-✅ YOLOv26-seg training complete!
+ YOLOv26-seg training complete!
    Semantic segmentation loss: APPLIED throughout training
    Multi-scale proto modules:  ACTIVE for mask generation
    MuSGD optimizer:            USED for all parameter updates
@@ -2040,15 +2040,15 @@ print(f"    mAP@50-95: {val_results.seg.map:.4f}")
 print(f"    Precision: {val_results.seg.mp:.4f}")
 print(f"    Recall:    {val_results.seg.mr:.4f}")
 
-✅ Best model loaded: /kaggle/working/runs/waste_yolo26_seg/weights/best.pt
+ Best model loaded: /kaggle/working/runs/waste_yolo26_seg/weights/best.pt
    Size: 54.5 MB
 
 ============================================================
 VALIDATION SET RESULTS (NMS-Free, Seg + Box Metrics)
 ============================================================
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
 YOLO26m-seg summary (fused): 149 layers, 23,521,346 parameters, 0 gradients, 121.2 GFLOPs
-val: Fast image access ✅ (ping: 0.0±0.0 ms, read: 2203.1±1104.7 MB/s, size: 346.0 KB)
+val: Fast image access  (ping: 0.0±0.0 ms, read: 2203.1±1104.7 MB/s, size: 346.0 KB)
 val: Scanning /kaggle/working/waste_yolo_seg_dataset/val/labels.cache... 438 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 438/438 153.1Mit/s 0.0s
                  Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Mask(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 28/28 1.7it/s 16.5s
                    all        438        438      0.571      0.453      0.518       0.38      0.448      0.348      0.409      0.224
@@ -2115,8 +2115,8 @@ print(f"    Recall:    {test_results.seg.mr:.4f}")
 ============================================================
 TEST SET RESULTS (NMS-Free, Seg + Box Metrics)
 ============================================================
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
-val: Fast image access ✅ (ping: 0.0±0.0 ms, read: 2004.0±252.0 MB/s, size: 191.7 KB)
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CUDA:0 (Tesla T4, 14913MiB)
+val: Fast image access  (ping: 0.0±0.0 ms, read: 2004.0±252.0 MB/s, size: 191.7 KB)
 val: Scanning /kaggle/working/waste_yolo_seg_dataset/test/labels... 438 images, 0 backgrounds, 0 corrupt: 100% ━━━━━━━━━━━━ 438/438 1.2Kit/s 0.4s
 val: New cache created: /kaggle/working/waste_yolo_seg_dataset/test/labels.cache
                  Class     Images  Instances      Box(P          R      mAP50  mAP50-95)     Mask(P          R      mAP50  mAP50-95): 100% ━━━━━━━━━━━━ 28/28 1.7it/s 16.9s
@@ -2212,7 +2212,7 @@ Per-Class Mask AP@50 (Test Set):
   [16] paper_products                 0.397  ███████████████
   [17] plastic_bottles                0.357  ██████████████
 
-9. 🎯 Inference — Output Images with Segmentation Masks & Labels
+9.  Inference - Output Images with Segmentation Masks & Labels
 
 This is the main output: images with pixel-level object masks (not just rectangles), boundaries drawn around detected objects, and class labels with confidence scores.
 
@@ -2285,7 +2285,7 @@ Output: /kaggle/working/output_segmentation/
 
   Processed 438/438...
 
-✅ Segmentation inference complete!
+ Segmentation inference complete!
    Total images: 438
    Total detections: 408
    Output saved: /kaggle/working/output_segmentation/ (438 files)
@@ -2448,7 +2448,7 @@ Mask resolution: 1500x1500 pixels
 ------------------------------------------------------------------------------------------
   0   coffee_tea_bags            0.91    1,245,957    55.4%   (122,169)→(1406,1270)
 
-✔ Masks are pixel-level (retina_masks=True) — full image resolution
+ Masks are pixel-level (retina_masks=True) - full image resolution
 
 10. Run on Original Dataset Images + Recycling Advice
 
@@ -2530,33 +2530,33 @@ for category in categories:
   WASTE SEGMENTATION + RECYCLING ADVICE
 ============================================================
 
-📷 Image: ecticides-vegetable-garden-man-protective-workwear-gloves-spraying-123408462.jpg
+ Image: ecticides-vegetable-garden-man-protective-workwear-gloves-spraying-123408462.jpg
    Detections: 1
 ------------------------------------------------------------
-  📦 pesticides (Hazardous)
+   pesticides (Hazardous)
      Confidence: 0.78 | Mask: 317,310 pixels
      Box: (0,0) → (787,534)
-     Advice: ⚠️ Handle carefully! Dispose at hazardous waste facility.
+     Advice:  Handle carefully! Dispose at hazardous waste facility.
 
-📷 Image: List-of-bathroom-accessories-you-must-have-in-your-home-f.jpg
+ Image: List-of-bathroom-accessories-you-must-have-in-your-home-f.jpg
    Detections: 1
 ------------------------------------------------------------
-  📦 sanitary_napkin (Non-Recyclable)
+   sanitary_napkin (Non-Recyclable)
      Confidence: 0.84 | Mask: 132,839 pixels
      Box: (643,165) → (1200,700)
-     Advice: 🗑️ Dispose in general trash. Cannot be recycled.
+     Advice:  Dispose in general trash. Cannot be recycled.
 
-📷 Image: 768-Glad-C2A9-Salty-Dingo-2021-2846-Frame-1.png
+ Image: 768-Glad-C2A9-Salty-Dingo-2021-2846-Frame-1.png
    Detections: 0
 ------------------------------------------------------------
 
-📷 Image: 711Ggg6DhAL.jpg
+ Image: 711Ggg6DhAL.jpg
    Detections: 1
 ------------------------------------------------------------
-  📦 cans_all_type (Recyclable)
+   cans_all_type (Recyclable)
      Confidence: 0.94 | Mask: 1,463,341 pixels
      Box: (49,447) → (1906,1488)
-     Advice: ♻️ Sort into recycling bin (Plastic, Paper, Glass, Metal).
+     Advice:  Sort into recycling bin (Plastic, Paper, Glass, Metal).
 
 # ============================================================
 # SAVE SEGMENTED ORIGINAL IMAGES (ALL SUBCATEGORIES)
@@ -2642,7 +2642,7 @@ Running YOLOv26-seg on original dataset (2 images per subcategory)...
   plastic_bottles                1 det: ['plastic_bottles']
   plastic_bottles                1 det: ['plastic_bottles']
 
-✅ Saved to /kaggle/working/raw_segmentation/ (36 files)
+ Saved to /kaggle/working/raw_segmentation/ (36 files)
 
 11. Export & Package for Deployment
 
@@ -2678,8 +2678,8 @@ except Exception as e:
 
 Exporting YOLOv26-seg model...
 
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
-💡 ProTip: Export to OpenVINO format for best performance on Intel hardware. Learn more at https://docs.ultralytics.com/integrations/openvino/
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
+ ProTip: Export to OpenVINO format for best performance on Intel hardware. Learn more at https://docs.ultralytics.com/integrations/openvino/
 
 PyTorch: starting from '/kaggle/working/runs/waste_yolo26_seg/weights/best.pt' with input shape (1, 3, 640, 640) BCHW and output shape(s) ((1, 300, 38), (1, 32, 160, 160)) (52.0 MB)
 requirements: Ultralytics requirements ['onnxslim>=0.1.71', 'onnxruntime-gpu'] not found, attempting AutoUpdate...
@@ -2692,8 +2692,8 @@ Installed 2 packages in 12ms
  + onnxruntime-gpu==1.24.2
  + onnxslim==0.1.86
 
-requirements: AutoUpdate success ✅ 4.1s
-WARNING ⚠️ requirements: Restart runtime or rerun command for updates to take effect
+requirements: AutoUpdate success  4.1s
+WARNING  requirements: Restart runtime or rerun command for updates to take effect
 
 
 ONNX: starting export with onnx 1.20.1 opset 22...
@@ -2704,18 +2704,18 @@ ONNX: starting export with onnx 1.20.1 opset 22...
   warnings.warn(
 
 ONNX: slimming with onnxslim 0.1.86...
-ONNX: export success ✅ 8.3s, saved as '/kaggle/working/runs/waste_yolo26_seg/weights/best.onnx' (90.0 MB)
+ONNX: export success  8.3s, saved as '/kaggle/working/runs/waste_yolo26_seg/weights/best.onnx' (90.0 MB)
 
 Export complete (10.3s)
 Results saved to /kaggle/working/runs/waste_yolo26_seg/weights
 Predict:         yolo predict task=segment model=/kaggle/working/runs/waste_yolo26_seg/weights/best.onnx imgsz=640 
 Validate:        yolo val task=segment model=/kaggle/working/runs/waste_yolo26_seg/weights/best.onnx imgsz=640 data=/kaggle/working/data.yaml  
 Visualize:       https://netron.app
-✅ ONNX (end-to-end, NMS-free): /kaggle/working/runs/waste_yolo26_seg/weights/best.onnx
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
-⚠️ ONNX O2M export: 'feats'
-Ultralytics 8.4.19 🚀 Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
-⚠️ TorchScript export: 'feats'
+ ONNX (end-to-end, NMS-free): /kaggle/working/runs/waste_yolo26_seg/weights/best.onnx
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
+ ONNX O2M export: 'feats'
+Ultralytics 8.4.19  Python-3.12.12 torch-2.9.0+cu126 CPU (Intel Xeon CPU @ 2.00GHz)
+ TorchScript export: 'feats'
 
 # ============================================================
 # PACKAGE EVERYTHING FOR DOWNLOAD
@@ -2876,14 +2876,14 @@ for root, dirs, files in os.walk(OUTPUT_DIR):
 print(f"{'':->60}")
 print(f"   {'TOTAL':<55} {total_size/1e6:>8.1f} MB")
 
-✅ waste_yolo26seg_best.pt (54.5 MB)
-✅ waste_yolo26seg_last.pt (54.5 MB)
-✅ waste_yolo26seg_e2e.onnx
-✅ data.yaml
-✅ class_names.json
-✅ metrics.json
-✅ 12 plots
-✅ 20 sample segmentation images
+ waste_yolo26seg_best.pt (54.5 MB)
+ waste_yolo26seg_last.pt (54.5 MB)
+ waste_yolo26seg_e2e.onnx
+ data.yaml
+ class_names.json
+ metrics.json
+ 12 plots
+ 20 sample segmentation images
 
 ============================================================
 PACKAGE CONTENTS:
@@ -2981,7 +2981,7 @@ print(f"   Go to: Output tab \u2192 waste_segmentor_yolo26.zip \u2192 Download")
   adding: waste_segmentor_yolo26/waste_yolo26seg_best.pt (deflated 8%)
   adding: waste_segmentor_yolo26/MaskPR_curve.png (deflated 8%)
 
-📦 DOWNLOAD: /kaggle/working/waste_segmentor_yolo26.zip (210.3 MB)
+ DOWNLOAD: /kaggle/working/waste_segmentor_yolo26.zip (210.3 MB)
    Go to: Output tab → waste_segmentor_yolo26.zip → Download
 
 12. Final Verification
@@ -3053,14 +3053,14 @@ Detections: 0
 #    Class                     Category           Conf                      BBox
 --------------------------------------------------------------------------------
 
-✅ YOLOv26-seg waste segmentation model verified!
+ YOLOv26-seg waste segmentation model verified!
 
-   ✔ MuSGD Optimizer:            CONFIRMED
-   ✔ Semantic Segmentation Loss:  CONFIRMED (seg task)
-   ✔ Multi-Scale Proto Modules:   CONFIRMED (seg architecture)
-   ✔ NMS-Free End-to-End:         CONFIRMED (no post-processing)
-   ✔ ProgLoss + STAL:             CONFIRMED (detection head)
-   ✔ No DFL:                      CONFIRMED (YOLO26 architecture)
+    MuSGD Optimizer:            CONFIRMED
+    Semantic Segmentation Loss:  CONFIRMED (seg task)
+    Multi-Scale Proto Modules:   CONFIRMED (seg architecture)
+    NMS-Free End-to-End:         CONFIRMED (no post-processing)
+    ProgLoss + STAL:             CONFIRMED (detection head)
+    No DFL:                      CONFIRMED (YOLO26 architecture)
 
 \u2705 Summary: YOLOv26-seg Waste Instance Segmentation
 YOLOv26 Features Actively Used:

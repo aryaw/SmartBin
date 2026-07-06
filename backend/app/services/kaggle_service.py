@@ -232,8 +232,67 @@ def download_and_prepare():
     }
 
 
+def _collect_flat(source_path):
+    """Collect images from flat Organik/Non-Organik folder structure."""
+    all_paths = []
+    CLASS_NAMES = []
+    CLASS_MAP = {}
+    cid = 0
+    for class_dir in sorted(os.listdir(source_path)):
+        dir_path = source_path / class_dir
+        if not dir_path.is_dir():
+            continue
+        label = class_dir.lower()
+        if label == "organik":
+            bin_id = 0
+        elif label in ("non-organik", "nonorganik", "anorganik"):
+            bin_id = 1
+        else:
+            continue
+        CLASS_NAMES.append(class_dir)
+        CLASS_MAP[class_dir] = cid
+        for f in sorted(os.listdir(dir_path)):
+            if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp")):
+                all_paths.append((str(dir_path / f), cid, class_dir, bin_id))
+        cid += 1
+    return all_paths, CLASS_NAMES, CLASS_MAP
+
+
+def _collect_hierarchical(source_path):
+    """Collect images from category/subcategory folder structure."""
+    all_paths = []
+    CLASS_NAMES = []
+    CLASS_MAP = {}
+    cid = 0
+    ORGANIC_SUBS = {"coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"}
+    categories = sorted(os.listdir(source_path))
+    for cat in categories:
+        inner = source_path / cat / cat
+        if not inner.is_dir():
+            inner = source_path / cat
+            if not inner.is_dir():
+                continue
+        for sub in sorted(os.listdir(inner)):
+            sub_path = inner / sub
+            if not sub_path.is_dir():
+                continue
+            CLASS_NAMES.append(sub)
+            CLASS_MAP[sub] = cid
+            bin_id = 0 if sub in ORGANIC_SUBS else 1
+            for f in sorted(os.listdir(sub_path)):
+                if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp")):
+                    all_paths.append((str(sub_path / f), cid, sub, bin_id))
+            cid += 1
+    return all_paths, CLASS_NAMES, CLASS_MAP
+
+
 def prepare_from_local(source_dir, output_dir=None):
-    """Read Waste_Classification_Dataset from local path, generate YOLO-seg masks, split."""
+    """Read local dataset, generate YOLO-seg masks, split into train/val/test.
+
+    Supports two structures:
+      - Flat: source_dir/{Organik,Non-Organik}/*.jpg
+      - Hierarchical: source_dir/{category}/{subcategory}/*.jpg
+    """
     _ensure_cv2()
     random.seed(SEED)
     np.random.seed(SEED)
@@ -246,41 +305,43 @@ def prepare_from_local(source_dir, output_dir=None):
     if out_dir.exists():
         shutil.rmtree(out_dir)
 
-    CLASS_NAMES = []
-    CLASS_MAP = {}
+    # Try raw/ subdir first, then source_dir itself
+    raw_candidates = [source_path / "raw", source_path]
     all_paths = []
+    CLASS_NAMES = []
+    BIN_MAP = {}
 
-    categories = sorted(os.listdir(source_path))
-    cid = 0
-    for cat in categories:
-        inner = source_path / cat / cat
-        if not inner.is_dir():
-            inner = source_path / cat
-            if not inner.is_dir():
-                continue
-        subs = sorted(os.listdir(inner))
-        for sub in subs:
-            sub_path = inner / sub
-            if not sub_path.is_dir():
-                continue
-            CLASS_NAMES.append(sub)
-            CLASS_MAP[sub] = cid
-            for f in sorted(os.listdir(sub_path)):
-                if f.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".webp")):
-                    all_paths.append((str(sub_path / f), cid, sub))
-            cid += 1
+    for candidate in raw_candidates:
+        if not candidate.is_dir():
+            continue
+        all_paths, CLASS_NAMES, CLASS_MAP = _collect_flat(candidate)
+        if all_paths:
+            print(f"Detected flat structure in {candidate}")
+            BIN_MAP = {i: all_paths[j][3] for j, i in enumerate(
+                [CLASS_MAP[n] for n in CLASS_NAMES]
+            )}
+            # Actually build BIN_MAP from class name
+            BIN_MAP = {}
+            for name, cid in CLASS_MAP.items():
+                if name.lower() == "organik":
+                    BIN_MAP[cid] = 0
+                else:
+                    BIN_MAP[cid] = 1
+            break
+        all_paths, CLASS_NAMES, CLASS_MAP = _collect_hierarchical(candidate)
+        if all_paths:
+            print(f"Detected hierarchical structure in {candidate}")
+            ORGANIC_SUBS = {"coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"}
+            BIN_MAP = {i: 0 if CLASS_NAMES[i] in ORGANIC_SUBS else 1 for i in range(len(CLASS_NAMES))}
+            break
 
-    ORGANIC_SUBS = {"coffee_tea_bags", "egg_shells", "food_scraps", "kitchen_waste", "yard_trimmings"}
-    BIN_MAP = {i: 0 if CLASS_NAMES[i] in ORGANIC_SUBS else 1 for i in range(len(CLASS_NAMES))}
+    if not all_paths:
+        raise ValueError(f"No images found in {source_dir}")
 
-    NC = len(CLASS_NAMES)
-    if NC == 0:
-        raise ValueError(f"No subcategories found in {source_dir}")
-
-    print(f"Found {len(all_paths)} images across {NC} subcategories from {source_dir}")
+    print(f"Found {len(all_paths)} images across {len(CLASS_NAMES)} classes")
 
     paths = [x[0] for x in all_paths]
-    cls_ids = [x[1] for x in all_paths]
+    cls_ids = [x[3] for x in all_paths]  # use bin_id
 
     train_p, temp_p, train_id, temp_id = train_test_split(
         paths, cls_ids, test_size=0.3, random_state=SEED, stratify=cls_ids
@@ -323,7 +384,7 @@ def prepare_from_local(source_dir, output_dir=None):
 
                     coords = " ".join(f"{v:.6f}" for v in poly)
                     lbl_path = lbl_dir / f"{Path(new_name).stem}.txt"
-                    lbl_path.write_text(f"{BIN_MAP[cls_id]} {coords}\n")
+                    lbl_path.write_text(f"{cls_id} {coords}\n")
             except Exception:
                 pass
 

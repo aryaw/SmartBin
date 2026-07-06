@@ -74,15 +74,15 @@ fi
 USE_DOCKER="${USE_DOCKER:-true}"
 
 if [ "$USE_DOCKER" = "true" ]; then
-  echo "[API] Building Docker image..."
-  cd "$PROJECT_DIR"
-  sudo docker compose build backend 2>&1 || echo "[API] Build warning (non-fatal)"
+  echo "[API] Stopping old backend container first..."
+  sudo docker compose stop backend 2>/dev/null || true
+  sudo docker compose rm -f backend 2>/dev/null || true
   echo "[API] Killing anything on port 8000..."
   sudo fuser -k 8000/tcp 2>/dev/null || true
   sleep 2
-  echo "[API] Stopping old backend container..."
-  sudo docker compose stop backend 2>/dev/null || true
-  sudo docker compose rm -f backend 2>/dev/null || true
+  echo "[API] Building Docker image..."
+  cd "$PROJECT_DIR"
+  sudo docker compose build backend 2>&1 || echo "[API] Build warning (non-fatal)"
   echo "[API] Starting backend via Docker..."
   if sudo docker compose up -d backend; then
     echo "[API] Waiting for backend to be ready..."
@@ -106,7 +106,10 @@ if [ "$USE_DOCKER" = "true" ]; then
     sleep 4
   fi
 else
-  echo "[API] USE_DOCKER=false — starting directly..."
+  echo "[API] USE_DOCKER=false — killing old process on 8000..."
+  sudo fuser -k 8000/tcp 2>/dev/null || true
+  sleep 2
+  echo "[API] Starting directly..."
   cd "$PROJECT_DIR/backend"
   setsid .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 > "$PROJECT_DIR/backend/log/$(date +%d-%m-%Y)-backend.log" 2>&1 &
   sleep 4

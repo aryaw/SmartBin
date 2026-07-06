@@ -38,15 +38,17 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       </div>
-      <p class="text-dark font-medium text-lg">Drag & drop file di sini</p>
+      <p class="text-dark font-medium text-lg">Drag dan drop file di sini</p>
       <p class="text-dark/50 text-sm mt-1">atau klik untuk browse</p>
       <p class="text-dark/40 text-xs mt-2">JPG, JPEG, PNG, MP4, AVI, MOV (maks 200MB)</p>
       <input ref="inputRef" type="file" class="hidden" accept=".jpg,.jpeg,.png,.mp4,.avi,.mov" @change="onFileChange" />
     </div>
 
     <div v-if="fileItem" class="bg-white rounded-xl shadow-sm p-4 border border-gray-100 flex items-center gap-3">
-      <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-        <div class="w-full h-full flex items-center justify-center text-secondary">
+      <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer"
+        @click="openPreview">
+        <img v-if="isImage(fileItem)" :src="fileItem.preview" class="w-full h-full object-cover" />
+        <div v-else class="w-full h-full flex items-center justify-center text-secondary">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M18.75 10.5a3 3 0 100-6 3 3 0 000 6z" />
           </svg>
@@ -56,7 +58,7 @@
         <p class="text-sm font-medium text-dark truncate">{{ fileItem.file.name }}</p>
         <p class="text-xs text-dark/50">{{ (fileItem.file.size / 1024 / 1024).toFixed(1) }} MB</p>
       </div>
-      <button class="w-8 h-8 bg-red-50 text-red-500 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors" @click="fileItem = null; result = null">
+      <button class="w-8 h-8 bg-red-50 text-red-500 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors" @click="clearFile">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -124,6 +126,8 @@
       </p>
     </div>
   </div>
+
+  <ZoomModal :url="previewUrl" :caption="previewCaption" @close="previewUrl = null" />
 </template>
 
 <script setup lang="ts">
@@ -135,9 +139,18 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const result = ref<any>(null)
-const fileItem = ref<{ file: File } | null>(null)
+const fileItem = ref<{ file: File; preview: string } | null>(null)
 const pipelineRunning = ref(false)
 const pipelineResult = ref<string | null>(null)
+const previewUrl = ref<string | null>(null)
+const previewCaption = ref("")
+
+onMounted(async () => {
+  try {
+    const s = await $fetch("/api/kaggle/train/status", { baseURL: apiBase }) as any
+    if (s.running) pipelineRunning.value = true
+  } catch (_) {}
+})
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement
@@ -158,7 +171,24 @@ function addFile(f: File) {
     error.value = `${f.name}: File terlalu besar (maks 200MB)`; return
   }
   error.value = null; result.value = null
-  fileItem.value = { file: f }
+  fileItem.value = { file: f, preview: URL.createObjectURL(f) }
+}
+
+function isImage(item: { file: File; preview: string }) {
+  return item.file.type.startsWith("image/") || /\.(jpg|jpeg|png)$/i.test(item.file.name)
+}
+
+function openPreview() {
+  if (fileItem.value && isImage(fileItem.value)) {
+    previewUrl.value = fileItem.value.preview
+    previewCaption.value = fileItem.value.file.name
+  }
+}
+
+function clearFile() {
+  if (fileItem.value) URL.revokeObjectURL(fileItem.value.preview)
+  fileItem.value = null
+  result.value = null
 }
 
 async function detect() {
@@ -176,7 +206,7 @@ async function detect() {
 async function runFullPipeline() {
   pipelineRunning.value = true; pipelineResult.value = null
   try {
-    const res = await $fetch("/api/kaggle/pipeline/run-full?epochs=50&batch=16", { baseURL: apiBase, method: "POST" }) as any
+    const res = await $fetch("/api/kaggle/pipeline/run-full?batch=16", { baseURL: apiBase, method: "POST" }) as any
     pipelineResult.value = res.message || "Pipeline complete. Model is ready. Upload an image below to detect."
   } catch (e: any) { showError(e?.data?.detail || e?.message || 'Pipeline failed') } finally { pipelineRunning.value = false }
 }

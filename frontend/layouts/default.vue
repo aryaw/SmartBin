@@ -27,11 +27,12 @@
           <span>{{ item.label }}</span>
         </NuxtLink>
 
+
         <div class="mt-6 mb-2">
-          <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Pipeline</p>
+          <p class="pl-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Report</p>
         </div>
 
-        <NuxtLink v-for="item in pipelineItems" :key="item.key"
+        <NuxtLink v-for="item in reportItems" :key="item.to"
           :to="item.to"
           class="w-full flex items-center h-8 pl-4 rounded-lg text-xs transition-colors text-gray-300 hover:text-white"
           :class="isActive(item.to) ? 'bg-gray-700/50 text-white' : 'hover:bg-gray-700/50'"
@@ -73,11 +74,11 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>` },
 ]
 
-const pipelineItems = [
-  { key: "dataset", to: "/raw/dataset", label: "Dataset" },
-  { key: "preparation", to: "/raw/preparation", label: "Preparation" },
-  { key: "training", to: "/raw/training", label: "Training" },
-  { key: "deployment", to: "/raw/deployment", label: "Deployment" },
+const reportItems = [
+  { to: "/train-eval", label: "Training Eval", num: "1" },
+  { to: "/val-result", label: "Validation", num: "2" },
+  { to: "/test-result", label: "Test Results", num: "3" },
+  { to: "/inference-export", label: "Inference", num: "4" },
 ]
 
 function isActive(path: string) {
@@ -88,10 +89,6 @@ const pageTitle = computed(() => {
   const map: Record<string, string> = {
     "/": "Home",
     "/dashboard": "Dashboard",
-    "/raw/dataset": "Dataset",
-    "/raw/preparation": "Preparation",
-    "/raw/training": "Training",
-    "/raw/deployment": "Deployment",
   }
   return map[route.path] || "SmartBin"
 })

@@ -39,20 +39,20 @@ def train_one(pretrained: str, data: str, epochs: int, batch: int, imgsz: int,
         amp=True,
         augment=True,
         mosaic=1.0,
-        close_mosaic=epochs // 2,
-        hsv_h=0.05,
-        hsv_s=0.8,
-        hsv_v=0.5,
-        scale=0.5,
-        translate=0.2,
-        degrees=15.0,
-        shear=5.0,
-        perspective=0.0001,
-        flipud=0.2,
+        close_mosaic=epochs // int(os.getenv("CLOSE_MOSAIC_DIV", "3")) if epochs > 30 else 0,
+        hsv_h=0.02,
+        hsv_s=0.6,
+        hsv_v=0.4,
+        scale=0.8,
+        translate=0.3,
+        degrees=25.0,
+        shear=10.0,
+        perspective=0.0005,
+        flipud=0.3,
         fliplr=0.5,
-        erasing=0.4,
-        mixup=0.3,
-        copy_paste=0.4,
+        erasing=0.5,
+        mixup=float(os.getenv("MIXUP", "0.5")),
+        copy_paste=float(os.getenv("COPY_PASTE", "0.5")),
         auto_augment="randaugment",
         lr0=lr0,
         lrf=lrf,
@@ -109,7 +109,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train YOLO model for SmartBin")
     parser.add_argument("--model", type=str, default="yolo26m-seg.pt")
     parser.add_argument("--data", type=str, default="data.yaml")
-    parser.add_argument("--epochs", type=int, default=int(os.getenv("EPOCHS", "200")))
+    parser.add_argument("--epochs", type=int, default=int(os.getenv("EPOCHS", "150")))
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--patience", type=int, default=30)

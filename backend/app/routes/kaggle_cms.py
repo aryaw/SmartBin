@@ -53,6 +53,7 @@ RECYCLING_ADVICE = {
 }
 
 _executor = ThreadPoolExecutor(max_workers=1)
+_training_future = None
 
 
 def _draw_polygon(img_bgr, poly):
@@ -70,7 +71,7 @@ def _draw_polygon(img_bgr, poly):
 
 @router.post("/pipeline/run-full")
 async def run_full_pipeline(
-    epochs: int = Query(50, description="Training epochs"),
+    epochs: int = Query(int(os.getenv("EPOCHS", "150")), description="Training epochs"),
     batch: int = Query(16, description="Batch size"),
 ):
     results = {}
@@ -90,11 +91,13 @@ async def run_full_pipeline(
                 epochs=epochs,
                 batch=batch,
                 imgsz=640,
-                patience=30,
+                patience=int(os.getenv("PATIENCE", "40")),
                 device="cuda:0",
                 name="full_pipeline",
-                lr0=0.01,
-                optimizer="SGD",
+                lr0=float(os.getenv("LR0", "0.001")),
+                optimizer=os.getenv("OPTIMIZER", "SGD"),
+                warmup_epochs=float(os.getenv("WARMUP_EPOCHS", "5")),
+                mask_ratio=int(os.getenv("MASK_RATIO", "2")),
             )
             if best_path and Path(best_path).exists():
                 MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -237,6 +240,14 @@ async def viz_image(filename: str):
     return FileResponse(out_path, media_type="image/jpeg", filename=filename)
 
 
+@router.get("/train/status")
+async def train_status():
+    global _training_future
+    if _training_future is not None and not _training_future.done():
+        return {"running": True, "task": "training"}
+    return {"running": False, "task": None}
+
+
 @router.post("/train")
 async def train(
     epochs: int = Query(50, description="Number of epochs"),
@@ -244,6 +255,10 @@ async def train(
     imgsz: int = Query(640, description="Image size"),
     lr0: float = Query(0.001, description="Initial learning rate"),
 ):
+    global _training_future
+    if _training_future is not None and not _training_future.done():
+        raise HTTPException(400, "Training already in progress")
+
     if not KAGGLE_DIR.exists():
         raise HTTPException(400, "Dataset not found. Download first.")
 
@@ -276,10 +291,13 @@ async def train(
         }
 
     try:
-        result = await loop.run_in_executor(_executor, _train)
+        _training_future = loop.run_in_executor(_executor, _train)
+        result = await _training_future
         return result
     except Exception as e:
         raise HTTPException(500, f"Training failed: {e}")
+    finally:
+        _training_future = None
 
 
 @router.get("/results")

@@ -38,10 +38,7 @@ CORS_ORIGINS = [
     "http://127.0.0.1:8000",
 ]
 
-ORGANIC_CATEGORIES = {
-    13,  14,  15,  16,  17,  18,  19,  20,
-    25,  30,  31,  32,  33,  34,  56,
-}
+ORGANIC_CATEGORIES = {25}  # only Food waste
 
 def is_organic(category_id: int) -> bool:
     return category_id in ORGANIC_CATEGORIES

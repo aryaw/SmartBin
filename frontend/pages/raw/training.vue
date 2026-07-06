@@ -76,10 +76,17 @@ const trainStatus = ref('not_started'); const trainSummary = ref('')
 const resultsStatus = ref('not_started'); const resultsSummary = ref(''); const resultsImages = ref([])
 const evalStatus = ref('not_started'); const evalSummary = ref(''); const evalReport = ref('')
 
+onMounted(async () => {
+  try {
+    const s = await $fetch("/api/kaggle/train/status", { baseURL: apiBase }) as any
+    if (s.running) trainStatus.value = 'running'
+  } catch (_) {}
+})
+
 async function runTrain() {
   trainStatus.value = 'running'
   try {
-    const res = await $fetch("/api/kaggle/train?epochs=50&batch=16&lr0=0.01", { baseURL: apiBase, method: "POST" }) as any
+    const res = await $fetch("/api/kaggle/train?batch=16&lr0=0.001", { baseURL: apiBase, method: "POST" }) as any
     trainSummary.value = `mAP50: ${(res.map50 * 100).toFixed(1)}%, model: ${res.saved_to}`
     trainStatus.value = 'done'
   } catch (e: any) { showError(e?.data?.detail || e?.message); trainStatus.value = 'not_started' }

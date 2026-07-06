@@ -1,6 +1,6 @@
 # SmartBin - Product Requirements Document
 
-**Version:** 3.0
+**Version:** 4.0
 **Platform:** Web Application
 **Stack:** FastAPI + Nuxt 3 + YOLOv26m-seg
 
@@ -8,84 +8,92 @@
 
 ## Dataset
 
-Source: phenomsg/waste-classification (Kaggle), ~2,917 images, 2 main classes aligned with Bali Pergub No.47/2019.
+Two data sources merged into `backend/dataset/raw/`:
 
-Classes: **Organik** (Organic) and **Non-Organik** (Non-Organic). Non-Organik subdivided into **Anorganik** (recyclable: paper, glass, plastic, cans, e-waste, batteries) and **Residu** (landfill: diapers, sanitary_napkin, styrofoam, ceramic, paints, pesticides) per Bali government standard.
+### Source 1: TACO (Trash Annotations in Context)
+- 1,500 images with COCO-format annotations (segmentation polygons, bounding boxes)
+- 60 fine-grained categories (Aluminium foil, Battery, Plastic bottle, Food waste, etc.)
+- Mapped to 2 classes: **Organik** (category 25: Food waste) and **Non-Organik** (all other 59 categories)
+- Downloaded from Flickr via `waste_datasource/annotations.json`
+- 7 Organik / 1,027 Non-Organik images after classification
 
-Data stored at `backend/dataset/raw/` (configurable via `DATASET_PATH` env). Loaded into `backend/dataset/kaggle_waste/` via pipeline.
+### Source 2: Waste Classification Dataset (local)
+- 2,939 images organized in subcategory folders under `backend/dataset/raw/`
+- Original structure: `{Organic,Hazardous,Non-Recyclable,Recyclable}/{subcategory}/*.jpg`
+- Mapped: Organic subcategories → Organik, everything else → Non-Organik
+- 677 Organik / 2,262 Non-Organik images
+
+### Merged Dataset
+Total: **3,973 images** (684 Organik + 3,289 Non-Organik)
+Stored at: `backend/dataset/raw/Organik/` and `backend/dataset/raw/Non-Organik/`
+
+Both sources follow **Pergub Bali No.47/2019** classification standard.
 
 ---
 
-## Pipeline (4 Groups)
+## Pipeline
 
-Four pages, one per pipeline group:
+Single entry point on Dashboard:
 
-**Group 1: /dataset-prep — Dataset Preparation & Profiling**
-| Button | Endpoint |
-|--------|----------|
-| Load Dataset | POST /api/kaggle/download?source=local |
-| Dataset Profiling | GET /api/kaggle/explore |
+| Button | Action | Endpoint |
+|--------|--------|----------|
+| Run Full Pipeline | Prepare data → Train YOLOv26m-seg → Validate → Copy model | POST /api/kaggle/pipeline/run-full?epochs=80&batch=16 |
 
-**Group 2: /convert-viz — Convert & Visualize Masks**
-| Button | Endpoint |
-|--------|----------|
-| Convert Masks | POST /api/kaggle/convert |
-| Visualize Samples | GET /api/kaggle/viz |
-
-**Group 3: /train-eval — Train, Results & Evaluation**
-| Button | Endpoint |
-|--------|----------|
-| Train Model | POST /api/kaggle/train |
-| Show Curves | GET /api/kaggle/results |
-| Evaluate | GET /api/kaggle/evaluate |
-
-**Group 4: /inference-export — Inference, Export & Verify**
-| Button | Endpoint |
-|--------|----------|
-| Upload & Infer | POST /api/kaggle/inference |
-| Batch Test | POST /api/kaggle/inference/batch |
-| Export Model | POST /api/kaggle/export |
-| Final Verify | GET /api/kaggle/verify |
+Steps executed server-side:
+1. Read images from `backend/dataset/raw/Organik/` and `Non-Organik/`
+2. Generate pseudo-polygon segmentation masks (Otsu edge detection + geometric fallback)
+3. Stratified train/val/test split (70/15/15)
+4. Train YOLOv26m-seg with hyperparameters
+5. Validate best model
+6. Copy model to `backend/models/best.pt`
 
 ---
 
 ## Model
 
-Architecture: YOLOv26m-seg (Medium Segmentation)
-- MuSGD Optimizer (SGD + Muon hybrid)
-- Semantic Segmentation Loss
-- Multi-Scale Proto Modules
-- NMS-Free End-to-End
-- No DFL (edge device support)
-- ProgLoss + STAL (small object detection)
+Architecture: YOLOv26m-seg (Medium Segmentation, 23.5M params)
+- Pretrained: yolo26m-seg.pt (COCO)
+- Input: 640x640
+- Batch: 16
+- Epochs: 80 (early stopping patience 40)
+- Optimizer: SGD (MuSGD hybrid)
+- Loss: CIoU (box) + BCE (cls) + DFL
+- Augmentation: mosaic 1.0, mixup 0.2, copy_paste 0.15
 
-Training: 120 epochs, batch=16, imgsz=640, patience=20.
-Augmentation: mosaic=1.0, mixup=0.2, copy_paste=0.15.
+Latest results:
+- Box mAP@0.5: 80.4%
+- Mask mAP@0.5: 49.7%
+- Box Precision: 76.7%, Recall: 75.6%
 
 ---
 
 ## Backend
 
 FastAPI port 8000. Routes:
-- `/api/kaggle/*` — CMS pipeline (16 endpoints)
-- `/api/dataset/*` — Dataset management (20 endpoints)
-- `/api/detect` — Live inference
-- `/health` — Health check
+| Prefix | Description |
+|--------|-------------|
+| `/api/detect` | Upload image/video → inference → annotated result |
+| `/api/dataset/*` | Dataset management (COCO/YOLO conversion, splits) |
+| `/api/kaggle/*` | Pipeline (download, train, evaluate, inference batch) |
+| `/api/annotation/*` | Annotation tools, grid viewer, prepare/pipeline |
+| `/health` | Health check + GPU status |
 
 ---
 
 ## Frontend
 
-Nuxt 3 port 3000. Tailwind CSS.
+Nuxt 3 port 3000. Tailwind CSS. Pages:
+| Route | Content |
+|-------|---------|
+| `/dashboard` | Upload file → detect → show results + Run Full Pipeline |
+| `/test` | Multi-file upload + batch detect |
+| `/result` | Detection result detail |
+| `/train-eval` | Training evaluation report |
+| `/val-result` | Validation results |
+| `/test-result` | Test set results |
+| `/inference-export` | Batch inference + export |
 
-Sidebar: Main (Dashboard) + Pipeline (4 groups).
-
-Pages:
-- `/dataset-prep` — Group 1: Load dataset + profiling report
-- `/convert-viz` — Group 2: Convert masks + visualize samples
-- `/train-eval` — Group 3: Train model + view curves + evaluate metrics
-- `/inference-export` — Group 4: Upload infer + batch test + export + verify
-- `/dashboard` — Live detection upload
+Sidebar: Main (Dashboard) + Report (Training Eval, Validation, Test Results, Inference)
 
 ---
 
@@ -93,10 +101,6 @@ Pages:
 
 | Script | Action |
 |--------|--------|
-| `restart-rebuild-api.sh` | Build backend Docker → stop → start |
-| `restart-rebuild-fe.sh` | Build frontend Docker → stop → start |
-| `start-api.sh` | Start backend container |
-| `start-fe.sh` | Start frontend container |
-| `stop-api.sh` | Stop backend |
-| `stop-fe.sh` | Stop frontend |
-| `setup.sh` | One-time Docker build |
+| `backend/app/datapreparation/download_taco.py` | Download TACO dataset from annotations.json |
+| `backend/app/datapreparation/prepare_data.py` | COCO→YOLO conversion, train/val/test split |
+| `waste_datasource/prepare_dataset.py` | Download + classify TACO images into Organik/Non-Organik |

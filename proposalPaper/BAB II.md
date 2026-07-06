@@ -107,7 +107,7 @@ Setiap blok CSP memiliki residual connection (skip connection) dari input ke out
 
 **Strided Convolution vs Pooling:**
 YOLO26 menggunakan strided convolution (stride=2) untuk downsampling, bukan max pooling atau average pooling. Keuntungan:
-- **Learnable downsampling:** Convolution mempelajari pola downsampling optimal untuk dataset spesifik, tidak statis seperti pooling.
+- **Learnable downsampling:** Convolution mempelajari pola downsampling untuk dataset spesifik, tidak statis seperti pooling.
 - **Informasi spasial lebih terjaga:** Max pooling hanya mengambil nilai maksimum dalam window 2x2, membuang 75% informasi. Strided convolution memproses seluruh window dengan filter terlatih.
 - **Parameter tambahan:** Konsekuensinya ada parameter tambahan dari kernel convolution, tapi ini minimal untuk stride=2.
 
@@ -128,7 +128,7 @@ Neck adalah komponen jembatan antara backbone dan head. Backbone telah menghasil
 Neck menggabungkan kedua jenis informasi ini agar head dapat mendeteksi objek berbagai ukuran secara akurat. YOLO26 menggunakan arsitektur FPN (Feature Pyramid Network) + PAN (Path Aggregation Network) untuk fusi multi-skala.
 
 **Mengapa Multi-Skala Diperlukan?**
-Dalam satu gambar sampah, objek memiliki ukuran sangat bervariasi:
+Dalam satu gambar sampah, objek memiliki ukuran bervariasi:
 - Tutup botol kecil: ~30x30 pixel pada 640x640 → hanya 0.2% dari gambar
 - Botol 1.5L: ~300x100 pixel → 7% dari gambar
 - Kantong sampah penuh: ~500x500 pixel → 61% dari gambar
@@ -192,7 +192,7 @@ Gambar tempat sampah berisi: tutup botol kecil (P3), kaleng soda (P4), botol 1.5
 
 Head adalah komponen akhir yang menghasilkan prediksi aktual dari model. Setelah backbone mengekstraksi fitur dan neck menggabungkannya secara multi-skala, head memproses fitur tersebut untuk menghasilkan tiga output: kelas objek (Organik/Non-Organik), bounding box posisi, dan mask segmentasi.
 
-YOLOv26 menggunakan decoupled head - setiap tugas prediksi memiliki branch terpisah dengan parameter convolution sendiri. Berbeda dengan YOLOv3 yang menggunakan shared head (satu convolution untuk classification dan regression), decoupled head memungkinkan setiap branch mengoptimalkan representasi yang berbeda tanpa saling mengganggu. Classification branch fokus pada fitur diskriminatif antar kelas, regression branch fokus pada boundary detail, segmentation branch fokus pada spatial coherence.
+YOLOv26 menggunakan decoupled head - setiap tugas prediksi memiliki branch terpisah dengan parameter convolution sendiri. Berbeda dengan YOLOv3 yang menggunakan shared head (satu convolution untuk classification dan regression), decoupled head memungkinkan setiap branch memiliki representasi yang berbeda tanpa saling mengganggu. Classification branch fokus pada fitur diskriminatif antar kelas, regression branch fokus pada boundary detail, segmentation branch fokus pada spatial coherence.
 
 **Cara Kerja Anchor-Free Detection:**
 
@@ -299,7 +299,7 @@ Branch ketiga yang membedakan varian segmentasi dari varian deteksi. Menghasilka
 | yolo26s | 9,8M | 19 | 47,8% | 8,5 |
 | yolo26m | 21,2M | 42 | 52,5% | 13,2 |
 
-Penelitian ini menggunakan YOLOv26m-seg (21,2M parameter) - varian medium dengan keseimbangan optimal antara akurasi dan komputasi untuk segmentasi 2 kelas sampah (Organik/Non-Organik).
+Penelitian ini menggunakan YOLOv26m-seg (21,2M parameter) - varian medium dengan keseimbangan antara akurasi dan komputasi untuk segmentasi 2 kelas sampah (Organik/Non-Organik).
 
 ## 2.3 Bounding Box Regression dan Loss Functions
 

@@ -10,7 +10,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       </div>
-      <p class="text-dark font-medium text-lg">Drag & drop file di sini</p>
+      <p class="text-dark font-medium text-lg">Drag dan drop file di sini</p>
       <p class="text-dark/50 text-sm mt-1">atau klik untuk browse</p>
       <p class="text-dark/40 text-xs mt-2">JPG, JPEG, PNG, MP4, AVI, MOV (maks 200MB)</p>
       <input ref="inputRef" type="file" class="hidden" :accept="accepts" multiple @change="onFileChange" />
@@ -22,10 +22,11 @@
         <span class="text-xs text-dark/50">{{ files.length }} file</span>
       </div>
       <div v-for="(f, i) in files" :key="i"
-        class="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-100"
+        class="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors"
+        @click="previewFile(f)"
       >
         <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-          <img v-if="f.type.startsWith('image/')" :src="f.preview" class="w-full h-full object-cover" />
+          <img v-if="isImage(f)" :src="f.preview" class="w-full h-full object-cover" />
           <div v-else class="w-full h-full flex items-center justify-center text-secondary">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -110,6 +111,8 @@
       </div>
     </div>
   </div>
+
+  <ZoomModal :url="previewUrl" :caption="previewCaption" @close="previewUrl = null" />
 </template>
 
 <script setup lang="ts">
@@ -125,6 +128,20 @@ const results = ref<any[]>([])
 
 interface FileItem { file: File; preview: string; type: string }
 const files = ref<FileItem[]>([])
+
+const previewUrl = ref<string | null>(null)
+const previewCaption = ref("")
+
+function isImage(f: FileItem) {
+  return f.type.startsWith("image/") || /\.(jpg|jpeg|png)$/i.test(f.file.name)
+}
+
+function previewFile(f: FileItem) {
+  if (isImage(f)) {
+    previewUrl.value = f.preview
+    previewCaption.value = f.file.name
+  }
+}
 
 const STORAGE_KEY = "smartbin_history"
 

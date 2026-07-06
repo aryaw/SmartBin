@@ -5,7 +5,7 @@
     @dragover.prevent
     @click="$emit('select')"
   >
-    <p class="text-dark">Drag & drop file di sini<br>atau klik untuk browse</p>
+    <p class="text-dark">Drag dan drop file di sini<br>atau klik untuk browse</p>
   </div>
 </template>
 

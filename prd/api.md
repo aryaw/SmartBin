@@ -4,78 +4,69 @@
 
 ---
 
-## Kaggle CMS Pipeline (/api/kaggle)
-
-Grouped by frontend page:
-
-**Group 1 (/dataset-prep):**
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/kaggle/download` | Load dataset from local path (DATASET_PATH env) |
-| GET | `/api/kaggle/download-status` | Check if dataset + labels exist |
-| GET | `/api/kaggle/explore` | Class distribution (Organik/Non-Organik with Anorganik/Residu subtypes) + sample image URLs |
-
-**Group 2 (/convert-viz):**
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/kaggle/convert` | Generate YOLO-seg polygon masks |
-| GET | `/api/kaggle/viz` | 12 random sample images with mask overlays |
-| GET | `/api/kaggle/viz/image/{filename}` | Single image with mask overlay |
-
-**Group 3 (/train-eval):**
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/kaggle/train` | Train YOLOv26m-seg (params: epochs, batch, lr0) |
-| GET | `/api/kaggle/results` | Training result plot images |
-| GET | `/api/kaggle/results/image/{filename}` | Single result image |
-| GET | `/api/kaggle/evaluate` | Box + Mask metrics |
-
-**Group 4 (/inference-export):**
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/kaggle/inference` | Upload image -> mask overlay + detections |
-| POST | `/api/kaggle/inference/batch` | Batch inference on test set + Organik/Non-Organik recycling advice with Anorganik/Residu mapping |
-| POST | `/api/kaggle/export` | Export model (ONNX/TorchScript) |
-| GET | `/api/kaggle/categories` | Class hierarchy + recycling advice |
-| GET | `/api/kaggle/verify` | Per-class mask mAP final verification (Organik/Non-Organik) |
-
----
-
-## Dataset Management (/api/dataset)
+## Detection (/api)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/dataset/grid` | All images + annotations + stats |
-| GET | `/api/dataset/evaluate?split=all` | Model metrics per split |
-| POST | `/api/dataset/download?source=local` | Load from local dataset path |
-| POST | `/api/dataset/convert-seg` | Generate YOLO-seg masks from raw dataset |
-| POST | `/api/dataset/split-stratified` | Stratified 70/15/15 split |
-| POST | `/api/dataset/split` | Random 70/15/15 split from raw |
-| POST | `/api/dataset/reset` | Reset all dataset dirs |
-| POST | `/api/dataset/pipeline/coco` | COCO annotation viz |
-| POST | `/api/dataset/pipeline/yolo` | YOLO train inference |
-| POST | `/api/dataset/pipeline/yolo/val` | YOLO val inference |
-| POST | `/api/dataset/pipeline/yolo/seg` | YOLO segmentation inference |
-| POST | `/api/dataset/pipeline/yolo/test` | YOLO test inference |
-
----
-
-## Detection
-
-### POST /api/detect
-Upload image/video → detect Organik/Non-Organik objects.
-
-### POST /api/detect/bulk
-Batch detection.
-
-### GET /api/result/{filename}
-Serve annotated result file.
-
----
+| POST | `/api/detect` | Upload image/video → YOLO inference → annotated result + summary |
+| POST | `/api/detect/bulk` | Batch upload multiple files |
+| GET | `/api/result/{filename}` | Get annotated result image |
+| GET | `/api/log/{timestamp}` | Get detection log |
 
 ## Health
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | `{"status":"ok","device":"cuda:0"}` |
-| POST | `/health/reload` | Reload model from disk |
+| GET | `/health` | Server status, GPU info, model loaded |
+
+## Kaggle CMS Pipeline (/api/kaggle)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/kaggle/pipeline/run-full` | Full pipeline: prepare data → train → validate → copy model |
+| POST | `/api/kaggle/download` | Download/load dataset from source |
+| POST | `/api/kaggle/convert` | Convert to YOLO-seg masks |
+| POST | `/api/kaggle/train` | Train model with params |
+| POST | `/api/kaggle/inference` | Single image inference |
+| POST | `/api/kaggle/inference/batch` | Batch inference |
+| POST | `/api/kaggle/export` | Export trained model |
+| GET | `/api/kaggle/download-status` | Check dataset status |
+| GET | `/api/kaggle/explore` | Dataset profiling |
+| GET | `/api/kaggle/viz` | Sample mask visualizations |
+| GET | `/api/kaggle/train/status` | Training status |
+| GET | `/api/kaggle/results` | Training results/curves |
+| GET | `/api/kaggle/evaluate` | Evaluate model on val set |
+| GET | `/api/kaggle/verify` | Final verification |
+
+## Dataset Management (/api/dataset)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/dataset/grid` | Dataset image grid |
+| POST | `/api/dataset/pipeline/coco` | COCO pipeline |
+| POST | `/api/dataset/pipeline/yolo` | YOLO bbox pipeline |
+| POST | `/api/dataset/pipeline/yolo/seg` | YOLO seg pipeline |
+| POST | `/api/dataset/pipeline/yolo/train` | YOLO training pipeline |
+| POST | `/api/dataset/split-stratified` | Stratified dataset split |
+| POST | `/api/dataset/split` | Dataset split |
+| GET | `/api/dataset/evaluate` | Dataset evaluation |
+
+## Annotations (/api/annotation)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/annotation/grid` | Annotation grid |
+| POST | `/api/annotation/prepare` | Prepare annotations |
+| POST | `/api/annotation/pipeline/coco` | COCO pipeline |
+| POST | `/api/annotation/pipeline/yolo` | YOLO pipeline |
+| POST | `/api/annotation/pipeline/yolo/seg` | YOLO seg pipeline |
+| POST | `/api/annotation/convert-seg` | Convert to seg format |
+
+## Datasource (/api)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/grid` | Datasource grid |
+| GET | `/api/image` | Get image |
+| GET | `/api/annotations` | Get annotations |
+| GET | `/api/annotations/unofficial` | Get unofficial annotations |

@@ -8,99 +8,81 @@
 
 | Komponen | Teknologi |
 |----------|-----------|
-| Framework | FastAPI 0.115 |
+| Framework | FastAPI |
 | ASGI Server | Uvicorn |
 | Python | 3.12 |
-| DL Framework | PyTorch 2.x + CUDA |
-| Model | Ultralytics YOLO (yolo26m-seg.pt) |
+| DL Framework | PyTorch 2.12 + CUDA 13.0 |
+| Model | Ultralytics YOLO (yolo26m-seg) |
 | CV Library | OpenCV, Pillow |
 | Validation | Pydantic v2 |
-| Database | PostgreSQL via asyncpg + SQLAlchemy 2.0 |
 
----
-
-## 2. Directory Structure
+## 2. Project Structure
 
 ```
 backend/
 ├── app/
-│   ├── main.py                 # FastAPI entry
-│   ├── core/config.py          # Paths, CORS, GPU config
-│   ├── cli/
-│   │   ├── train.py            # Training with optimizer + mask params
-│   │   ├── test.py             # Evaluation CLI
-│   │   └── predict.py          # CLI inference
+│   ├── main.py              # FastAPI app, lifespan (GPU init + model load)
+│   ├── core/
+│   │   └── config.py        # Paths, categories, CORS, DB config
 │   ├── routes/
-│   │   ├── kaggle_cms.py       # /api/kaggle/* (16 pipeline endpoints)
-│   │   ├── annotation.py       # /api/dataset/* (dataset management)
-│   │   ├── detect.py           # POST /api/detect
-│   │   ├── health.py           # GET /health
-│   │   └── datasource.py       # TACO datasource
+│   │   ├── detect.py        # POST /api/detect, /api/detect/bulk
+│   │   ├── health.py        # GET /health
+│   │   ├── annotation.py    # Dataset annotation pipelines
+│   │   ├── datasource.py    # Datasource grid/images
+│   │   └── kaggle_cms.py    # Kaggle CMS pipeline endpoints
 │   ├── services/
-│   │   ├── kaggle_service.py   # Dataset loading + mask generation
-│   │   ├── detector.py         # YOLO inference singleton
-│   │   ├── yolo_service.py     # Train/val/test pipelines
-│   │   ├── annotation_service.py   # COCO conversion
+│   │   ├── detector.py      # YOLO model load, image/video inference
+│   │   ├── yolo_service.py  # YOLO pipeline (inference, viz, seg)
+│   │   ├── kaggle_service.py# Dataset download, prepare_from_local
+│   │   ├── annotation_service.py
 │   │   ├── datapreparation_service.py
-│   │   └── log_service.py
+│   │   ├── log_service.py
+│   │   └── preparation_service.py
+│   ├── schemas/
+│   │   └── detection.py     # Pydantic models (DetectResponse, etc.)
 │   ├── utils/
-│   │   ├── gpu_utils.py        # GPU init, memory limit
-│   │   └── progress.py         # SSE progress emitter
-│   └── schemas/detection.py    # Pydantic models
+│   │   ├── file_utils.py    # Upload validation, save, cleanup
+│   │   ├── gpu_utils.py     # GPU init, warmup, device selection
+│   │   └── progress.py      # SSE progress emitter
+│   └── datapreparation/
+│       ├── download_taco.py # TACO dataset downloader
+│       └── prepare_data.py  # COCO→YOLO conversion, split
+├── models/
+│   └── best.pt              # Trained model (auto-copied after pipeline)
 ├── dataset/
-│   ├── kaggle_waste/           # 2-class dataset (Organik/Non-Organik, Anorganik/Residu subtypes) (train/val/test)
-│   ├── raw/                    # Raw images
-│   └── train/val/test/         # Split datasets
-├── models/best.pt              # Trained YOLO weights
-├── data.yaml                   # Dataset config
-└── requirements.txt
+│   └── raw/
+│       ├── Organik/         # 684 organic waste images
+│       └── Non-Organik/     # 3,289 non-organic waste images
+├── requirements.txt
+└── .env
 ```
 
----
+## 3. Inference Flow
 
-## 3. Kaggle CMS Endpoints by Pipeline Group
+1. User uploads image via POST /api/detect
+2. Server validates file type (.jpg, .jpeg, .png, .mp4, .avi, .mov) and size (max 200MB)
+3. Image saved to uploads/, inference runs on GPU
+4. YOLO model returns detected objects with class, confidence, bbox
+5. Annotated image drawn with bounding boxes + labels
+6. Result saved to static/result/, uploaded file deleted
+7. Response: detected_objects[], summary {organik, non_organik, total}, result_url, recommendation
+8. Detection logged to file
 
-### Group 1: /dataset-prep
-| POST /api/kaggle/download | Load from local dataset path |
-| GET /api/kaggle/download-status | Check dataset existence |
-| GET /api/kaggle/explore | Class distribution report |
+## 4. Key Config (config.py)
 
-### Group 2: /convert-viz
-| POST /api/kaggle/convert | Generate polygon masks |
-| GET /api/kaggle/viz | Sample mask visualizations |
+ORGANIC_CATEGORIES = {25}  # only Food waste
 
-### Group 3: /train-eval
-| POST /api/kaggle/train | Train YOLOv26m-seg |
-| GET /api/kaggle/results | Training plots |
-| GET /api/kaggle/evaluate | Box + Mask metrics |
+MODEL_PATH = models/best.pt
+DATASET_PATH = backend/dataset
+DEVICE = cuda:0
 
-### Group 4: /inference-export
-| POST /api/kaggle/inference | Single image with masks |
-| POST /api/kaggle/inference/batch | Batch test set inference |
-| GET /api/kaggle/categories | Recycling advice mapping |
-| POST /api/kaggle/export | ONNX/TorchScript export |
-| GET /api/kaggle/verify | Per-class verification |
+## 5. Environment Variables
 
----
-
-## 4. Training Config
-
-```
-Model: yolo26m-seg.pt (COCO pretrained)
-Task: Instance Segmentation (2 classes: Organik/Non-Organik)
-Epochs: 120 (patience=20)
-Batch: 16
-Imgsz: 640
-Optimizer: SGD (triggers MuSGD internally)
-Loss: box=7.5, cls=1.5, mask_ratio=4, overlap_mask=True
-Augmentation: mosaic=1.0, mixup=0.2, copy_paste=0.15
-```
-
-## 5. Polygon Mask Generation
-
-3 strategies (tried in order):
-1. Edge detection (Otsu threshold + contour) — ~83%
-2. Elliptical polygon — ~10%
-3. Rounded rectangle — ~7%
-
-Min contour area threshold: 20% of image (reduces noise).
+| Variable | Default | Description |
+|----------|---------|-------------|
+| MODEL_PATH | models/best.pt | Path to model weights |
+| DATASET_PATH | backend/dataset | Dataset root directory |
+| DEVICE | cuda:0 | GPU device |
+| UPLOAD_DIR | uploads | Upload directory |
+| EPOCHS | 150 | Training epochs |
+| BATCH_SIZE | 16 | Training batch size |

@@ -43,7 +43,7 @@
 const config = useRuntimeConfig()
 const apiBase = config.public.apiBase
 const { show: showError } = useToast()
-const trainConfig = ref({ epochs: 50, batch: 16, lr0: 0.01 })
+const trainConfig = ref({ batch: 16, lr0: 0.001 })
 const trainResult = ref(null); const trainRunning = ref(false)
 const resultsResult = ref(null); const resultsRunning = ref(false); const resultsImages = ref([])
 const evalResult = ref(null); const evalRunning = ref(false)
@@ -52,7 +52,7 @@ async function runTrain() {
   trainRunning.value = true; trainResult.value = null
   try {
     const cfg = trainConfig.value
-    const res = await $fetch(`/api/kaggle/train?epochs=${cfg.epochs}&batch=${cfg.batch}&lr0=${cfg.lr0}`, { baseURL: apiBase, method: "POST" }) as any
+    const res = await $fetch(`/api/kaggle/train?batch=${cfg.batch}&lr0=${cfg.lr0}`, { baseURL: apiBase, method: "POST" }) as any
     trainResult.value = `Best model: ${res.best_model_path}\nmAP50: ${(res.map50 * 100).toFixed(1)}%\nSaved to: ${res.saved_to}`
   } catch (e: any) { showError(e?.data?.detail || e?.message) } finally { trainRunning.value = false }
 }
