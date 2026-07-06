@@ -95,10 +95,7 @@ Presentasi terdiri dari 12 slide yang mencakup seluruh pipeline penelitian secar
 | 11 | Pembahasan | Analisis dan interpretasi |
 | 12 | Kesimpulan & Saran | Ringkasan dan rekomendasi |
 
-### Waktu Presentasi
-- Total: 20-25 menit
-- Per slide: ~1-2 menit
-- Q&A: 10 menit
+
 
 ### Peta Waktu per Slide
 
