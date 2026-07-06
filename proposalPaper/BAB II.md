@@ -336,9 +336,9 @@ Dengan bobot default: $w_{box}=7.5$, $w_{cls}=0.5$, $w_{dfl}=1.5$.
 ```mermaid
 flowchart TD
     subgraph Loss[Total Loss Function]
-        L1[L_box = CIoU Loss<br/>weight: 7.5] --> L_total[L_total]
-        L2[L_cls = BCE Loss<br/>weight: 0.5] --> L_total
-        L3[L_dfl = DFL<br/>weight: 1.5] --> L_total
+        L1[L_box = CIoU Loss<br />weight: 7.5] --> L_total[L_total]
+        L2[L_cls = BCE Loss<br />weight: 0.5] --> L_total
+        L3[L_dfl = DFL<br />weight: 1.5] --> L_total
     end
     L_total --> O[Optimization: Backpropagation]
 ```

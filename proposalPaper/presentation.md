@@ -8,34 +8,32 @@ flowchart TD
     classDef default fill:none,stroke:#333,stroke-width:1
 
     subgraph SRC[Dataset: 3.973 Gambar]
-        A1[TACO Dataset<br/>1.500 gambar · 60 kategori<br/>Anotasi polygon COCO] --> A3[Merge & Class Mapping<br/>Deduplikasi + Filter]
-        A2[Waste Classification<br/>2.939 gambar · 18 subkategori<br/>Tanpa anotasi segmentasi] --> A3
-        A3 --> A4[Hasil Merger<br/>Organik: 684 · Non-Organik: 3.289<br/>Total: 3.973]
+        A1[TACO Dataset<br />1.500 gambar · 60 kategori<br />Anotasi polygon COCO] --> A3[Merge & Class Mapping<br />Deduplikasi + Filter]
+        A2[Waste Classification<br />2.939 gambar · 18 subkategori<br />Tanpa anotasi segmentasi] --> A3
+        A3 --> A4[Hasil Merger<br />Organik: 684 · Non-Organik: 3.289<br />Total: 3.973]
     end
 
     subgraph PP[Preprocessing Pipeline]
-        B1[Pseudo-Polygon Mask<br/>12 Langkah · 4 Kelompok] --> B2[Edge Detection: 66,4%<br/>Fallback: 33,6%]
-        B2 --> B3[Fallback Detail<br/>60% Ellipse · 40% Rounded Rect]
-        B3 --> B4[Stratified Split 70/15/15<br/>Train: 2.765 Val: 593 Test: 593]
+        B1[Pseudo-Polygon Mask<br />12 Langkah · 4 Kelompok] --> B2[Edge Detection: 66,4%<br />Fallback: 33,6%]
+        B2 --> B3[Fallback Detail<br />60% Ellipse · 40% Rounded Rect]
+        B3 --> B4[Stratified Split 70/15/15<br />Train: 2.765 Val: 593 Test: 593]
     end
 
     subgraph TR[Training YOLOv26m-seg]
-        C1[80 Epochs · Batch 16<br/>imgsz 640 · FP16 · Patience 40] --> C2[Box mAP@0.5: 80,4%<br/>Box mAP@0.5:0.95: 52,5%]
-        C2 --> C3[Mask mAP@0.5: 49,7%<br/>Mask mAP@0.5:0.95: 23,1%]
-        C3 --> C4[Organik Box: 77,2% · Non-Org: 83,6%<br/>Organik Mask: 38,2% · Non-Org: 61,2%]
+        C1[80 Epochs · Batch 16<br />imgsz 640 · FP16 · Patience 40] --> C2[Box mAP@0.5: 80,4%<br />Box mAP@0.5:0.95: 52,5%]
+        C2 --> C3[Mask mAP@0.5: 49,7%<br />Mask mAP@0.5:0.95: 23,1%]
+        C3 --> C4[Organik Box: 77,2% · Non-Org: 83,6%<br />Organik Mask: 38,2% · Non-Org: 61,2%]
         C4 --> C5[Precision: 76,7% · Recall: 75,6% · F1: 76,1%]
-        C5 --> C6[Training: ~2,5 jam · RTX 5060 Ti 16GB<br/>Inference: 5,3 ms/gambar]
+        C5 --> C6[Training: ~2,5 jam · RTX 5060 Ti 16GB<br />Inference: 5,3 ms/gambar]
     end
 
     subgraph APP[Aplikasi Web]
-        D1[FastAPI :8000 + Nuxt.js 3 :3000] --> D2[/raw/dataset<br/>/raw/preparation]
-        D2 --> D3[/raw/training<br/>/raw/deployment]
+        D1[FastAPI :8000 + Nuxt.js 3 :3000] --> D2[/raw/dataset<br />/raw/preparation]
+        D2 --> D3[/raw/training<br />/raw/deployment]
     end
 
     SRC --> PP --> TR --> APP
 ```
-
-> Pipeline end-to-end: penggabungan TACO + Waste Classification (3.973 gambar) -> pseudo-mask generation (66,4% edge success) -> stratified split -> training YOLOv26m-seg (80 epochs, Box mAP@0.5: 80,4%) -> deployment aplikasi web.
 
 ---
 
@@ -116,8 +114,6 @@ Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, si
 | **Val** | 593 | 102 | 491 | 14,9% |
 | **Test** | 593 | 102 | 491 | 14,9% |
 | **Total** | 3.951* | 680 | 3.271 | 100% |
-
-> *22 gambar tidak memiliki label valid setelah pseudo-mask generation dan dieksklusi.
 
 ---
 

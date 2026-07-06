@@ -4,18 +4,6 @@
 
 ---
 
-> **Visualization Output:** Semua pipeline process images di `waste_datasource/visualization/` (54 folders, 6 processes: pseudo_mask, stratified_split, augmentation, backbone, backend, frontend). Run `backend/app/scripts/generate_visualizations.py` to regenerate.
->
-> **Quick Reference:**
-> - Pseudo-Mask: `waste_datasource/visualization/pseudo_mask/` (16 subfolders)
-> - Stratified Split: `waste_datasource/visualization/stratified_split/` (4 chart folders)
-> - Augmentation: `waste_datasource/visualization/augmentation/` (13 subfolders)
-> - Backbone: `waste_datasource/visualization/backbone/` (7 diagram folders)
-> - Backend API: `waste_datasource/visualization/backend/` (7 diagram folders)
-> - Frontend UI: `waste_datasource/visualization/frontend/` (7 diagram folders)
-
----
-
 ## Slide 1: Judul
 **Deteksi dan Klasifikasi Sampah Menggunakan YOLOv26m-seg untuk Instance Segmentation (2 Kelas: Organik/Non-Organik)**
 
@@ -61,9 +49,26 @@ Box mAP@0.5 = 80.4%, Mask mAP@0.5 = 49.7%. Organik Box mAP = 77.2%, Non-Organik 
 - `cli/train.py:30-68` - `train_one()`, konfigurasi training
 
 > **Key Takeaway:**
-> SmartBin pipeline: 2 dataset (TACO + Waste Classification) -> 3.973 gambar (684+3.289) -> pseudo-mask 66.4% edge -> stratified split -> YOLOv26m-seg 80 epoch -> Box mAP@0.5 80.4% -> web app. Satu klik di `POST /api/kaggle/pipeline/run-full`.
-
-> **Visualization:** `waste_datasource/visualization/pseudo_mask/` (16 subfolder, step 01-12 + summary). Trace gambar dari RGB sampai YOLO label via nama file konsisten.
+> 
+> | Tahap | Metrik | Detail |
+> |-------|--------|--------|
+> | Dataset | 3.973 gambar | TACO 1.500 + Waste Class 2.939 |
+> | Pseudo-mask | 66.4% success | Edge detection, 12 langkah |
+> | Fallback | 33.6% | 60% ellipse, 40% rounded rect |
+> | Split | 70/15/15 | Train 2.765, Val 593, Test 593 |
+> | Training | 80 epoch | YOLOv26m-seg, batch 16, FP16 |
+> | Box mAP | 80.4% | Deteksi bounding box |
+> | Mask mAP | 49.7% | Segmentasi mask |
+> | Inference | 5.3 ms/img | RTX 5060 Ti 16GB |
+> 
+> ```mermaid
+> flowchart LR
+>     A["01 Original RGB"] --> B["02-04 Grayscale/Blur/Otsu"]
+>     B --> C["05-06 Mean Check + Morph"]
+>     C --> D["07-09 Contour + Area + ApproxPolyDP"]
+>     D --> E["10-12 Normalize + YOLO Label"]
+>     E --> F["Summary Collage 4x4"]
+> ```
 
 ---
 
@@ -105,9 +110,26 @@ Box mAP@0.5 = 80.4%, Mask mAP@0.5 = 49.7%. Organik Box mAP = 77.2%, Non-Organik 
 | 12 | 2 menit | Kesimpulan + app |
 
 > **Key Takeaway:**
-> 12 slide, ~25 menit. Linear: masalah -> data -> arsitektur -> training -> hasil -> penutup. 90% fokus pipeline deep learning.
-
-> **Visualization:** `waste_datasource/visualization/` - diagram setiap proses.
+> 
+> | Aspek | Detail |
+> |-------|--------|
+> | Total slide | 12 slide |
+> | Durasi | ~25 menit |
+> | Per slide | ~1-2 menit |
+> | Q&A | 10 menit |
+> | Fokus | 90% pipeline deep learning |
+> | Alur | Masalah -> Data -> Arsitektur -> Training -> Hasil -> Penutup |
+> 
+> ```mermaid
+> timeline
+>     title Perjalanan Presentasi
+>     Slide 1-3 : Judul, Outline, Latar Belakang : 4 menit
+>     Slide 4-5 : Dataset + Pseudo-Mask : 5 menit
+>     Slide 6 : Online Augmentasi : 2 menit
+>     Slide 7-9 : Backbone + Neck + Training : 7 menit
+>     Slide 10-11 : Hasil + Pembahasan : 5 menit
+>     Slide 12 : Kesimpulan + App : 2 menit
+> ```
 
 ---
 
@@ -153,9 +175,26 @@ Pemerintah Bali tetapkan 3 kategori: Organik (kompos), Anorganik (daur ulang), R
 - `cli/train.py:18` - `YOLO(pretrained)` - load pretrained model
 
 > **Key Takeaway:**
-> Bali darurat sampah (1.340 ton/hari). Pemilahan manual gagal. 3 level CV: klasifikasi > deteksi > segmentasi - kita pilih segmentasi. 2 kelas cukup validasi publik, subkategori di backend. Transfer learning dari COCO.
-
-> **Visualization:** `waste_datasource/visualization/stratified_split/` - distribusi dataset.
+> 
+> | Aspek | Fakta |
+> |-------|-------|
+> | Sampah Bali/hari | ~1.340 ton |
+> | Dari pariwisata | 60% |
+> | Komposisi | 60% organik, 30% plastik |
+> | Level CV | Instance segmentation (terdetail) |
+> | Jumlah kelas | 2 (validasi publik) |
+> | Training awal | COCO dataset transfer learning |
+> 
+> ```mermaid
+> flowchart LR
+>     subgraph CV[3 Level Computer Vision]
+>         L1["Klasifikasi: label saja"] --> L2["Deteksi: bbox + label"]
+>         L2 --> L3["Segmentasi: mask pixel-level"]
+>     end
+>     L3 --> P["YOLOv26m-seg: pilih segmentasi"]
+>     P --> R["2 kelas: Organik / Non-Organik"]
+>     R --> B["Backend: pecah Non-Organik -> Anorganik & Residu"]
+> ```
 
 ---
 
@@ -204,9 +243,24 @@ TACO jadi referensi format dan validasi pipeline. Kontribusi: 684 gambar Organik
 - `kaggle_service.py:18` - `SEED = 42` untuk reproducibility
 
 > **Key Takeaway:**
-> 2 dataset: TACO (1.500, 60 cats, COCO) + Waste Classification (2.939, 18 subs) -> merge ke 3.973 gambar (684 Organik + 3.289 Non-Organik). Stratified split 70/15/15 jaga proporsi. Seed 42.
-
-> **Visualization:** `waste_datasource/visualization/stratified_split/03_class_distribution_chart/` - bar chart distribusi.
+> 
+> | Komponen | Sumber 1: TACO | Sumber 2: Waste Class | Final |
+> |----------|---------------|----------------------|-------|
+> | Jumlah | 1.500 gambar | 2.939 gambar | 3.973 |
+> | Kategori | 60 | 18 subfolder | 2 kelas |
+> | Anotasi | COCO polygon | Tidak ada | YOLO-seg |
+> | Organik | ~10 | ~674 | 684 |
+> | Non-Organik | ~1.490 | ~2.265 | 3.289 |
+> 
+> ```mermaid
+> flowchart LR
+>     T["TACO: 1.500 gambar, 60 cats"] --> M["Merge & Class Mapping"]
+>     W["Waste Class: 2.939 gambar, 18 subs"] --> M
+>     M --> S["Stratified Split 70/15/15"]
+>     S --> TR["Train: 2.765 (70%)"]
+>     S --> V["Val: 593 (15%)"]
+>     S --> TE["Test: 593 (15%)"]
+> ```
 
 ---
 
@@ -286,9 +340,30 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 - Label write: `kaggle_service.py:386-387`
 
 > **Key Takeaway:**
-> 2 metode pseudo-mask: Edge detection Otsu (66.4%, akurat, ~24 titik polygon via ApproxPolyDP) dan Fallback geometris (33.6%, elips 60% + rounded rect 40%). 12 langkah CV pipeline. Label YOLO-seg dengan koordinat [0,1].
-
-> **Visualization:** `waste_datasource/visualization/pseudo_mask/` (16 subfolder) - trace gambar dari step 01 sampai 12.
+> 
+> | Metode | Success Rate | Akurasi | Titik Polygon | Cocok untuk |
+> |--------|-------------|---------|---------------|-------------|
+> | Edge Otsu | 66.4% | Tinggi | ~24 | Botol, kaleng, daun di latar polos |
+> | Fallback Ellipse | 20.2% | Rendah | 20 | Sampah remuk, bentuk amorf |
+> | Fallback Rounded Rect | 13.4% | Rendah | 20 | Kertas, kardus, kotak |
+> 
+> ```mermaid
+> flowchart TD
+>     I[Input Image RGB] --> G[Grayscale]
+>     G --> B[Gaussian Blur 5x5]
+>     B --> O[Otsu Threshold]
+>     O --> M{Mean > 127?}
+>     M -->|Yes| IV[Invert Mask]
+>     M -->|No| MO[Morph Close 5x5]
+>     IV --> MO
+>     MO --> FC[Find Contours - Largest]
+>     FC --> A{Area >= 20%?}
+>     A -->|Yes 66.4%| AP[ApproxPolyDP 24 titik]
+>     A -->|No 33.6%| FB[Fallback: 60% Ellipse / 40% Rounded Rect]
+>     AP --> N[Normalize ke [0,1]]
+>     FB --> N
+>     N --> Y[YOLO-seg Label]
+> ```
 
 ---
 
@@ -332,9 +407,28 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 - `cli/train.py:54-55` - `mixup`, `copy_paste` dari environment variable
 
 > **Key Takeaway:**
-> 15 augmentasi online. Mosaic wajib (1.0), probabilistic untuk lainnya. Close mosaic di epoch ~27. Augmentasi vital untuk generalisasi dengan dataset terbatas (3.973 gambar).
-
-> **Visualization:** `waste_datasource/visualization/augmentation/` (13 subfolders) - contoh setiap augmentasi.
+> 
+> | Augmentasi | Prob | Fungsi |
+> |------------|------|--------|
+> | Mosaic | 1.0 | 4 foto grid 2x2 - konteks padat |
+> | Mixup | 0.5 | 2 foto blend - fitur overlap |
+> | Copy-Paste | 0.5 | Objek pindah antar foto |
+> | HSV | 0.02/0.6/0.4 | Variasi warna, saturasi, terang |
+> | Geometric | 25 deg/0.8 | Rotasi, scale, shear |
+> | Flip/LR | 0.5 | Cermin horizontal |
+> | Erasing | 0.5 | Occlusion simulation |
+> 
+> ```mermaid
+> flowchart LR
+>     I[Input Image] --> M[Mosaic 1.0]
+>     M --> MX[Mixup 0.3]
+>     MX --> CP[Copy-Paste 0.4]
+>     CP --> H[HSV Jitter]
+>     H --> G[Geometric Rot/Scale/Shear]
+>     G --> F[Flip LR 50%, UD 20%]
+>     F --> E[Erasing 40%]
+>     E --> O[Training Batch]
+> ```
 
 ---
 
@@ -374,9 +468,26 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 - Training config: `cli/train.py:30-68` - parameter arsitektur
 
 > **Key Takeaway:**
-> Backbone CSPDarknet: 4 stage (640->20, stride 2x tiap stage, channel 64->512) + SPP (3 pooling 5/9/13). CSP hemat ~20% FLOPs. SPP tangkap multi-scale context.
-
-> **Visualization:** `waste_datasource/visualization/backbone/` (7 folders) - overview, CSP, SPP, feature maps, flow.
+> 
+> | Stage | Input -> Output | Channel | Stride | Deteksi |
+> |-------|---------------|---------|--------|---------|
+> | Stem | 640 -> 320 | 64 | 2x | Tepi dasar |
+> | Stage 1 | 320 -> 160 | 128 | 4x | Sudut & kontur |
+> | Stage 2 | 160 -> 80 | 256 | 8x | Bentuk geometrik |
+> | Stage 3 | 80 -> 40 | 512 | 16x | Tekstur & pola |
+> | Stage 4 | 40 -> 20 | 512 | 32x | Semantik & konteks |
+> | SPP | 20 -> 20 | 512 | 32x | Multi-skala (5/9/13) |
+> 
+> ```mermaid
+> flowchart LR
+>     IN["Input 640x640x3"] --> ST["Stem Conv k7 s2<br />320x320 C=64"]
+>     ST --> S1["Stage 1 CSP<br />160x160 C=128"]
+>     S1 --> S2["Stage 2 CSP<br />80x80 C=256"]
+>     S2 --> S3["Stage 3 CSP<br />40x40 C=512"]
+>     S3 --> S4["Stage 4 CSP<br />20x20 C=512"]
+>     S4 --> SPP["SPP Layer<br />k=5,9,13 Pool"]
+>     SPP --> NECK["To Neck FPN+PAN"]
+> ```
 
 ---
 
@@ -431,9 +542,30 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 - `kaggle_service.py:100-106` - mask generation (input untuk segmentation branch)
 
 > **Key Takeaway:**
-> Neck FPN+PAN: FPN (top-down, semantik ke detail) + PAN (bottom-up, detail ke semantik). Decoupled Head: 3 cabang (class, reg, seg). Anchor-free + DFL distribusi 16 bin.
-
-> **Visualization:** `waste_datasource/visualization/backbone/06_neck_fpn_pan/` - FPN+PAN detail flow.
+> 
+> | Komponen | Arah | Fungsi | Output |
+> |----------|------|--------|--------|
+> | FPN | Top-down | Semantik P5 -> P4 -> P3 | Detail + konteks |
+> | PAN | Bottom-up | Lokasi P3 -> P4 -> P5 | Konteks + presisi |
+> | Class Head | 3 skala | 2x Conv3x3 + Linear | 2 kelas + objectness |
+> | Reg Head | 3 skala | DFL 16-bin distribusi | x, y, w, h |
+> | Seg Head | 3 skala | Proto 32 mask | 24-point polygon |
+> 
+> ```mermaid
+> flowchart TD
+>     subgraph FPN[FPN Top-Down]
+>         P5["P5 20x20"] --> UP5["Upsample 2x"]
+>         UP5 --> CAT4["Concat + P4 40x40"]
+>         CAT4 --> UP4["Upsample 2x"]
+>         UP4 --> CAT3["Concat + P3 80x80"]
+>     end
+>     subgraph PAN[PAN Bottom-Up]
+>         CAT3 --> DN3["Downsample k3 s2"]
+>         DN3 --> CAT4B["Concat + P4 40x40"]
+>         CAT4B --> DN4["Downsample k3 s2"]
+>         DN4 --> CAT5["Concat + P5 20x20"]
+>     end
+> ```
 
 ---
 
@@ -498,9 +630,33 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 - `kaggle_cms.py:88-101` - pipeline training full dengan grid search support
 
 > **Key Takeaway:**
-> 3 loss: CIoU (bbox, bobot 7.5) + BCE (klasifikasi, bobot 0.5) + DFL (posisi distribusi, bobot 1.5). 80 epoch, batch 16, SGD+MuSGD, FP16. Training ~2.5 jam di RTX 5060 Ti.
-
-> **Visualization:** `waste_datasource/visualization/backend/06_model_lifecycle/` - model training lifecycle.
+> 
+> | Loss | Bobot | Fungsi |
+> |------|-------|--------|
+> | CIoU | 7.5 | Regresi bounding box (IoU + center dist + aspect ratio) |
+> | BCE | 0.5 | Klasifikasi 2 kelas |
+> | DFL | 1.5 | Distribusi posisi boundary |
+> 
+> | Hyperparameter | Nilai |
+> |---------------|-------|
+> | Epochs | 80 |
+> | Batch | 16 |
+> | Optimizer | SGD + MuSGD hybrid |
+> | LR | 0.001 cosine |
+> | FP16 | True |
+> | Training | ~2.5 jam |
+> 
+> ```mermaid
+> flowchart TD
+>     subgraph Loss[Total Loss Function]
+>         L1[CIoU Loss: 7.5] --> TOTAL[L_total]
+>         L2[BCE Loss: 0.5] --> TOTAL
+>         L3[DFL Loss: 1.5] --> TOTAL
+>     end
+>     TOTAL --> OPT[SGD/MuSGD Optimizer]
+>     OPT --> EPOCH[80 Epochs]
+>     EPOCH --> EVAL[Validation: Box mAP 80.4%, Mask mAP 49.7%]
+> ```
 
 ---
 
@@ -546,9 +702,28 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 - `kaggle_cms.py:303-319` - endpoint `GET /api/kaggle/results`
 
 > **Key Takeaway:**
-> Box mAP@0.5 = 80.4%, Mask mAP@0.5 = 49.7%, Precision 76.7%, Recall 75.6%, F1 76.1%. Non-Organik (83.6%) unggul dari Organik (77.2%) data 4.8x lebih banyak. Gap Box-Mask Organik 39% karena pseudo-label noise.
-
-> **Visualization:** `runs/segment/full_pipeline/` - results.png, labels.jpg, F1_curve.png, PR_curve.png, confusion_matrix.png.
+> 
+> | Metrik | Box | Mask |
+> |--------|-----|------|
+> | mAP@0.5 | 80.4% | 49.7% |
+> | mAP@0.5:0.95 | 52.5% | 23.1% |
+> | Precision | 76.7% | 59.2% |
+> | Recall | 75.6% | 52.3% |
+> | F1-Score | 76.1% | 45.4% |
+> 
+> | Kelas | Box mAP | Mask mAP |
+> |-------|---------|----------|
+> | Organik | 77.2% | 38.2% |
+> | Non-Organik | 83.6% | 61.2% |
+> 
+> ```mermaid
+> xychart-beta
+>     title "Training Progress (80 Epoch)"
+>     x-axis ["Epoch 0", "Epoch 20", "Epoch 40", "Epoch 60", "Epoch 80"]
+>     y-axis "mAP@0.5" 0 --> 100
+>     line "Box mAP" [10, 45, 65, 75, 80.4]
+>     line "Mask mAP" [5, 25, 38, 45, 49.7]
+> ```
 
 ---
 
@@ -595,9 +770,28 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 - Model validation: `detector.py:50-56` `_validate_model()`
 
 > **Key Takeaway:**
-> Edge rate (66.4%) berkorelasi dengan kualitas mask. Class imbalance (1:4.8) turunkan performa Organik. Confusion matrix: Organik recall ~72%, Non-Organik recall ~82%. Failure cases: transparan, kecil, tumpuk, latar kompleks, cahaya rendah.
-
-> **Visualization:** `waste_datasource/visualization/pseudo_mask/` - contoh failure case di subfolder edge_failures.
+> 
+> | Faktor | Dampak ke AP | Detail |
+> |--------|-------------|--------|
+> | Edge rate | Langsung | Subkategori edge >80% = 62.3% AP; <60% = 48.1% AP |
+> | Class imbalance | -6.4% box | Organik 77.2% vs Non-Organik 83.6% (1:4.8 data) |
+> | Pseudo-label noise | -30% box-mask | Box 80.4% vs Mask 49.7% gap ~31% |
+> 
+> | Failure Case | Penyebab | Dampak |
+> |-------------|----------|--------|
+> | Objek transparan | Edge detection gagal | Fallback -> mask tidak presisi |
+> | Objek kecil | Area < 20% | Fallback geometric |
+> | Bentuk amorf | Organik basah/remuk | Mask mAP 38.2% |
+> 
+> ```mermaid
+> flowchart LR
+>     subgraph F[Failure Cases]
+>         T["Objek Transparan<br />(botol bening)"] --> E["Edge Detection Fail"]
+>         K["Objek Kecil<br />(puntung rokok)"] --> FK["Fallback Geometris"]
+>         A["Bentuk Amorf<br />(sisa makanan)"] --> M["Mask mAP Rendah"]
+>         L["Latar Kompleks<br />(rumput/tanah)"] --> O["Otsu Threshold Noise"]
+>     end
+> ```
 
 ---
 
@@ -656,25 +850,57 @@ Routes CMS: `/raw/dataset`, `/raw/preparation`, `/raw/training`, `/raw/deploymen
 - Router: `main.py:67-73`
 
 > **Key Takeaway:**
-> 5 capaian: (1) Integrasi 3.973 gambar. (2) Pseudo-mask 66.4% edge. (3) Box mAP 80.4%, Mask mAP 49.7%. (4) Non-Organik unggul. (5) Gap Box-Mask ~31%. Aplikasi web CMS siap pakai untuk deteksi real-time.
-
-> **Visualization:** `waste_datasource/visualization/` (54 folders) - seluruh pipeline tervisualisasi.
+> 
+> | Capaian | Detail |
+> |---------|--------|
+> | Dataset | 3.973 gambar (TACO + Waste Class) -> 2 kelas |
+> | Pseudo-mask | 66.4% edge detection, 12 langkah pipeline |
+> | Box mAP | 80.4% - deteksi bounding box akurat |
+> | Mask mAP | 49.7% - segmentasi terbatas pseudo-label |
+> | Inference | 5.3 ms/gambar, 54.5 MB model |
+> | App | CMS 4 route, FastAPI + Nuxt.js 3 |
+> 
+> ```mermaid
+> flowchart TD
+>     subgraph P[Pipeline End-to-End]
+>         D["Dataset 3.973"] --> M["Pseudo-Mask 66.4%"]
+>         M --> S["Stratified Split 70/15/15"]
+>         S --> T["Training YOLOv26m-seg 80 epoch"]
+>         T --> E["Evaluasi: Box 80.4%, Mask 49.7%"]
+>         E --> A["App CMS: FastAPI + Nuxt.js"]
+>     end
+> ```
 
 ---
 
 > **Referensi Visualisasi Lengkap:**
-> Semua diagram untuk presentasi ini di `waste_datasource/visualization/`:
-> - 16 folder pseudo-mask (setiap langkah dari 12)
-> - 4 folder stratified split
-> - 13 folder augmentation
-> - 7 folder backbone
-> - 7 folder backend API
-> - 7 folder frontend UI
->
+> 
+> | Proses | Folder | Jumlah |
+> |--------|--------|--------|
+> | Pseudo-Mask | `pseudo_mask/` | 16 folders |
+> | Stratified Split | `stratified_split/` | 4 folders |
+> | Augmentation | `augmentation/` | 13 folders |
+> | Backbone | `backbone/` | 7 folders |
+> | Backend API | `backend/` | 7 folders |
+> | Frontend UI | `frontend/` | 7 folders |
+> | **Total** | **54 folders** | |
+> 
+> ```mermaid
+> flowchart LR
+>     subgraph VIZ["waste_datasource/visualization/"]
+>         PM["pseudo_mask 16"] --> SS["stratified_split 4"]
+>         SS --> AU["augmentation 13"]
+>         AU --> BB["backbone 7"]
+>         BB --> BE["backend 7"]
+>         BE --> FE["frontend 7"]
+>     end
+>     G["generate_visualizations.py"] --> VIZ
+> ```
+> 
 > **Jalankan regenerasi:**
 > ```bash
 > python backend/app/scripts/generate_visualizations.py
 > ```
->
+> 
 > **Cross-reference dengan kode:**
 > Setiap visualisasi bisa dilacak ke kode sumber. Detail file path dan function name di setiap slide.
