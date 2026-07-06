@@ -9,38 +9,24 @@
 ## Slide 1: Judul
 **Deteksi dan Klasifikasi Sampah Menggunakan YOLOv26m-seg untuk Instance Segmentation (2 Kelas: Organik/Non-Organik)**
 
-### Narasi
+### Detail Pipeline
 
-"Selamat pagi/siang, teman-teman. Hari ini kita bahas SmartBin - sistem deteksi dan klasifikasi sampah otomatis pakai AI. Bayangkan tempat sampah pintar yang langsung tahu: 'Oh ini organik, buang ke komposter!' atau 'Ini botol plastik, masuk daur ulang!'. Itulah yang kita bangun."
+Pipeline end-to-end mencakup 5 tahap utama: preprocessing data, arsitektur CNN, training, evaluasi, dan inference.
 
-**Pipeline End-to-End (baca dari kiri ke kanan):**
+**1. Dataset & Preprocessing (Data Science):**
+Dua sumber data: TACO Dataset (1.500 gambar, 60 kategori, anotasi COCO polygon) dan Waste Classification Dataset (2.939 gambar, 18 subfolder). Mapping 60+ kategori ke 2 kelas (Organik/Non-Organik) via `ORGANIC_CATEGORIES` config dan `ORGANIC_SUBS` mapping. Total: 3.973 gambar (684 Organik + 3.289 Non-Organik). Pseudo-polygon mask dihasilkan melalui 12 langkah CV pipeline: RGB -> Grayscale -> Gaussian Blur 5x5 -> Otsu Threshold -> Mean Check -> Morphological Close -> Find Contours -> Area Check (>=20%) -> ApproxPolyDP (epsilon=0.01*arcLength) -> Normalize [0,1] -> YOLO-seg Label. Edge detection Otsu berhasil 66.4%, fallback geometris 33.6% (60% ellipse, 40% rounded rect). Stratified split 70/15/15 mempertahankan proporsi kelas: Train 2.765, Val 593, Test 593. Online augmentation: Mosaic (1.0), Mixup (0.5), HSV Jitter, Geometric (rotate/scale/shear), Flip LR (0.5).
 
-"Mari jelajahi peta perjalanan kita dari kiri ke kanan."
+**2. Arsitektur YOLOv26m-seg (Deep Learning):**
+Input 640x640x3. Backbone CSPDarknet: Stem Conv k7 s2 (320x320 C=64) -> 4 CSP Stage (160x160 C=128, 80x80 C=256, 40x40 C=512, 20x20 C=512) -> SPP Layer (MaxPool k=5,9,13). CSPNet membagi feature map 2 jalur, hemat ~20% FLOPs. Neck FPN+PAN: FPN top-down bawa semantik P5->P4->P3, PAN bottom-up bawa detail P3->P4->P5. Decoupled Head: Classification (2x Conv3x3 + Linear, 2 kelas + objectness), Regression (DFL 16-bin distribusi, x/y/w/h bbox), Segmentation (Proto Module 32 mask, 24-point polygon). Anchor-free, 8.400 grid cells.
 
-**Dataset (3.973 Gambar):**
-"Dua sumber data utama: TACO dari Microsoft (1.500 gambar, 60 kategori dengan anotasi COCO) dan Waste Classification dari Kaggle (2.939 gambar, 18 subfolder). Dulu 60 kategori spesifik, kita sederhanakan jadi 2 kelas besar: Organik dan Non-Organik."
+**3. Training (Machine Learning):**
+Total Loss = 7.5*CIoU + 0.5*BCE + 1.5*DFL. CIoU: regresi bbox (IoU + center distance + aspect ratio). BCE: klasifikasi 2 kelas. DFL: distribusi posisi boundary. Optimizer SGD/MuSGD hybrid, LR=0.001 cosine decay, momentum=0.937, weight decay=0.0005. 80 epochs, batch=16, FP16 mixed precision, early stop patience=40. Warmup 5 epochs. Training ~2.5 jam pada RTX 5060 Ti 16GB.
 
-"Anggap kita punya lemari file raksasa dengan 60 laci. Kita ambil semua isi laci, kelompokkan ulang ke 2 kotak besar: Organik dan Non-Organik."
+**4. Evaluasi:**
+Box mAP@0.5: 80.4%, Box mAP@0.5:0.95: 52.5%, Precision: 76.7%, Recall: 75.6%, F1: 76.1%. Mask mAP@0.5: 49.7%, Mask mAP@0.5:0.95: 23.1%. Per-class: Organik Box 77.2% / Mask 38.2%, Non-Organik Box 83.6% / Mask 61.2%. Gap Box-Mask ~31% akibat pseudo-label noise.
 
-Hasil merge: 684 Organik + 3.289 Non-Organik = 3.973 gambar.
-
-**Pseudo-Polygon Mask Generation:**
-"Ini bagian paling kreatif. Dataset hanya foto biasa tanpa mask. Solusi: buat pseudo-mask otomatis! 12 langkah: RGB ke Grayscale, Blur, Otsu threshold, Morphology, Kontur, Polygon."
-
-Edge detection Otsu berhasil 66.4%. Fallback geometris 33.6% (60% elips, 40% rounded rect).
-
-"Seperti menggambar bentuk daun dengan 24 titik penghubung."
-
-**Stratified Split:**
-Train 2.765, Val 593, Test 593. Stratified = proporsi Organik/Non-Organik sama di setiap split.
-
-**Training YOLOv26m-seg:**
-80 Epoch, patience 40, batch 16, FP16 mixed precision. Backbone CSPDarknet, Neck FPN+PAN, Decoupled Head.
-
-**Evaluasi:**
-Box mAP@0.5 = 80.4%, Mask mAP@0.5 = 49.7%. Organik Box mAP = 77.2%, Non-Organik Box mAP = 83.6%.
-
-**Inference:** 5.3 ms/gambar. Training: ~2.5 jam di RTX 5060 Ti 16GB.
+**5. Inference:**
+Input image -> resize 640x640 -> CNN forward pass (5.3 ms pada GPU) -> decode output (class, confidence, bbox, polygon mask) -> NMS threshold 0.25 -> recycling advice. Model size: 54.5 MB. Deployment: FastAPI :8000 + Nuxt.js 3 :3000, 4 halaman CMS pipeline.
 
 > **Key Takeaway:**
 > 
