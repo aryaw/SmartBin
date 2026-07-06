@@ -38,14 +38,6 @@ Box mAP@0.5 = 80.4%, Mask mAP@0.5 = 49.7%. Organik Box mAP = 77.2%, Non-Organik 
 
 **Inference:** 5.3 ms/gambar. Training: ~2.5 jam di RTX 5060 Ti 16GB.
 
-### Code References
-- `kaggle_service.py:289-420` - `prepare_from_local()`, pipeline data utama
-- `kaggle_service.py:100-106` - `_generate_mask()`, dispatch edge vs fallback
-- `kaggle_service.py:25-57` - `_generate_edge_polygon()`, edge detection Otsu
-- `kaggle_service.py:60-74` - `_generate_ellipse_polygon()`, fallback elips
-- `config.py:41` - `ORGANIC_CATEGORIES = {25}`
-- `cli/train.py:30-68` - `train_one()`, konfigurasi training
-
 > **Key Takeaway:**
 > 
 > | Tahap | Metrik | Detail |
@@ -166,12 +158,6 @@ Pemerintah Bali tetapkan 3 kategori: Organik (kompos), Anorganik (daur ulang), R
 **Transfer Learning:**
 "Kita tidak latih model dari nol. YOLOv26m-seg sudah dilatih di COCO (200 ribu+ gambar, 80 kelas). Kita ambil model yang sudah pintar, terus kita 'spesialisasikan' ke sampah. Seperti ambil anak SD dan kursusin jadi ahli sampah dalam 80 epoch."
 
-### Code References
-- `config.py:41` - `ORGANIC_CATEGORIES = {25}`
-- `config.py:43` - `is_organic()` function
-- `kaggle_service.py:267` - `ORGANIC_SUBS` untuk hierarchical structure
-- `cli/train.py:18` - `YOLO(pretrained)` - load pretrained model
-
 > **Key Takeaway:**
 > 
 > | Aspek | Fakta |
@@ -232,13 +218,6 @@ TACO jadi referensi format dan validasi pipeline. Kontribusi: 684 gambar Organik
 | **Total** | **3,973** | **684** | **3,289** | **17.2%** |
 
 "Kenapa Stratified? Supaya evaluasi ADIL. Kalau random split, val mungkin kebetulan 30% Organik, test 10% Organik - metrik jadi tidak fair."
-
-### Code References
-- `kaggle_service.py:289-420` - `prepare_from_local()` pipeline utama
-- `kaggle_service.py:261-286` - `_collect_hierarchical()` baca struktur subfolder
-- `kaggle_service.py:235-258` - `_collect_flat()` baca struktur flat
-- `kaggle_service.py:346-351` - stratified split dengan `train_test_split(stratify=cls_ids)`
-- `kaggle_service.py:18` - `SEED = 42` untuk reproducibility
 
 > **Key Takeaway:**
 > 
@@ -330,13 +309,6 @@ TACO jadi referensi format dan validasi pipeline. Kontribusi: 684 gambar Organik
 Contoh: `0 0.25 0.30 0.45 0.35 0.30 0.50`
 Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
-### Code References
-- `_generate_mask()`: `kaggle_service.py:100-106` - dispatch logic
-- `_generate_edge_polygon()`: `kaggle_service.py:25-57` - edge detection Otsu
-- `_generate_ellipse_polygon()`: `kaggle_service.py:60-74` - fallback elips
-- `_generate_rounded_rect_polygon()`: `kaggle_service.py:77-97` - fallback persegi panjang
-- Label write: `kaggle_service.py:386-387`
-
 > **Key Takeaway:**
 > 
 > | Metode | Success Rate | Akurasi | Titik Polygon | Cocok untuk |
@@ -358,7 +330,7 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 >     FC --> A{Area >= 20%?}
 >     A -->|Yes 66.4%| AP[ApproxPolyDP 24 titik]
 >     A -->|No 33.6%| FB[Fallback: 60% Ellipse / 40% Rounded Rect]
->     AP --> N[Normalize ke [0,1]]
+>     AP --> N["Normalize ke [0,1]"]
 >     FB --> N
 >     N --> Y[YOLO-seg Label]
 > ```
@@ -398,11 +370,6 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
 **Mosaic & Close Mosaic:**
 "Mosaic selalu ON. Tapi di 80 epoch, kita matikan mosaic di epoch ~27 (`close_mosaic = epochs // 3`). Kenapa? Mosaic bagus awal training (belajar deteksi di konteks padat), tapi akhir training mengganggu (objek terpotong batas 4 foto)."
-
-### Code References
-- `cli/train.py:30-68` - `train_one()` dengan semua parameter augmentasi
-- `cli/train.py:42` - `close_mosaic = epochs // int(os.getenv("CLOSE_MOSAIC_DIV", "3"))`
-- `cli/train.py:54-55` - `mixup`, `copy_paste` dari environment variable
 
 > **Key Takeaway:**
 > 
@@ -460,10 +427,6 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 "Spatial Pyramid Pooling dengan 3 kernel: 5, 9, 13. Seperti melihat objek dengan 3 kaca pembesar berbeda secara bersamaan. Detail kecil (puntung rokok 20x10 pixel) dan besar (kardus 500x300 pixel) tertangkap semua."
 
 "Input 20x20x512 -> MaxPool k=5, k=9, k=13 paralel -> Concat -> Conv 1x1 reduksi ke 512."
-
-### Code References
-- Model loading: `detector.py:36-47` `load_model()` - `YOLO(str(MODEL_PATH))`
-- Training config: `cli/train.py:30-68` - parameter arsitektur
 
 > **Key Takeaway:**
 > 
@@ -533,11 +496,6 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 "Uniknya, DFL memprediksi DISTRIBUSI probabilitas posisi, bukan nilai tunggal. Model bilang: 'tepi kiri kemungkinan di pixel 100-120', bukan 'tepi kiri di pixel 105'. Lebih akurat untuk boundary tidak jelas."
 
 "16 bin distribusi per sisi. Nilai akhir = weighted sum distribusi."
-
-### Code References
-- `detector.py:36-47` - `load_model()` memuat model dan arsitektur
-- `cli/train.py:30-68` - training dengan decoupled head
-- `kaggle_service.py:100-106` - mask generation (input untuk segmentation branch)
 
 > **Key Takeaway:**
 > 
@@ -622,11 +580,6 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 - **Inference**: 5.3 ms/gambar (~188 FPS)
 - **Model size**: 54.5 MB
 
-### Code References
-- `cli/train.py:30-68` - `train_one()` fungsi training dengan semua hyperparameter
-- `cli/train.py:70-73` - `model.val()`, pengambilan metrik
-- `kaggle_cms.py:88-101` - pipeline training full dengan grid search support
-
 > **Key Takeaway:**
 > 
 > | Loss | Bobot | Fungsi |
@@ -694,11 +647,6 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 - mAP naik konsisten, tidak overfitting
 - Gap train-val mAP < 5% - model generalisasi baik
 
-### Code References
-- `cli/train.py:70-95` - `model.val()`, `results_dict`, per-class AP
-- Training curves: `runs/segment/full_pipeline/results.png`
-- `kaggle_cms.py:303-319` - endpoint `GET /api/kaggle/results`
-
 > **Key Takeaway:**
 > 
 > | Metrik | Box | Mask |
@@ -761,11 +709,6 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 3. **Tumpukan sampah** - beberapa objek berdekatan, edge detection sulit pisahkan
 4. **Latar kompleks** - sampah di rumput/tanah, deteksi tepi campur dengan tekstur latar
 5. **Cahaya rendah** - gambar gelap, kontras rendah, Otsu threshold tidak optimal
-
-### Code References
-- Edge stats: `kaggle_service.py:378-383`
-- Per-class metrics: `cli/train.py:70-95` output
-- Model validation: `detector.py:50-56` `_validate_model()`
 
 > **Key Takeaway:**
 > 
@@ -837,15 +780,6 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 Routes CMS: `/raw/dataset`, `/raw/preparation`, `/raw/training`, `/raw/deployment`. Satu klik pipeline di `POST /api/kaggle/pipeline/run-full`.
 
 **Tech Stack:** FastAPI :8000, Nuxt.js 3 :3000, PostgreSQL untuk log. Docker siap deploy.
-
-### Code References
-- Pipeline: `kaggle_service.py:289-420`
-- Training: `cli/train.py:30-68`
-- Deployment: `detector.py:58-61` `reload_model()`
-- CMS: `kaggle_cms.py`
-- Detect endpoint: `detect.py:16-17` `POST /api/detect`
-- Schema: `schemas/detection.py:18-26` `DetectResponse`
-- Router: `main.py:67-73`
 
 > **Key Takeaway:**
 > 

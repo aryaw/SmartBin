@@ -28,8 +28,8 @@ flowchart TD
     end
 
     subgraph APP[Aplikasi Web]
-        D1[FastAPI :8000 + Nuxt.js 3 :3000] --> D2[/raw/dataset<br />/raw/preparation]
-        D2 --> D3[/raw/training<br />/raw/deployment]
+        D1["FastAPI :8000 + Nuxt.js 3 :3000"] --> D2["/raw/dataset<br />/raw/preparation"]
+        D2 --> D3["/raw/training<br />/raw/deployment"]
     end
 
     SRC --> PP --> TR --> APP
