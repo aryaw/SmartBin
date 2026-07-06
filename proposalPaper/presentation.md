@@ -7,32 +7,65 @@
 flowchart TD
     classDef default fill:none,stroke:#333,stroke-width:1
 
-    subgraph SRC[Dataset: 3.973 Gambar]
-        A1[TACO Dataset<br />1.500 gambar · 60 kategori<br />Anotasi polygon COCO] --> A3[Merge & Class Mapping<br />Deduplikasi + Filter]
-        A2[Waste Classification<br />2.939 gambar · 18 subkategori<br />Tanpa anotasi segmentasi] --> A3
-        A3 --> A4[Hasil Merger<br />Organik: 684 · Non-Organik: 3.289<br />Total: 3.973]
+    subgraph DS[Data Science - Preprocessing Pipeline]
+        D1["TACO: 1.500 gambar, 60 cats"] --> MG["Merge & Class Mapping<br />60 -> 2 kelas"]
+        D2["Waste Class: 2.939 gambar, 18 subs"] --> MG
+        MG --> PM["Pseudo-Mask Generation<br />12 langkah CV pipeline"]
+        PM --> ED["Edge Detection Otsu 66.4%<br />ApproxPolyDP + Normalize"]
+        PM --> FB["Fallback Geometris 33.6%<br />60% Ellipse, 40% Rounded Rect"]
+        ED --> SP["Stratified Split 70/15/15<br />Train: 2.765, Val: 593, Test: 593"]
+        FB --> SP
+        SP --> AUG["Online Augmentation<br />Mosaic, Mixup, Copy-Paste, HSV, Flip"]
     end
 
-    subgraph PP[Preprocessing Pipeline]
-        B1[Pseudo-Polygon Mask<br />12 Langkah · 4 Kelompok] --> B2[Edge Detection: 66,4%<br />Fallback: 33,6%]
-        B2 --> B3[Fallback Detail<br />60% Ellipse · 40% Rounded Rect]
-        B3 --> B4[Stratified Split 70/15/15<br />Train: 2.765 Val: 593 Test: 593]
+    subgraph CNN[Deep Learning - CNN Architecture]
+        IN["Input 640x640x3"] --> STEM["Stem Conv k7 s2<br />320x320 C=64"]
+        STEM --> S1["CSP Stage 1<br />160x160 C=128<br />Tepi & Kontur"]
+        S1 --> S2["CSP Stage 2<br />80x80 C=256<br />Bentuk Geometrik"]
+        S2 --> S3["CSP Stage 3<br />40x40 C=512<br />Tekstur & Pola"]
+        S3 --> S4["CSP Stage 4<br />20x20 C=512<br />Semantik & Konteks"]
+        S4 --> SPP["SPP Layer<br />MaxPool k=5,9,13<br />Multi-Scale Context"]
+        SPP --> FPN["FPN Top-Down<br />P5->P4->P3<br />Semantik ke Detail"]
+        FPN --> PAN["PAN Bottom-Up<br />P3->P4->P5<br />Detail ke Semantik"]
+        PAN --> HEAD["Decoupled Head<br />3 Branch Parallel"]
+        HEAD --> CLS["Classification<br />2x Conv3x3 + Linear<br />2 kelas + objectness"]
+        HEAD --> REG["Regression DFL<br />16-bin distribusi<br />x, y, w, h bbox"]
+        HEAD --> SEG["Segmentation<br />Proto Module 32 mask<br />24-point polygon"]
     end
 
-    subgraph TR[Training YOLOv26m-seg]
-        C1[80 Epochs · Batch 16<br />imgsz 640 · FP16 · Patience 40] --> C2[Box mAP@0.5: 80,4%<br />Box mAP@0.5:0.95: 52,5%]
-        C2 --> C3[Mask mAP@0.5: 49,7%<br />Mask mAP@0.5:0.95: 23,1%]
-        C3 --> C4[Organik Box: 77,2% · Non-Org: 83,6%<br />Organik Mask: 38,2% · Non-Org: 61,2%]
-        C4 --> C5[Precision: 76,7% · Recall: 75,6% · F1: 76,1%]
-        C5 --> C6[Training: ~2,5 jam · RTX 5060 Ti 16GB<br />Inference: 5,3 ms/gambar]
+    subgraph ML[Machine Learning - Training & Loss]
+        L1["CIoU Loss: 7.5<br />IoU + Center Dist + Aspect Ratio"] --> TL["Total Loss<br />L = 7.5*CIoU + 0.5*BCE + 1.5*DFL"]
+        L2["BCE Loss: 0.5<br />Binary Cross-Entropy"] --> TL
+        L3["DFL Loss: 1.5<br />Distribution Focal Loss"] --> TL
+        TL --> BP["Backpropagation<br />Gradient Computation"]
+        BP --> OPT["SGD/MuSGD Optimizer<br />LR=0.001 Cosine Decay<br />Momentum=0.937, WD=0.0005"]
+        OPT --> EPOCH["80 Epochs Training<br />Batch=16, FP16 Mixed Precision<br />Early Stop Patience=40"]
+        EPOCH --> EVAL["Validation per Epoch<br />Box Loss, Cls Loss, DFL Loss"]
+        EVAL --> BEST["Best Model Selection<br />Berdasarkan mAP Val"]
     end
 
-    subgraph APP[Aplikasi Web]
-        D1["FastAPI :8000 + Nuxt.js 3 :3000"] --> D2["/raw/dataset<br />/raw/preparation"]
-        D2 --> D3["/raw/training<br />/raw/deployment"]
+    subgraph TEST[Model Evaluation - Metrics]
+        BM["Box mAP@0.5: 80.4%<br />mAP@0.5:0.95: 52.5%<br />Pres: 76.7%, Rec: 75.6%, F1: 76.1%"] --> PC["Per-Class Analysis"]
+        MM["Mask mAP@0.5: 49.7%<br />mAP@0.5:0.95: 23.1%<br />Pres: 59.2%, Rec: 52.3%"] --> PC
+        PC --> ORG["Organik: Box 77.2%<br />Mask 38.2%"]
+        PC --> NON["Non-Organik: Box 83.6%<br />Mask 61.2%"]
     end
 
-    SRC --> PP --> TR --> APP
+    subgraph INF[Inference Pipeline]
+        I1["Input Image<br />Upload via Web"] --> I2["Preprocess<br />Resize 640x640"]
+        I2 --> I3["CNN Forward Pass<br />5.3 ms pada GPU"]
+        I3 --> I4["Output Decode<br />Class + Confidence + BBox + Mask"]
+        I4 --> I5["Post-Process<br />NMS + Threshold 0.25"]
+        I5 --> I6["Recycling Advice<br />Organik -> Kompos<br />Non-Organik -> Anorganik/Residu"]
+    end
+
+    AUG --> STEM
+    CLS --> L2
+    REG --> L1
+    SEG --> L3
+    BEST --> BM
+    BEST --> MM
+    I6 --> APP["Aplikasi Web<br />FastAPI :8000 + Nuxt.js 3 :3000<br />4 Halaman CMS Pipeline"]
 ```
 
 ---
