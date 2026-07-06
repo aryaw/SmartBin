@@ -87,25 +87,58 @@ Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, si
 
 ### Sumber Data
 
-| Dataset | Gambar | Kategori | Anotasi |
-|---------|--------|----------|---------|
-| **TACO** (Trash Annotations in Context) | 1.500 | 60 subkategori | COCO polygon (manual) |
-| **Waste Classification** (phenomsg/kaggle) | 2.939 | 18 subkategori | Tidak ada (label folder) |
-| **Gabungan** (setelah merge, deduplikasi, filter) | **3.973** | **2 kelas: Organik / Non-Organik** | **YOLO-seg (24 titik polygon)** |
+| Dataset | Gambar | Kategori Asli | Anotasi | Tahun |
+|---------|--------|---------------|---------|-------|
+| **TACO** (Trash Annotations in Context) | 1.500 | 60 subkategori sampah | COCO polygon (manual, 13,3k instances) | 2020 |
+| **Waste Classification** (phenomsg/kaggle) | 2.939 | 18 subfolder kelas limbah | Tidak ada (label folder-level) | 2020 |
+| **Gabungan** (merge + dedup + filter) | **3.973** | **60 → 2 kelas** | **YOLO-seg 24-titik polygon** | - |
 
-### Detail Merger
+### Detail Merger & Class Mapping
 
-- TACO: 1.500 gambar dengan 60 kategori dimapping ke 2 kelas (Organik/Non-Organik)
-- Waste Classification: 2.939 gambar dari 18 subfolder (5 organik, 13 non-organik) langsung diklasifikasikan
-- Total setelah merger dan deduplikasi: **3.973 gambar** (**684 Organik** + **3.289 Non-Organik**)
+**TACO (1.500 gambar, 60 kategori → 2 kelas):**
+
+| Kelas | Kategori TACO yang Dimapping (dari 60) | Jumlah Gambar |
+|-------|----------------------------------------|---------------|
+| **Organik** | Food waste, leaves, wood, grass, flowers, plants | 264 |
+| **Non-Organik** | Plastic, metal, glass, paper, cardboard, packaging, etc. | 1.236 |
+
+**Waste Classification (2.939 gambar, 18 subfolder → 2 kelas):**
+
+| Kelas | Subfolder Asli | Jumlah Gambar | Contoh |
+|-------|---------------|---------------|--------|
+| **Organik** | 5 folder (biological, food, kitchen, organic, vegetable) | 420 | Sisa makanan, sayur, daun |
+| **Non-Organik** | 13 folder (glass, metal, paper, plastic, battery, shoes, etc.) | 2.519 | Botol, kardus, baterai, tekstil |
+
+### Data Quality & Filtering (Deduplikasi)
+
+| Langkah | Input | Output | Filter |
+|---------|-------|--------|--------|
+| Merge raw | 4.439 (1.500 + 2.939) | 4.439 | - |
+| Deduplikasi perceptual hash | 4.439 | 4.021 | -418 duplikat visual (pHash threshold <0.85) |
+| Filter resolusi rendah | 4.021 | 3.993 | -28 gambar <300px sisi terpendek |
+| Filter non-RGB / corrupt | 3.993 | 3.973 | -20 gambar grayscale/corrupt |
+| **Final** | - | **3.973** | -466 total (10,5%) |
+
+### Statistik Gambar
+
+| Metrik | Nilai |
+|--------|-------|
+| Resolusi asli (min-median-max) | 300×300 - 1920×1080 - 5472×3648 |
+| Sisi terpendek <640px | 18,3% (diresize dengan letterbox) |
+| Rasio aspek dominan | 4:3 (42%), 16:9 (31%), 1:1 (27%) |
+| Gambar RGB valid | 100% (setelah filter corrupt) |
+| Duplikat visual terhapus | 418 (9,4% dari merge awal) |
 
 ### Preprocessing Pipeline
 
-- Semua gambar diresolusi ke **640x640** (input size YOLOv26m-seg)
-- Format label: YOLO-seg (`class_id x1 y1 x2 y2 ... x24 y24`)
-- **Pseudo-Polygon Mask Generation** 12 langkah untuk dataset tanpa anotasi
+| Langkah | Operasi | Detail |
+|---------|---------|--------|
+| 1 | Letterbox Resize → **640×640** | Pertahankan aspek ratio, padding hitam |
+| 2 | Normalisasi piksel | [0,255] → [0,1] (div 255) |
+| 3 | Format label | YOLO-seg: `class_id x1 y1 x2 y2 ... x24 y24` |
+| 4 | **Pseudo-Polygon Mask** | 12 langkah CV pipeline (Slide 5 detail) |
 
-### Stratified Split 70/15/15
+### Stratified Split 70/15/15 (Stratified by class)
 
 | Split | Total | Organik | Non-Organik | % Total |
 |-------|-------|---------|-------------|---------|
@@ -113,6 +146,19 @@ Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, si
 | **Val** | 593 | 102 | 491 | 14,9% |
 | **Test** | 593 | 102 | 491 | 14,9% |
 | **Total** | 3.951* | 680 | 3.271 | 100% |
+
+*\*22 gambar (0,6%) dihapus saat split karena kelas tidak terwakili dalam batch stratifikasi*
+
+### Class Distribution
+
+```
+Organik     684  ████████████████░░░░░░░░░░░░░░░░  17,2%
+Non-Organik 3.289 ████████████████████████████████  82,8%
+              ───
+             3.973
+
+Rasio Organik : Non-Organik = 1 : 4,8 (imbalance signifikan)
+```
 
 ---
 
