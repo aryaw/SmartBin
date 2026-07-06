@@ -76,24 +76,24 @@ Input image -> resize 640x640 -> CNN forward pass (5.3 ms pada GPU) -> decode ou
 
 ## Slide 2: Outline Presentasi
 
-### Narasi
+### Outline Materi
 
-"Kita akan lewati 12 slide dalam presentasi ini. Bayangkan naik gunung:"
+Presentasi terdiri dari 12 slide yang mencakup seluruh pipeline penelitian secara sistematis:
 
-| Slide | Judul | Analogi |
+| Slide | Judul | Cakupan |
 |-------|-------|---------|
-| 1 | Judul & Pipeline | Peta perjalanan |
-| 2 | Outline | Daftar pos pendakian |
-| 3 | Latar Belakang | Kenapa kita di sini? |
-| 4 | Dataset & Preprocessing | Bekal dan perlengkapan |
-| 5 | Pseudo-Polygon Mask Generation | Membuat peta dari nol |
-| 6 | Online Augmentation | Latihan di berbagai medan |
-| 7 | Backbone: CSPDarknet | Mata pendaki |
-| 8 | Neck: FPN+PAN & Decoupled Head | Otak analisis |
-| 9 | Loss Functions & Training | Kompas dan aturan main |
-| 10 | Hasil Pelatihan | Puncak gunung |
-| 11 | Pembahasan | Evaluasi perjalanan |
-| 12 | Kesimpulan & Saran | Pulang dengan ilmu baru |
+| 1 | Judul & Pipeline | Gambaran umum end-to-end |
+| 2 | Outline | Struktur presentasi |
+| 3 | Latar Belakang | Motivasi dan rumusan masalah |
+| 4 | Dataset & Preprocessing | Sumber data dan persiapan |
+| 5 | Pseudo-Polygon Mask Generation | Pembuatan mask otomatis |
+| 6 | Online Augmentation | Teknik augmentasi data |
+| 7 | Backbone: CSPDarknet | Arsitektur ekstraksi fitur |
+| 8 | Neck: FPN+PAN & Decoupled Head | Fusi fitur dan prediksi |
+| 9 | Loss Functions & Training | Fungsi loss dan konfigurasi training |
+| 10 | Hasil Pelatihan | Metrik dan evaluasi |
+| 11 | Pembahasan | Analisis dan interpretasi |
+| 12 | Kesimpulan & Saran | Ringkasan dan rekomendasi |
 
 ### Waktu Presentasi
 - Total: 20-25 menit
@@ -137,26 +137,21 @@ Input image -> resize 640x640 -> CNN forward pass (5.3 ms pada GPU) -> decode ou
 
 ## Slide 3: Latar Belakang - Krisis Sampah Bali, Pergub, Deep Learning
 
-### Narasi
-
-"Teman-teman, mari mulai dengan masalah nyata."
+### Latar Belakang dan Motivasi
 
 **Krisis Sampah di Bali:**
-"Bali menghasilkan ~1.340 ton sampah SETIAP HARI. Coba bayangkan: 1 ton = berat 10 orang. 1.340 ton = berat 13.400 orang dewasa! Setiap hari!"
+Bali menghasilkan ~1.340 ton sampah per hari (sumber: DLHK Bali). Sektor pariwisata menyumbang 60% dari total sampah dengan kontribusi ~3.5 kg sampah per turis per hari. Komposisi sampah terdiri dari 60% organik, 30% plastik, dan 10% lainnya (logam, kaca, kertas).
 
-60% dari pariwisata. Setiap turis ~3.5 kg sampah/hari. Komposisi: 60% organik, 30% plastik, 10% lainnya.
+**Permasalahan Pemilahan Manual:**
+Pemilahan sampah secara manual memiliki beberapa kelemahan signifikan: kecepatan terbatas (2-5 detik per objek), konsistensi menurun setelah 1 jam kerja, tingkat kesalahan ~10-15%, serta risiko keselamatan pekerja (tertusuk jarum, terpapar bahan kimia).
 
-**Masalah Utama: Pemilahan Manual**
-"Petugas harus pilah manual - lambat, tidak efisien, berbahaya (jarum, bahan kimia). Salah pilah bikin daur ulang kacau."
+**Regulasi:**
+Pergub Bali No.47/2019 menetapkan 3 kategori sampah: Organik (kompos), Anorganik (daur ulang), dan Residu (TPA). Implementasi di lapangan masih mengandalkan pemilahan manual.
 
-**Pergub No.47/2019:**
-Pemerintah Bali tetapkan 3 kategori: Organik (kompos), Anorganik (daur ulang), Residu (TPA). Tapi implementasi masih manual.
-
-**Solusi: AI Deep Learning**
-"Komputer bisa 'melihat' sampah dan klasifikasi real-time. Kita gunakan computer vision."
+**Pendekatan:**
+Sistem otomatis berbasis deep learning computer vision untuk deteksi dan klasifikasi sampah secara real-time menggunakan instance segmentation.
 
 **3 Level Computer Vision:**
-"Ada 3 level CV:"
 
 1. **Klasifikasi** - "Ini organik." Cuma label. Tidak tahu di mana objeknya.
 2. **Deteksi / Bounding Box** - "Ini organik di kotak ini." Lokasi perkiraan, tapi tidak presisi untuk bentuk tidak beraturan.
@@ -196,25 +191,21 @@ Pemerintah Bali tetapkan 3 kategori: Organik (kompos), Anorganik (daur ulang), R
 
 ## Slide 4: Dataset & Preprocessing - TACO + Waste Classification, Merged 3.973 Gambar
 
-### Narasi
+### Dataset yang Digunakan
 
-"Model AI butuh data - semakin banyak dan beragam, semakin pintar. Kita pakai 2 sumber."
+Penelitian menggunakan dua sumber dataset yang dikombinasikan:
 
 **Sumber 1: TACO Dataset (1.500 gambar)**
-"TACO = Trash Annotations in Context. 1.500 gambar sampah di lingkungan alami (pantai, hutan, jalan). 60 kategori, anotasi COCO polygon - kualitas tinggi."
-
-TACO jadi referensi format dan validasi pipeline. Kontribusi: 684 gambar Organik + 816 Non-Organik ke dataset final.
+TACO (Trash Annotations in Context) merupakan dataset publik berisi 1.500 gambar sampah dengan anotasi COCO format (segmentation polygon + bounding box) mencakup 60 kategori sampah. Dataset ini digunakan sebagai referensi format label dan validasi pipeline konversi. Kontribusi ke dataset final: 684 gambar kelas Organik dan 816 gambar Non-Organik.
 
 **Sumber 2: Waste Classification Dataset (2.939 gambar)**
-"Dari Kaggle: phenomsg/waste-classification. 2.939 gambar dalam 18 subfolder. Format klasifikasi - setiap folder = 1 kategori."
+Dataset dari platform Kaggle (phenomsg/waste-classification) berisi 2.939 gambar dalam 18 subfolder. Setiap subfolder merepresentasikan satu kategori sampah tanpa anotasi segmentasi.
 
-**Organik (5 subfolder, ~674 dari Waste Class + sisanya dari TACO):**
-- coffee_tea_bags, egg_shells, food_scraps, kitchen_waste, yard_trimmings
+**Kelas Organik (5 subfolder):** coffee_tea_bags, egg_shells, food_scraps, kitchen_waste, yard_trimmings
 
-**Non-Organik (13 subfolder, ~2.265 dari Waste Class + sisanya dari TACO):**
-- e-waste, cans, glass, paper, plastic, batteries, paints, pesticides, ceramic, diapers, plastic_bags, sanitary, styrofoam
+**Kelas Non-Organik (13 subfolder):** e-waste, cans_all_type, glass_containers, paper_products, plastic_bottles, batteries, paints, pesticides, ceramic_product, diapers, plastics_bags_wrappers, sanitary_napkin, stroform_product
 
-"Total: 1.500 + 2.939 = 3.973 gambar. Organik 684 (17.2%), Non-Organik 3.289 (82.8%)."
+**Total dataset setelah merging:** 3.973 gambar dengan komposisi 684 Organik (17.2%) dan 3.289 Non-Organik (82.8%).
 
 **Merge Pipeline:**
 Pipeline merge membaca semua gambar, deteksi struktur folder (flat atau hierarchical), mapping setiap file ke bin_id (0=Organik, 1=Non-Organik), salin ke folder tujuan.
@@ -255,15 +246,15 @@ Pipeline merge membaca semua gambar, deteksi struktur folder (flat atau hierarch
 
 ## Slide 5: Pseudo-Polygon Mask Generation - Edge Detection 66.4%, Fallback 33.6%
 
-### Narasi
+### Pseudo-Mask Generation Pipeline
 
-"Tantangan: dataset tidak punya anotasi mask. YOLO-seg butuh mask polygon. Solusi: kita BUAT mask sendiri secara otomatis."
+Dataset yang digunakan merupakan dataset klasifikasi (tanpa label segmentasi). Untuk memenuhi kebutuhan input YOLO-seg, dilakukan pembangkitan polygon mask secara otomatis melalui pipeline computer vision.
 
-**Dua Jalur Utama:**
+**Dua Metode Utama:**
 
-**Jalur 1: Edge Detection Otsu (66.4% kasus)**
+**Metode 1: Edge Detection Otsu (66.4% kasus)**
 
-12 langkah presisi, dari RGB ke polygon normalisasi:
+Pipeline terdiri dari 12 langkah yang dikelompokkan dalam 4 tahap:
 
 **Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)**
 
@@ -351,13 +342,11 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
 ## Slide 6: Online Augmentation - Mosaic, Mixup, Copy-Paste, HSV, Geometric
 
-### Narasi
+### Online Augmentation
 
-"Model tidak boleh cuma hafal data training. Dia harus bisa GENERALISASI ke situasi baru. Augmentasi = memberi kacamata berbeda pada model setiap kali belajar."
+Augmentasi data bertujuan meningkatkan kemampuan generalisasi model dengan memperkenalkan variasi pada data training. Dengan dataset terbatas (3.973 gambar), augmentasi memungkinkan model melihat versi berbeda dari setiap gambar pada setiap epoch, sehingga mengurangi risiko overfitting.
 
-"Setiap epoch, model lihat versi BERBEDA dari gambar yang sama. Di epoch 1 dia lihat foto normal. Epoch 2: fotonya dimiringkan 25 derajat. Epoch 3: warnanya diubah. Epoch 4: digabung dengan foto lain. Model jadi tidak \'kaget\' ketika di lapangan ada miring, gelap, atau barang bertumpuk."
-
-**Hyperparameter Augmentasi:**
+**Konfigurasi Augmentasi:**
 
 | Augmentasi | Probabilitas | Parameter | Efek |
 |------------|-------------|-----------|------|
@@ -411,26 +400,22 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
 ## Slide 7: Backbone: CSPDarknet - 4 Stage, SPP Layer, Resolution Progression
 
-### Narasi
+### Backbone CSPDarknet
 
-"Backbone adalah 'mata' model. Tugasnya: dari gambar 640x640 pixel, ekstrak fitur bertahap."
+Backbone berfungsi mengekstraksi fitur dari gambar input 640x640 secara hierarkis. Setiap stage mereduksi resolusi spasial setengahnya (stride 2x) sambil menggandakan jumlah channel.
 
-"Bayangkan kita punya foto sampah 640x640. Backbone memproses dari detail kecil ke konsep besar:"
-
-| Stage | Input -> Output | Stride | Channel | Fungsi pada Deteksi Sampah |
-|-------|---------------|--------|---------|---------------------------|
-| Stem Conv | 640x640 -> 320x320 | 2x | ~64 | Ekstraksi awal: tepi botol vs latar |
-| Stage 1 CSP | 320x320 -> 160x160 | 4x | 128 | Deteksi sudut: lingkaran tutup botol, kotak kardus |
-| Stage 2 CSP | 160x160 -> 80x80 | 8x | 256 | Deteksi pola: bentuk kaleng melengkung, lipatan plastik |
-| Stage 3 CSP | 80x80 -> 40x40 | 16x | 512 | Deteksi tekstur: plastik mengkilap vs kertas buram |
-| Stage 4 CSP | 40x40 -> 20x20 | 32x | 512 | Pemahaman semantik: 'ini buatan pabrik' vs 'ini alami' |
-| SPP Layer | 20x20 -> 20x20 | 32x | 512 | Multi-scale context: pooling 5, 9, 13 |
-
-"Setiap stage, resolusi turun setengah (stride 2). Channel naik 2x lipat. Dari 640 pixel jadi 20 pixel - kehilangan detail lokasi, tapi dapat pemahaman 'apa' objeknya."
+| Stage | Input -> Output | Stride | Channel | Fungsi |
+|-------|---------------|--------|---------|--------|
+| Stem Conv | 640x640 -> 320x320 | 2x | ~64 | Ekstraksi fitur awal (tepi, gradien) |
+| Stage 1 CSP | 320x320 -> 160x160 | 4x | 128 | Deteksi sudut dan kontur dasar |
+| Stage 2 CSP | 160x160 -> 80x80 | 8x | 256 | Deteksi pola geometrik |
+| Stage 3 CSP | 80x80 -> 40x40 | 16x | 512 | Deteksi tekstur dan pola kompleks |
+| Stage 4 CSP | 40x40 -> 20x20 | 32x | 512 | Pemahaman semantik dan konteks |
+| SPP Layer | 20x20 -> 20x20 | 32x | 512 | Multi-scale context (pooling 5, 9, 13) |
 
 **CSP (Cross Stage Partial):**
-"Inovasi penting: setiap stage bagi feature map jadi 2 jalur."
-- **Jalur utama** -> diproses convolution batch (Conv -> BN -> SiLU)
+Setiap stage membagi feature map menjadi 2 jalur:
+- **Jalur utama** diproses melalui convolution batch (Conv -> BN -> SiLU)
 - **Jalur cabang** -> langsung concat ke output
 
 "Hasil: ~20% lebih hemat FLOPs dibanding backbone standar dengan akurasi setara. Memungkinkan model lebih dalam tanpa peningkatan komputasi signifikan."
@@ -466,31 +451,29 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
 ## Slide 8: Neck: FPN+PAN & Decoupled Head - 3 Detektif Multi-Skala
 
-### Narasi
+### Neck FPN+PAN dan Decoupled Head
 
-"Backbone sudah ekstrak fitur 3 level: P3 (80x80, detail lokasi), P4 (40x40, menengah), P5 (20x20, semantik). Tapi P5 tahu 'apa' tapi tidak tahu 'di mana'. P3 tahu 'di mana' tapi tidak tahu 'apa'. Neck menghubungkan mereka."
+Backbone menghasilkan 3 level fitur dengan karakteristik berbeda: P3 (80x80, resolusi tinggi - detail lokasi), P4 (40x40, resolusi sedang), P5 (20x20, resolusi rendah - semantik). Neck bertugas memfusikan ketiga level tersebut.
 
-**FPN (Feature Pyramid Network) - dari atas ke bawah:**
-"Bawa semantik dari P5 ke P3, P4. Seperti profesor senior (P5) bilang ke junior (P3): 'Itu botol, cari bentuk silinder.'"
+**FPN (Feature Pyramid Network) - Top-Down:**
+Membawa informasi semantik dari resolusi rendah ke resolusi tinggi.
 
-| Langkah | Operasi | Efek |
-|---------|---------|------|
-| 1 | P5 (20x20) -> Upsample 2x | Fitur semantik resolusi rendah diperbesar ke 40x40 |
+| Langkah | Operasi | Hasil |
+|---------|---------|-------|
+| 1 | P5 (20x20) -> Upsample 2x | Fitur semantik diperbesar ke 40x40 |
 | 2 | Concat dengan P4 (40x40) | Fusion semantik + detail di resolusi sedang |
 | 3 | Upsample 2x -> Concat dengan P3 (80x80) | Informasi semantik mencapai resolusi tinggi |
 
-"FPN membantu deteksi objek kecil - sampah kecil seperti puntung rokok, tutup botol, baterai dapat informasi konteks dari resolusi lebih rendah."
+**PAN (Path Aggregation Network) - Bottom-Up:**
+Membawa informasi detail lokasi dari resolusi tinggi ke resolusi rendah.
 
-**PAN (Path Aggregation Network) - dari bawah ke atas:**
-"Bawa detail lokasi dari P3 ke P4, P5. Junior (P3) bilang ke senior (P5): 'Saya lihat tepi tajam di sini, objek di pojok kiri atas.'"
-
-| Langkah | Operasi | Efek |
-|---------|---------|------|
+| Langkah | Operasi | Hasil |
+|---------|---------|-------|
 | 1 | P3 (80x80) -> Downsample Conv k3 s2 | Fitur detail diperkecil ke 40x40 |
 | 2 | Concat dengan P4 (40x40) | Detail memperkaya fitur semantik |
 | 3 | Downsample -> Concat dengan P5 (20x20) | Detail mencapai resolusi rendah |
 
-**3 Detektif:** "P3 (objek kecil: tutup botol, puntung rokok), P4 (sedang: kaleng, botol), P5 (besar: kardus, kantong besar). Mereka bertukar informasi - sekarang semua detektif tahu detail DAN konteks."
+**Multi-Scale Detection:** P3 mendeteksi objek kecil (tutup botol, puntung rokok), P4 untuk objek sedang (kaleng, botol), P5 untuk objek besar (kardus, kantong besar). Setelah FPN+PAN, setiap level memiliki informasi semantik dan detail secara lengkap.
 
 **Decoupled Head:**
 "Head adalah 'otak' yang ambil keputusan final. Dipisah jadi 3 cabang independen:"
@@ -539,37 +522,22 @@ Kelas 0 (Organik), 24 titik polygon, koordinat ternormalisasi [0,1].
 
 ## Slide 9: Loss Functions & Training - CIoU, BCE, DFL, Hyperparameter
 
-### Narasi
+### Loss Functions dan Training Setup
 
-"Loss function adalah 'pengukur kesalahan'. Model berusaha mengecilkan loss setiap epoch. Semakin kecil, semakin baik prediksi."
+Loss function mengukur error antara prediksi model dengan ground truth. YOLOv26m-seg menggunakan 3 komponen loss dengan bobot berbeda:
 
-**3 Komponen Loss:**
-
-**CIoU Loss (bobot 7.5):**
-"Untuk bounding box. CIoU = Complete IoU, 3 faktor:"
-
-1. **IoU** - seberapa besar tumpang tindih antara prediksi dan ground truth
-2. **Center Distance** - jarak pusat prediksi vs pusat sebenarnya
-3. **Aspect Ratio** - perbedaan bentuk (lebar/tinggi)
-
-"Kenapa bobot 7.5? Deteksi LOKASI adalah prioritas utama. 'Lebih baik salah label tapi kotaknya tepat, daripada label benar kotaknya meleset.'"
-
+**1. CIoU Loss (bobot 7.5) - Regresi Bounding Box:**
+CIoU (Complete IoU) mempertimbangkan 3 faktor: IoU (Intersection over Union), center distance (jarak antara pusat prediksi dan ground truth), dan aspect ratio (perbedaan rasio lebar/tinggi). Bobot tertinggi (7.5) karena lokalisasi objek merupakan prioritas utama.
 Formula: `L_CIoU = 1 - IoU + rho^2(b, b_gt)/c^2 + alpha * v`
 
-**BCE Loss (bobot 0.5):**
-"Binary Cross-Entropy untuk klasifikasi 2 kelas. 'Seberapa yakin model bahwa ini organik vs non-organik?'"
-
+**2. BCE Loss (bobot 0.5) - Klasifikasi:**
+Binary Cross-Entropy untuk klasifikasi 2 kelas (Organik/Non-Organik). Bobot kecil (0.5) karena klasifikasi biner relatif lebih sederhana dibanding lokalisasi.
 Formula: `L_BCE = -[y * log(p) + (1-y) * log(1-p)]`
 
-Bobot kecil (0.5) karena klasifikasi 2 kelas relatif mudah - fokus utama bukan klasifikasi.
+**3. DFL Loss (bobot 1.5) - Distribusi Posisi:**
+Distribution Focal Loss untuk regresi boundary. Memprediksi distribusi probabilitas posisi (16 bin)而不是 nilai tunggal, memberikan gradien lebih informatif untuk objek dengan boundary tidak jelas.
 
-**DFL Loss (bobot 1.5):**
-"Distribution Focal Loss untuk regresi bbox. Mendorong distribusi probabilitas ke arah nilai target."
-
-Bobot sedang (1.5) karena penting untuk presisi boundary.
-
-**Total Loss:**
-`L_total = 7.5 x CIoU + 0.5 x BCE + 1.5 x DFL`
+**Total Loss: `L_total = 7.5*CIoU + 0.5*BCE + 1.5*DFL`**
 
 ### Hyperparameter Training
 
@@ -625,9 +593,9 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 
 ## Slide 10: Hasil Pelatihan - Box, Mask, Per-Class Metrics, Training Curves
 
-### Narasi
+### Hasil Evaluasi Model
 
-"Setelah 80 epoch (~2.5 jam), kita lihat hasilnya. Secara keseluruhan, model cukup memuaskan."
+Setelah 80 epoch training (~2.5 jam), diperoleh hasil evaluasi sebagai berikut:
 
 **Overall Metrics:**
 
@@ -687,22 +655,16 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 
 ## Slide 11: Pembahasan - Edge Rate vs AP, Class Imbalance, Failure Cases
 
-### Narasi
+### Analisis dan Pembahasan
 
-"Mari bedah mengapa hasilnya seperti ini."
+**Korelasi Edge Detection Rate dengan Performa:**
+Kualitas pseudo-mask berkorelasi langsung dengan performa model. Subkategori dengan edge detection rate tinggi (foreground-background kontras jelas) cenderung memiliki mAP lebih tinggi. Edge detection Otsu mencapai 66.4% pada dataset TACO+Waste Classification yang memiliki variasi latar lebih kompleks.
 
-**Edge Rate vs mAP Korelasi:**
-"Subkategori dengan edge rate tinggi cenderung punya mAP lebih tinggi. Contoh:"
-- paper_waste (edge rate tinggi, kertas kontras dengan latar) -> mAP tinggi
-- plastic_bags_waste (edge rate rendah, plastik transparan) -> mAP lebih rendah
-
-"Kualitas pseudo-mask langsung memengaruhi hasil training. Edge detection Otsu berhasil 66.4%, turun dari dataset sebelumnya yang 83.3%. Kenapa turun? Karena TACO gambar lebih natural (outdoor, latar kompleks) lebih menantang untuk edge detection."
-
-**Class Imbalance:**
-"Organik 684 vs Non-Organik 3.289 (1:4.8). Dampak:"
-- Organik Box mAP 77.2% vs Non-Organik 83.6% (gap 6.4%)
-- Organik Mask mAP 38.2% vs Non-Organik 61.2% (gap 23.0%)
-- Model bias ke Non-Organik - lebih sering prediksi Non-Organik
+**Dampak Class Imbalance:**
+Rasio Organik:Non-Organik = 1:4.8 (684:3.289) berdampak pada:
+- Gap Box mAP: 6.4% (Organik 77.2% vs Non-Organik 83.6%)
+- Gap Mask mAP: 23.0% (Organik 38.2% vs Non-Organik 61.2%)
+- Model menunjukkan bias prediksi ke kelas Non-Organik
 
 **Confusion Matrix:**
 | Prediksi | Organik (aktual) | Non-Organik (aktual) |
@@ -750,30 +712,28 @@ Bobot sedang (1.5) karena penting untuk presisi boundary.
 
 ## Slide 12: Kesimpulan & Saran - 5 Capaian, Tantangan, Saran, Aplikasi Web
 
-### Narasi
+### Kesimpulan
 
-"Setelah perjalanan panjang, mari simpulkan."
+**5 Capaian Utama:**
 
-### 5 Capaian Kunci
+**1. Integrasi Dataset:**
+Dua dataset heterogen (TACO 1.500 gambar COCO + Waste Classification 2.939 gambar) berhasil diintegrasikan menjadi 3.973 gambar siap YOLO-seg dengan mapping 60+ kategori ke 2 kelas (684 Organik + 3.289 Non-Organik).
 
-**1. Integrasi Dataset Berhasil**
-"Dua dataset heterogen (TACO 1.500 COCO + Waste Classification 2.939 folder) digabung jadi 3.973 gambar siap YOLO-seg. 60 kategori -> 2 kelas. 684 Organik + 3.289 Non-Organik."
+**2. Pseudo-Mask Pipeline:**
+Pipeline 12 langkah computer vision berfungsi end-to-end. Edge detection Otsu mencapai 66.4% success rate. Fallback geometris 33.6% (60% ellipse, 40% rounded rect) untuk kasus dengan kontras rendah. Output: format YOLO-seg 24 titik polygon ternormalisasi [0,1].
 
-**2. Pseudo-Mask Pipeline Efektif**
-"12 langkah CV pipeline berfungsi end-to-end. Edge detection Otsu 66.4%. Fallback geometris 33.6% (60% ellipse, 40% rounded rect). Format YOLO-seg 24 titik polygon."
-
-**3. YOLOv26m-seg Capaian Kompetitif**
-- Box mAP@0.5: **80.4%** - deteksi bounding box sangat akurat
-- Mask mAP@0.5: **49.7%** - segmentasi lebih menantang karena pseudo-label noise
+**3. Performa YOLOv26m-seg:**
+- Box mAP@0.5: **80.4%** (deteksi bounding box)
+- Mask mAP@0.5: **49.7%** (segmentasi, terbatas pseudo-label noise)
 - Precision 76.7%, Recall 75.6%, F1 76.1%
-- Inference: 5.3 ms/gambar (~188 FPS) - real-time
-- Training: 80 epoch, ~2.5 jam di RTX 5060 Ti 16GB
+- Inference: 5.3 ms/gambar (~188 FPS)
+- Training: 80 epoch, ~2.5 jam pada RTX 5060 Ti 16GB
 
-**4. Analisis Per-Kelas**
-"Non-Organik (83.6%) unggul dari Organik (77.2%) karena data 4.8x lebih banyak dan bentuk rigid. Mask Organik sangat rendah (38.2%) - area improvement utama."
+**4. Analisis Per-Kelas:**
+Non-Organik (Box 83.6%) unggul dari Organik (Box 77.2%) disebabkan jumlah data 4.8x lebih banyak dan bentuk rigid. Mask Organik (38.2%) menjadi area improvement utama.
 
-**5. Gap Box-Mask ~31%**
-"Box mAP 80.4% vs Mask mAP 49.7% - ini menunjukkan kualitas pseudo-mask adalah bottleneck utama. Incremental data tidak akan banyak membantu tanpa perbaikan mask."
+**5. Gap Box-Mask ~31%:**
+Box mAP 80.4% vs Mask mAP 49.7% mengindikasikan kualitas pseudo-mask sebagai bottleneck utama. Peningkatan kualitas mask berpotensi meningkatkan performa segmentasi secara signifikan.
 
 ### Tantangan
 - **Pseudo-label noise** - mask tidak sempurna, batasi akurasi maksimal
