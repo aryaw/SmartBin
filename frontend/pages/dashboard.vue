@@ -96,9 +96,11 @@
         <span class="font-medium text-dark text-sm">Hasil Deteksi</span>
         <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{{ result.file_type }}</span>
       </div>
-      <div class="p-5">
-        <img v-if="result.file_type === 'image'" :src="`${apiBase}${result.result_url}`" class="w-full rounded-lg border border-gray-100" />
-        <video v-else :src="`${apiBase}${result.result_url}`" controls class="w-full rounded-lg border border-gray-100" />
+      <div class="p-5 flex justify-center">
+        <img v-if="result.file_type === 'image'" :src="`${apiBase}${result.result_url}`"
+          class="max-w-[500px] w-full rounded-lg border border-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+          @click="previewUrl = `${apiBase}${result.result_url}`; previewCaption = result.filename" />
+        <video v-else :src="`${apiBase}${result.result_url}`" controls class="max-w-[500px] w-full rounded-lg border border-gray-100" />
       </div>
       <div class="grid grid-cols-3 gap-4 px-5 pb-5">
         <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">

@@ -20,11 +20,12 @@
           <span :class="data.file_type === 'image' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'"
             class="text-xs font-bold px-2.5 py-1 rounded-full">{{ data.file_type }}</span>
         </div>
-        <div class="p-5">
+        <div class="p-5 flex justify-center">
           <img v-if="data.file_type === 'image'" :src="`${apiBase}${data.result_url}`"
-            class="w-full rounded-lg shadow-sm border border-gray-100" />
+            class="max-w-[500px] w-full rounded-lg shadow-sm border border-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+            @click="previewUrl = `${apiBase}${data.result_url}`; previewCaption = data.filename" />
           <video v-else :src="`${apiBase}${data.result_url}`" controls
-            class="w-full rounded-lg shadow-sm border border-gray-100" />
+            class="max-w-[500px] w-full rounded-lg shadow-sm border border-gray-100" />
         </div>
       </div>
 
@@ -76,6 +77,8 @@
     <footer class="bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 text-center p-5 text-sm mt-12">
       SmartBin &copy; 2026 &mdash; Sistem Deteksi Sampah Organik & Non-Organik
     </footer>
+
+    <ZoomModal :url="previewUrl" :caption="previewCaption" @close="previewUrl = null" />
   </div>
 </template>
 
@@ -86,6 +89,9 @@ const apiBase = config.public.apiBase
 const route = useRoute()
 const raw = route.query.data as string
 const data = raw ? JSON.parse(raw) : null
+
+const previewUrl = ref<string | null>(null)
+const previewCaption = ref("")
 
 function downloadReport() {
   if (!data.value) return
