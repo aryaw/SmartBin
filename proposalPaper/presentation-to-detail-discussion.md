@@ -1,6 +1,4 @@
 # Presentation Detail Discussion
-## Panduan Presentasi untuk Tim SmartBin
-### Gaya: Professor mengajar mahasiswa - sederhana, mendalam, dan menyenangkan
 
 ---
 
