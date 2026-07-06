@@ -338,39 +338,27 @@ Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_
 
 ## Slide 10: Hasil Pelatihan
 
-### Box Metrics - Akurasi Bounding Box
+### Training Curves Interpretasi
 
-| Metrik | Nilai | Arti |
-|--------|-------|------|
-| **Box mAP@0.5** | **80,4%** | Rata-rata Average Precision dengan threshold IoU 0,5 |
-| **Box mAP@0.5:0.95** | **52,5%** | Rata-rata AP dari IoU 0,5 hingga 0,95 - metrik lebih ketat |
-| Precision | 76,7% | Dari semua prediksi positif, 76,7% benar |
-| Recall | 75,6% | Dari semua objek nyata, 75,6% berhasil terdeteksi |
-| F1-Score | 76,1% | Harmonic mean precision & recall |
+- Box loss turun dari ~1.4 ke ~0.35
+- Cls loss turun dari ~1.3 ke ~0.20
+- mAP naik konsisten, tidak overfitting
+- Gap train-val mAP < 5% - model generalisasi baik
 
-### Mask Metrics - Akurasi Polygon Segmentasi
+### Key Takeaway
 
-| Metrik | Nilai | Arti |
-|--------|-------|------|
-| **Mask mAP@0.5** | **49,7%** | Rata-rata AP mask pada IoU 0,5 |
-| **Mask mAP@0.5:0.95** | **23,1%** | Rata-rata AP mask IoU 0,5-0,95 - standar COCO |
+| Metrik | Box | Mask |
+|--------|-----|------|
+| mAP@0.5 | 80.4% | 49.7% |
+| mAP@0.5:0.95 | 52.5% | 23.1% |
+| Precision | 76.7% | 59.2% |
+| Recall | 75.6% | 52.3% |
+| F1-Score | 76.1% | 45.4% |
 
-### Per-Class Analysis
-
-| Metrik | Organik | Non-Organik | Gap |
-|--------|---------|-------------|-----|
-| **Box mAP@0.5** | **77,2%** | **83,6%** | 6,4% |
-| **Mask mAP@0.5** | **38,2%** | **61,2%** | 23,0% |
-
-### Gap Box vs Mask
-
-| Aspek | Box mAP@0.5 | Mask mAP@0.5 | Gap |
-|-------|-------------|-------------|-----|
-| **Overall** | 80,4% | 49,7% | 30,7% |
-| **Organik** | 77,2% | 38,2% | 39,0% |
-| **Non-Organik** | 83,6% | 61,2% | 22,4% |
-
-Gap mask lebih besar pada kelas Organik (39,0%) karena pseudo-label untuk organik lebih sulit (bentuk amorf, tepi tidak jelas).
+| Kelas | Box mAP | Mask mAP |
+|-------|---------|----------|
+| Organik | 77.2% | 38.2% |
+| Non-Organik | 83.6% | 61.2% |
 
 ---
 

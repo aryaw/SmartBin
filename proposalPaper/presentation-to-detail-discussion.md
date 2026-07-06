@@ -265,7 +265,7 @@ TACO jadi referensi format dan validasi pipeline. Kontribusi: 684 gambar Organik
 "Total: 1.500 + 2.939 = 3.973 gambar. Organik 684 (17.2%), Non-Organik 3.289 (82.8%)."
 
 **Merge Pipeline:**
-`prepare_from_local()` di `kaggle_service.py:289-420` membaca semua gambar, deteksi struktur folder (flat atau hierarchical), mapping setiap file ke bin_id (0=Organik, 1=Non-Organik), salin ke folder tujuan.
+Pipeline merge membaca semua gambar, deteksi struktur folder (flat atau hierarchical), mapping setiap file ke bin_id (0=Organik, 1=Non-Organik), salin ke folder tujuan.
 
 **Stratified Split 70/15/15:**
 "Stratified = berlapis. Proporsi Organik/Non-Organik dijaga SAMA di setiap split. Kalau total 17.2% Organik, train juga 17.2%, val juga, test juga."
