@@ -131,28 +131,6 @@ Presentasi terdiri dari 12 slide yang mencakup seluruh pipeline penelitian secar
 | 12 | Kesimpulan & Saran | Ringkasan dan rekomendasi |
 
 
-> **Key Takeaway:**
-> 
-> | Aspek | Detail |
-> |-------|--------|
-> | Total slide | 12 slide |
-> | Durasi | ~25 menit |
-> | Per slide | ~1-2 menit |
-> | Q&A | 10 menit |
-> | Fokus | 90% pipeline deep learning |
-> | Alur | Masalah -> Data -> Arsitektur -> Training -> Hasil -> Penutup |
-> 
-> ```mermaid
-> timeline
->     title Perjalanan Presentasi
->     Slide 1-3 : Judul, Outline, Latar Belakang : 4 menit
->     Slide 4-5 : Dataset + Pseudo-Mask : 5 menit
->     Slide 6 : Online Augmentasi : 2 menit
->     Slide 7-9 : Backbone + Neck + Training : 7 menit
->     Slide 10-11 : Hasil + Pembahasan : 5 menit
->     Slide 12 : Kesimpulan + App : 2 menit
-> ```
-
 ---
 
 ## Slide 3: Latar Belakang - Krisis Sampah Bali, Pergub, Deep Learning
