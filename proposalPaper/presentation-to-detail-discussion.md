@@ -131,18 +131,6 @@ Presentasi terdiri dari 12 slide yang mencakup seluruh pipeline penelitian secar
 | 12 | Kesimpulan & Saran | Ringkasan dan rekomendasi |
 
 
-
-### Peta Waktu per Slide
-
-| Slide | Waktu | Konten |
-|-------|-------|--------|
-| 1-3 | 4 menit | Judul, outline, latar belakang |
-| 4-5 | 5 menit | Dataset, pseudo-mask |
-| 6 | 2 menit | Augmentasi |
-| 7-9 | 7 menit | Arsitektur, training |
-| 10-11 | 5 menit | Hasil, pembahasan |
-| 12 | 2 menit | Kesimpulan + app |
-
 > **Key Takeaway:**
 > 
 > | Aspek | Detail |
