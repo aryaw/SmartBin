@@ -110,9 +110,6 @@ def _save(img_bgr, path):
     cv2.imwrite(str(path), img_bgr, [cv2.IMWRITE_JPEG_QUALITY, JPG_QUALITY])
 
 
-# ============================================================
-# Process 1: Pseudo-Polygon Mask Generation
-# ============================================================
 
 def process_pseudo_mask():
     img = cv2.imread(str(SAMPLE_IMG))
@@ -308,9 +305,6 @@ def process_pseudo_mask():
     return {"folders": ["pseudo_mask/01_original_rgb", "pseudo_mask/02_grayscale", "pseudo_mask/03_gaussian_blur_5x5", "pseudo_mask/04_otsu_threshold", "pseudo_mask/05_mean_check_diagram", "pseudo_mask/06a_invert_mask", "pseudo_mask/06b_morphological_close", "pseudo_mask/07_find_contours", "pseudo_mask/08_area_check_diagram", "pseudo_mask/09a_edge_success_mask", "pseudo_mask/09b_fallback_ellipse", "pseudo_mask/09c_fallback_rounded_rect", "pseudo_mask/10_approximate_polygon", "pseudo_mask/11_normalized_coordinates", "pseudo_mask/12_yolo_seg_label", "pseudo_mask/summary_collage_4x4"]}
 
 
-# ============================================================
-# Process 2: Stratified Split 70/15/15
-# ============================================================
 
 def process_stratified_split():
     base = VIZ_BASE / "stratified_split"
@@ -398,9 +392,6 @@ def process_stratified_split():
     return {"folders": ["stratified_split/01_split_bar_chart", "stratified_split/02_split_pie_chart", "stratified_split/03_class_distribution_chart", "stratified_split/04_split_table"]}
 
 
-# ============================================================
-# Process 3: Online Augmentation
-# ============================================================
 
 def _load_sample_images():
     infer_dir = SAMPLE_IMG.parent
@@ -551,9 +542,6 @@ def process_augmentation():
     return {"folders": ["augmentation/01_original", "augmentation/02_mosaic", "augmentation/03_mixup", "augmentation/04_copy_paste", "augmentation/05a_hsv_hue", "augmentation/05b_hsv_saturation", "augmentation/05c_hsv_value", "augmentation/06a_rotate", "augmentation/06b_scale", "augmentation/06c_shear", "augmentation/07_flip_horizontal", "augmentation/08_augmentation_pipeline_collage", "augmentation/09_summary_grid_3x3"]}
 
 
-# ============================================================
-# Process 4: Backbone CSPDarknet Architecture
-# ============================================================
 
 def process_backbone():
     base = VIZ_BASE / "backbone"
@@ -710,9 +698,6 @@ def process_backbone():
     return {"folders": ["backbone/01_overview_flowchart", "backbone/02_csp_stage_detail", "backbone/03_resolution_progression", "backbone/04_feature_map_evolution", "backbone/05_csp_vs_standard", "backbone/06_spp_multi_scale", "backbone/07_full_flow_annotated"]}
 
 
-# ============================================================
-# Process 5: Backend API Flow
-# ============================================================
 
 def process_backend():
     base = VIZ_BASE / "backend"
@@ -831,9 +816,6 @@ def process_backend():
     return {"folders": ["backend/01_api_detection_flow", "backend/02_inference_pipeline", "backend/03_training_pipeline_api", "backend/04_backend_routes_overview", "backend/05_detect_request_response", "backend/06_model_lifecycle", "backend/07_error_handling_flow"]}
 
 
-# ============================================================
-# Process 6: Frontend UI Flow
-# ============================================================
 
 def process_frontend():
     base = VIZ_BASE / "frontend"
@@ -956,9 +938,6 @@ def process_frontend():
     return {"folders": ["frontend/01_sidebar_navigation", "frontend/02_detection_ux_flow", "frontend/03_component_tree", "frontend/04_api_integration_flow", "frontend/05_batch_detect_flow", "frontend/06_responsive_layout", "frontend/07_state_management"]}
 
 
-# ============================================================
-# Main
-# ============================================================
 
 def run_single(process_name, progress_callback=None):
     func = {
