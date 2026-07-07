@@ -457,21 +457,56 @@ Warmup 5 epoch: LR naik linear 0 → 0.001, mencegah gradien eksplosif di awal t
 
 ## Slide 10: Hasil Pelatihan
 
-### Training Curves Interpretasi
+### Training Curves (100 epoch, batch 16, YOLOv26m-seg)
 
-- Box loss turun dari ~1.33 ke ~0.90 (konvergensi stabil)
-- Cls loss turun dari ~3.82 ke ~0.65 (klasifikasi cepat konvergen)
-- Seg loss turun dari ~4.54 ke ~2.54 (segmentasi lebih lambat karena pseudo-label noise)
-- Gap train-val mAP < 5% - model generalisasi baik, tidak overfitting
+![Training Results](../runs/segment/full_pipeline/results.png)
 
-```mermaid
-xychart-beta
-    title "Training Progress (100 Epoch)"
-    x-axis ["0", "20", "40", "60", "80", "100"]
-    y-axis "mAP@0.5" 0 --> 100
-    line "Box mAP" [7, 62, 68, 73, 75, 76.9]
-    line "Mask mAP" [4, 30, 40, 46, 52, 55.4]
-```
+**Interpretasi Kurva (dari kiri ke kanan, atas ke bawah):**
+- **train/box_loss:** turun ~32% (1.33 → 0.90) — bounding box stabil konvergen. Lonjakan kecil di epoch ~33 saat close_mosaic (mosaic dimatikan, distribusi data berubah).
+- **train/cls_loss:** turun ~83% (3.82 → 0.65) — klasifikasi 2 kelas cepat konvergen karena perbedaan visual Organik vs Non-Organik cukup jelas. Transfer learning dari COCO memberikan initial feature representation yang sudah baik.
+- **train/seg_loss:** turun ~44% (4.54 → 2.54) — segmentasi lebih lambat konvergen karena pseudo-label noise (33.6% mask fallback). Penurunan akselerasi setelah epoch 68 saat LR mendekati minimum.
+- **metrics/mAP50(B):** Box mAP naik konsisten dari ~7% (epoch 1) ke **76.9%** (epoch 72). Plateau setelah epoch 80 — menunjukkan model mencapai kapasitas maksimal dengan data dan pseudo-label saat ini.
+- **metrics/mAP50(M):** Mask mAP naik dari ~4% ke **55.4%** (epoch 83). Gap 21.5% dengan Box mAP mencerminkan keterbatasan kualitas pseudo-mask.
+- **metrics/precision(B) & recall(B):** Precision ~73%, Recall ~71.6%. Precision lebih tinggi dari recall — model cenderung under-predict (hanya deteksi jika yakin) daripada over-predict.
+- **Gap train-val mAP < 5%** di semua metrik — tidak ada overfitting signifikan. Augmentasi online berhasil mencegah model menghafal training set.
+
+### Confusion Matrix & Precision-Recall (3 validation runs)
+
+Perbandingan confusion matrix dari 3 validation run berbeda:
+
+| Run 1 (full_pipeline) | Run 2 (val-2) | Run 3 (val-3) |
+|:---------------------:|:--------------:|:--------------:|
+| ![CM1](../runs/segment/full_pipeline/confusion_matrix_normalized.png) | ![CM2](../runs/segment/val-2/confusion_matrix_normalized.png) | ![CM3](../runs/segment/val-3/confusion_matrix_normalized.png) |
+
+| | Organik (Recall) | Non-Organik (Recall) | Analisis |
+|-------|---------|-------------|----------|
+| Full Pipeline | **~67%** | **~81%** | Baseline — model cukup baik deteksi Non-Organik |
+| Val-2 | **~65%** | **~82%** | Konsisten — variasi kecil antar run |
+| Val-3 | **~68%** | **~80%** | Stabil — perbedaan <3% antar run |
+
+Confusion matrix konsisten antar 3 validation run — variance rendah (SD <3%). Model secara konsisten lebih baik mendeteksi Non-Organik (recall ~81%) dibanding Organik (recall ~67%). False positive Organik ~19% — plastik kusut, kain, dan material reflektif secara visual menyerupai organik. False negative Organik ~33% — organik amorf (sisa makanan, ampas kopi, kulit buah halus) tidak memiliki bentuk tegas, confidence di bawah threshold 0.25.
+
+**Precision-Recall Curves (per class):**
+
+| Box PR (full_pipeline) | Box PR (val-2) | Mask PR (full_pipeline) |
+|:---------------------:|:--------------:|:----------------------:|
+| ![BoxPR1](../runs/segment/full_pipeline/BoxPR_curve.png) | ![BoxPR2](../runs/segment/val-2/BoxPR_curve.png) | ![MaskPR](../runs/segment/full_pipeline/MaskPR_curve.png) |
+
+PR curve menunjukkan trade-off precision vs recall pada berbagai confidence threshold. Kelas Non-Organik (oranye) memiliki area under curve lebih besar dari Organik (biru) — konsisten dengan mAP gap ~15%. Mask PR curve lebih rendah dari Box PR — mask segmentasi lebih sulit daripada deteksi bounding box. Titik optimal F1-score (~72.3% Box) berada di confidence threshold ~0.25-0.35.
+
+### Validation Predictions (3 runs comparison)
+
+| Run | Batch 0 | Batch 1 | Batch 2 |
+|:---:|:-------:|:-------:|:-------:|
+| **full_pipeline** | ![Val0](../runs/segment/full_pipeline/val_batch0_pred.jpg) | ![Val1](../runs/segment/full_pipeline/val_batch1_pred.jpg) | ![Val2](../runs/segment/full_pipeline/val_batch2_pred.jpg) |
+| **val-2** | ![Val0-2](../runs/segment/val-2/val_batch0_pred.jpg) | ![Val1-2](../runs/segment/val-2/val_batch1_pred.jpg) | ![Val2-2](../runs/segment/val-2/val_batch2_pred.jpg) |
+| **val-3** | ![Val0-3](../runs/segment/val-3/val_batch0_pred.jpg) | ![Val1-3](../runs/segment/val-3/val_batch1_pred.jpg) | ![Val2-3](../runs/segment/val-3/val_batch2_pred.jpg) |
+
+Kotak hijau = ground truth, kotak/polygon merah muda = prediksi model. Observasi dari visualisasi:
+- **Deteksi bounding box**: model konsisten mendeteksi objek utama di ketiga run. Posisi bounding box akurat (CIoU loss efektif).
+- **Mask segmentasi**: presisi bervariasi — objek rigid (botol, kaleng) memiliki mask lebih akurat daripada objek amorf (sisa makanan). Mask pada objek dengan fallback geometris (ellipse/rect) terlihat kurang mengikuti kontur asli.
+- **Objek kecil**: puntung rokok, tutup botol kecil kadang terlewat (area <20% threshold di pseudo-mask pipeline).
+- **Konsistensi antar run**: prediksi sangat konsisten — variance rendah mengonfirmasi reproducibility training.
 
 ### Key Takeaway
 
@@ -487,6 +522,8 @@ xychart-beta
 |-------|---------|----------|
 | Organik | ~68% | ~51% |
 | Non-Organik | ~83% | ~60% |
+
+**Ringkasan:** Model mencapai performa deteksi solid (Box mAP 76.9%) dengan segmentasi cukup (Mask mAP 55.4%). Gap 21.5% antara Box dan Mask mencerminkan keterbatasan kualitas pseudo-mask. Model konsisten antar 3 validation run (SD <3%), mengonfirmasi reproducibility. Performa Non-Organik (~83%) mendekati target proyek, sementara Organik (~68%) masih perlu peningkatan — terutama melalui perbaikan pseudo-mask dan penambahan data Organik.
 
 ---
 
