@@ -459,7 +459,7 @@ Warmup 5 epoch: LR naik linear 0 → 0.001, mencegah gradien eksplosif di awal t
 
 ### Training Curves (100 epoch, batch 16, YOLOv26m-seg)
 
-![Training Results](../runs/segment/full_pipeline/results.png)
+![Training Results](../runs_result/segment/full_pipeline/results.png)
 
 **Interpretasi Kurva (dari kiri ke kanan, atas ke bawah):**
 - **train/box_loss:** turun ~32% (1.33 → 0.90) — bounding box stabil konvergen. Lonjakan kecil di epoch ~33 saat close_mosaic (mosaic dimatikan, distribusi data berubah).
@@ -476,7 +476,7 @@ Perbandingan confusion matrix dari 3 validation run berbeda:
 
 | Run 1 (full_pipeline) | Run 2 (val-2) | Run 3 (val-3) |
 |:---------------------:|:--------------:|:--------------:|
-| ![CM1](../runs/segment/full_pipeline/confusion_matrix_normalized.png) | ![CM2](../runs/segment/val-2/confusion_matrix_normalized.png) | ![CM3](../runs/segment/val-3/confusion_matrix_normalized.png) |
+| ![CM1](../runs_result/segment/full_pipeline/confusion_matrix_normalized.png) | ![CM2](../runs_result/segment/val-2/confusion_matrix_normalized.png) | ![CM3](../runs_result/segment/val-3/confusion_matrix_normalized.png) |
 
 | | Organik (Recall) | Non-Organik (Recall) | Analisis |
 |-------|---------|-------------|----------|
@@ -490,7 +490,7 @@ Confusion matrix konsisten antar 3 validation run — variance rendah (SD <3%). 
 
 | Box PR (full_pipeline) | Box PR (val-2) | Mask PR (full_pipeline) |
 |:---------------------:|:--------------:|:----------------------:|
-| ![BoxPR1](../runs/segment/full_pipeline/BoxPR_curve.png) | ![BoxPR2](../runs/segment/val-2/BoxPR_curve.png) | ![MaskPR](../runs/segment/full_pipeline/MaskPR_curve.png) |
+| ![BoxPR1](../runs_result/segment/full_pipeline/BoxPR_curve.png) | ![BoxPR2](../runs_result/segment/val-2/BoxPR_curve.png) | ![MaskPR](../runs_result/segment/full_pipeline/MaskPR_curve.png) |
 
 PR curve menunjukkan trade-off precision vs recall pada berbagai confidence threshold. Kelas Non-Organik (oranye) memiliki area under curve lebih besar dari Organik (biru) — konsisten dengan mAP gap ~15%. Mask PR curve lebih rendah dari Box PR — mask segmentasi lebih sulit daripada deteksi bounding box. Titik optimal F1-score (~72.3% Box) berada di confidence threshold ~0.25-0.35.
 
@@ -498,9 +498,9 @@ PR curve menunjukkan trade-off precision vs recall pada berbagai confidence thre
 
 | Run | Batch 0 | Batch 1 | Batch 2 |
 |:---:|:-------:|:-------:|:-------:|
-| **full_pipeline** | ![Val0](../runs/segment/full_pipeline/val_batch0_pred.jpg) | ![Val1](../runs/segment/full_pipeline/val_batch1_pred.jpg) | ![Val2](../runs/segment/full_pipeline/val_batch2_pred.jpg) |
-| **val-2** | ![Val0-2](../runs/segment/val-2/val_batch0_pred.jpg) | ![Val1-2](../runs/segment/val-2/val_batch1_pred.jpg) | ![Val2-2](../runs/segment/val-2/val_batch2_pred.jpg) |
-| **val-3** | ![Val0-3](../runs/segment/val-3/val_batch0_pred.jpg) | ![Val1-3](../runs/segment/val-3/val_batch1_pred.jpg) | ![Val2-3](../runs/segment/val-3/val_batch2_pred.jpg) |
+| **full_pipeline** | ![Val0](../runs_result/segment/full_pipeline/val_batch0_pred.jpg) | ![Val1](../runs_result/segment/full_pipeline/val_batch1_pred.jpg) | ![Val2](../runs_result/segment/full_pipeline/val_batch2_pred.jpg) |
+| **val-2** | ![Val0-2](../runs_result/segment/val-2/val_batch0_pred.jpg) | ![Val1-2](../runs_result/segment/val-2/val_batch1_pred.jpg) | ![Val2-2](../runs_result/segment/val-2/val_batch2_pred.jpg) |
+| **val-3** | ![Val0-3](../runs_result/segment/val-3/val_batch0_pred.jpg) | ![Val1-3](../runs_result/segment/val-3/val_batch1_pred.jpg) | ![Val2-3](../runs_result/segment/val-3/val_batch2_pred.jpg) |
 
 Kotak hijau = ground truth, kotak/polygon merah muda = prediksi model. Observasi dari visualisasi:
 - **Deteksi bounding box**: model konsisten mendeteksi objek utama di ketiga run. Posisi bounding box akurat (CIoU loss efektif).
