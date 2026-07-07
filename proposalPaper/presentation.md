@@ -20,12 +20,12 @@ flowchart TD
     end
 
     subgraph ML["Machine Learning - Training"]
-        I["Loss: CIoU(7.5) + BCE(0.5) + DFL(1.5)"] --> J["SGD/MuSGD Optimizer<br />LR=0.001 Cosine Decay"]
-        J --> K["80 Epochs, Batch=16, FP16<br />Early Stop Patience=40"]
+        I["Loss: CIoU(7.5) + BCE(0.5) + DFL(1.5)"] --> J["SGD Optimizer<br />LR=0.001 Cosine Decay"]
+        J --> K["100 Epochs, Batch=16, FP16<br />Early Stop Patience=40"]
     end
 
     subgraph EVAL["Evaluation - Metrics"]
-        L["Box mAP@0.5: 80.4%<br />Mask mAP@0.5: 49.7%"] --> M["Organik: 77.2%<br />Non-Organik: 83.6%"]
+        L["Box mAP@0.5: 76.9%<br />Mask mAP@0.5: 55.4%"] --> M["Organik: ~68%<br />Non-Organik: ~83%"]
     end
 
     D --> E
@@ -73,13 +73,15 @@ flowchart TD
 
 ### Mengapa Instance Segmentation?
 
-| Metode | Kelebihan | Kekurangan |
-|--------|-----------|------------|
-| Klasifikasi gambar | Cepat, sederhana | Tidak ada lokasi objek |
-| Object detection (bbox) | Lokasi via bounding box | Tidak presisi untuk bentuk tidak beraturan |
-| **Instance segmentation** | **Mask per-pixel sangat presisi** | **Komputasi lebih berat, tapi informatif** |
+| Level | Contoh Output | Kelebihan | Kekurangan |
+|-------|--------------|-----------|------------|
+| 1. Klasifikasi | "Ini organik" | Cepat, sederhana | Tidak tahu di mana objek |
+| 2. Deteksi (bbox) | "Ini organik di kotak ini" | Lokasi perkiraan | Tidak presisi untuk bentuk tidak beraturan — botol penyok: bounding box potong area kosong |
+| **3. Instance segmentation** | **"Ini organik, tepat di area ini"** | **Mask per-pixel presisi, paham bentuk asli** | **Komputasi lebih berat** |
 
-Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, sisa makanan). Instance segmentation memberikan mask per-pixel akurat untuk tiap objek, memungkinkan rekomendasi pembuangan yang lebih tepat.
+**Kenapa 2 kelas?** Bukan 60 — dengan 2 kelas SEMUA ORANG bisa verifikasi: "Ini organik atau bukan?". Non-Organik nanti dipetakan ke Anorganik (recyclable) dan Residu (landfill) di backend sesuai Pergub Bali No.47/2019.
+
+**Transfer Learning:** YOLOv26m-seg sudah dilatih di COCO (200.000+ gambar, 80 kelas). Model yang sudah pintar di-spesialisasikan ke sampah — seperti ambil anak SD dan kursusin jadi ahli sampah.
 
 ---
 
@@ -107,6 +109,13 @@ Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, si
 
 ### Stratified Split 70/15/15
 
+**Apa itu stratified split?** Teknik sampling yang mempertahankan proporsi kelas asli di setiap subset. Dilakukan dengan sampling terpisah per kelas, lalu menggabungkan hasilnya. Implementasi dua tahap menggunakan `train_test_split(stratify=cls_ids)` — stratify berdasarkan 18 subkategori (bukan hanya 2 kelas biner) untuk memastikan komposisi fine-grade identik di semua subset.
+
+**Proses:**
+- Tahap 1: split 70/30 (train/test)
+- Tahap 2: split 50/50 dari sisa 30% (val/test)
+- Seed 42 untuk reproducibility
+
 | Split | Total | Organik | Non-Organik | % Total |
 |-------|-------|---------|-------------|---------|
 | **Train** | 2.765 | 476 | 2.289 | 69,6% |
@@ -114,54 +123,68 @@ Sampah memiliki bentuk sangat bervariasi (kantong plastik kusut, botol pecah, si
 | **Test** | 593 | 102 | 491 | 14,9% |
 | **Total** | 3.951* | 680 | 3.271 | 100% |
 
+Setiap subset memiliki rasio Organik 17.20-17.22% — identik dengan dataset total (17.21%).
+
 ---
 
 ## Slide 5: Pseudo-Polygon Mask Generation (12 Langkah)
 
 ### 4 Kelompok x 3 Langkah
 
-Karena dataset tidak memiliki label segmentasi, kita bangkitkan polygon mask secara otomatis via computer vision. Proses 12 langkah dibagi 4 kelompok:
+Karena dataset Waste Classification (2.939 gambar) tidak memiliki label segmentasi — hanya folder terstruktur per kategori — kita bangkitkan polygon mask secara otomatis via computer vision pipeline 12 langkah. Tiga opsi dipertimbangkan:
+1. **Manual labeling** — ~100 jam, tidak scalable → ditolak
+2. **Segment Anything Model (SAM)** — akurasi tinggi tapi butuh GPU ~2GB VRAM/gambar, throughput rendah → ditolak (resource)
+3. **Computer vision pipeline** (dipilih) — <50ms/gambar, zero GPU, fully automated
 
-**Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)**
+Proses 12 langkah dibagi 4 kelompok:
 
-| Langkah | Operasi | Deskripsi |
-|---------|---------|-----------|
-| 1 | Read Image RGB | Baca gambar asli (640x640x3) dari disk |
-| 2 | Convert to Grayscale | RGB -> luminance (single channel) via `cv2.cvtColor` |
-| 3 | Gaussian Blur 5x5 | Smoothing noise, kernel 5x5, sigma=0 |
+**Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)** — *Tujuan: maksimalkan signal-to-noise ratio sebelum thresholding*
 
-**Kelompok 2: Thresholding & Mask Biner (Langkah 4-6)**
+| Langkah | Operasi | Deskripsi Teknis | Parameter |
+|---------|---------|-----------------|-----------|
+| 1 | RGB to Grayscale | Konversi 3 channel → 1 channel luminance: Y = 0.299R + 0.587G + 0.114B. Otsu hanya bekerja pada 1 channel | `cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)` |
+| 2 | Gaussian Blur 5×5 | Konvolusi kernel Gaussian. Sigma otomatis: σ = 0.3×((ks-1)×0.5-1)+0.8 ≈ 1.0. Kernel 5×5 dipilih: 3×3 tidak cukup reduksi noise, 7×7 terlalu agresif | kernel=5, σ≈1.0 |
+| 3 | Output | Grayscale halus, noise tereduksi, tepi terjaga | Input ke Otsu |
 
-| Langkah | Operasi | Deskripsi |
-|---------|---------|-----------|
-| 4 | Otsu Thresholding | Threshold otomatis: hitung nilai optimal dari histogram, hasil: biner (hitam/putih) |
-| 5 | Mean > 127? | Cek rata-rata intensitas. Jika >127 (dominasi putih), invert mask |
-| 6 | Invert / Morph Close | Jika mean >127 -> flip hitam<->putih. Jika <=127 -> morphological close 5x5, 2 iterasi (tutup lubang) |
+**Kelompok 2: Thresholding & Mask Biner (Langkah 4-6)** — *Tujuan: segmentasi foreground/background*
 
-**Kelompok 3: Ekstraksi Kontur (Langkah 7-9)**
+| Langkah | Operasi | Deskripsi Teknis | Logika |
+|---------|---------|-----------------|--------|
+| 4 | Otsu Thresholding | Min within-class variance σ²_w(t) = w_f·σ²_f + w_b·σ²_b. Threshold dipilih dari histogram per-gambar, adaptif variasi pencahayaan | `cv2.THRESH_BINARY + cv2.THRESH_OTSU` |
+| 5 | Mean > 127? | Cek rata-rata intensitas. Mean > 127 = background putih objek hitam → perlu inversi | `np.mean(thresh) > 127` |
+| 5A | Invert Mask | Operasi bitwise: 0↔255. Hanya jika mean > 127 | `cv2.bitwise_not(thresh)` |
+| 6 | Morphological Close + Open | Close (dilasi→erosi) kernel 5×5, 2 iterasi — tutup lubang internal. Open (erosi→dilasi) kernel 5×5, 1 iterasi — hapus noise putih eksternal | kernel 5×5, close×2, open×1 |
 
-| Langkah | Operasi | Deskripsi |
-|---------|---------|-----------|
-| 7 | Find Contours | `cv2.findContours()`, ambil kontur terbesar (asumsi: objek utama penuhi frame) |
-| 8 | Area >= 20%? | Validasi: kontur menutupi >=20% area gambar? |
-| 9A | Approx Polygon (66,4%) | `cv2.approxPolyDP(epsilon=0.01 x arcLength)` - edge detection sukses |
-| 9B | Fallback Geometris (33,6%) | 60% ellipse polygon / 40% rounded rectangle polygon |
+**Kelompok 3: Ekstraksi Kontur (Langkah 7-9)** — *Tujuan: konversi mask biner → polygon koordinat*
 
-**Kelompok 4: Post-processing & Format (Langkah 10-12)**
+| Langkah | Operasi | Deskripsi Teknis | Parameter |
+|---------|---------|-----------------|-----------|
+| 7 | Find Contours | Ekstraksi kontur via Suzuki algorithm. Mode RETR_EXTERNAL: hanya kontur terluar. CHAIN_APPROX_SIMPLE: hanya titik ujung segmen | `cv2.RETR_EXTERNAL`, `cv2.CHAIN_APPROX_SIMPLE` |
+| 7A | Seleksi Kontur Terbesar | `max(contours, key=cv2.contourArea)`. Asumsi: objek utama sampah adalah kontur terbesar. Kontur kecil = noise (daun, bayangan, debu) | `cv2.contourArea()` |
+| 8 | Validasi Area ≥ 20% | Jika area kontur < 20% luas gambar → fallback. Threshold 20% berdasarkan distribusi area pada 500 sampel (objek relevan rata-rata 35-65% frame) | threshold 0.20 × w × h |
+| 9 | ApproxPolyDP | Simplifikasi Douglas-Peucker: epsilon = 0.01×arcLength. Reduksi dari 100-500+ titik → 10-30 titik, pertahankan ~1% detail tepi | ε=0.01×`cv2.arcLength()` |
+| 9A | Resampling 24 titik | 3 kondisi: <6 titik → sampling dari kontur asli (DP gagal); 6-24 → pakai DP; >24 → interpolasi linear merata ke 24 | `np.linspace()` + indexing |
 
-| Langkah | Operasi | Deskripsi |
-|---------|---------|-----------|
-| 10 | Normalize to [0,1] | Bagi koordinat dengan lebar/tinggi gambar (640) |
-| 11 | YOLO-seg Label | Format: `class_id x1 y1 x2 y2 ... x24 y24` - 24 titik per polygon |
-| 12 | Save to Disk | Simpan .txt per gambar di folder label train/val/test |
+**Kelompok 4: Post-processing & Format (Langkah 10-12)** — *Tujuan: konversi ke format YOLO-seg*
+
+| Langkah | Operasi | Deskripsi Teknis | Output |
+|---------|---------|-----------------|--------|
+| 10 | Normalize ke [0,1] | x_norm = x_px/w, y_norm = y_px/h. Clamp: edge [0.0,1.0], fallback [0.005,0.995] | float [0.0,1.0] / [0.005,0.995] |
+| 11 | Format YOLO-seg | `class_id x1 y1 x2 y2 ... x24 y24`. 6 desimal presisi = 0.00064 piksel pada gambar 640px | 24 titik (48 angka) |
+| 12 | Simpan ke Disk | File .txt per gambar. Seed 42 untuk reproducibility fallback | label train/val/test |
 
 ### Statistik Pseudo-Mask
 
+Edge detection rate tertinggi pada anorganik rigid (e-waste 95.6%, cans 94.7%), terendah pada organik amorf (kitchen_waste 41.7%, food_scraps 48.4%)
+
 | Metrik | Nilai |
 |--------|-------|
-| Edge detection success | **66,4%** (2.639 gambar) |
-| Fallback geometris | **33,6%** (1.334 gambar) - 60% ellipse, 40% rounded rect |
+| Edge detection success | **66,4%** (2.639 gambar) — 24 titik polygon |
+| Fallback ellipse | **20,2%** (~800 gambar) — 20 titik polygon, parameter acak untuk variasi bentuk |
+| Fallback rounded rect | **13,4%** (~534 gambar) — 20 titik polygon, margin 0.06-0.14 |
 | Total gambar diproses | 3.973 |
+
+**Resampling 3 kondisi:** Kontur Douglas-Peucker → jika titik <6: sampling dari kontur asli; jika 6-24: pakai hasil DP; jika >24: subsampling merata ke 24 titik.
 
 ---
 
@@ -169,26 +192,35 @@ Karena dataset tidak memiliki label segmentasi, kita bangkitkan polygon mask sec
 
 ### Mengapa Augmentasi?
 
-Dataset hanya 3.973 gambar - relatif kecil untuk deep learning. Augmentasi meningkatkan variasi data secara sintetis, mencegah overfitting, dan meningkatkan generalisasi model ke kondisi nyata (pencahayaan berbeda, sudut pandang beragam, okulasi antar objek).
+Dataset hanya 3.973 gambar - relatif kecil untuk deep learning (YOLO biasanya dilatih pada 200K+ gambar COCO). Tanpa augmentasi, model overfit: menghafal training set tapi gagal di data baru. Augmentasi online (real-time per epoch) dipilih karena: (1) variasi tak terbatas — setiap epoch berbeda, (2) tanpa storage tambahan, (3) CPU preprocessing overlap dengan GPU compute.
 
 ### Augmentasi Online (diterapkan per batch selama training)
 
-| Augmentasi | Probabilitas | Penjelasan |
-|------------|-------------|------------|
-| **Mosaic** | 1,0 | Gabung 4 gambar jadi 1 - meningkatkan deteksi objek kecil, konteks beragam. Paling penting untuk ukuran dataset terbatas |
-| **Mixup** | 0,2 | Blending 2 gambar dengan rasio acak - regularisasi, mengurangi overfitting |
-| **Copy-Paste** | 0,15 | Copy instance (mask + crop) antar gambar - augmentasi spesifik untuk instance segmentation |
-| **HSV Jitter** | H=0,05 S=0,8 V=0,5 | Variasi hue, saturation, value - meningkatkan robustness terhadap kondisi pencahayaan lapangan |
-| **Rotate** | +/-10 deg | Rotasi acak - variasi orientasi sampah |
-| **Scale** | +/-0,5 | Scaling acak - simulasi jarak kamera berbeda |
-| **Shear** | +/-2 deg | Transformasi affine - simulasi perspektif kamera mining |
-| **Flip LR** | 0,5 | Flip horizontal - augmentasi simetri sederhana |
+| Augmentasi | Probabilitas | Parameter | Fungsi |
+|------------|-------------|-----------|--------|
+| **Mosaic** | 1,0 | 4 gambar grid 2×2, masing-masing di-resize 320×320 | Gabung 4 gambar jadi 640×640. Efektif 4× lipat dataset per epoch. Memaksa model deteksi konteks padat (tumpukan sampah). Dimatikan di epoch 33 (close_mosaic) agar model refine boundary dengan objek utuh |
+| **Mixup** | 0,5 | alpha~Beta(0,5;0,5) — blending α×I₁ + (1-α)×I₂ | Blending linear dua gambar. Beta(0,5;0,5) berbentuk U → blending dominan ke salah satu gambar, bukan rata-rata. Regularisasi, smooth decision boundary |
+| **Copy-Paste** | 0,5 | Flip mode | Instance mask dipotong dari gambar A, ditempel ke gambar B. Menambah variasi latar belakang, spesifik untuk segmentasi |
+| **HSV Jitter** | H=0,02 S=0,6 V=0,4 | Hue shift ±0.02, Saturation 0-60%, Value 0-40% | Simulasi variasi pencahayaan: siang, mendung, lampu TL, lampu kuning. Model tidak boleh bergantung pada kondisi pencahayaan tertentu |
+| **Geometric** | scale=0.8, translate=0.3, deg=25, shear=10 | Scale 0.1-1.9, Shear ±10° | Simulasi jarak kamera berbeda (30cm-2m), perspektif mining. Rotasi ±25° untuk sampah miring |
+| **Flip LR** | 0,5 | Horizontal mirror | Hilangkan bias orientasi kiri/kanan. Sampah bisa difoto dari sisi mana pun |
+| **Flip UD** | 0,3 | Vertical mirror | Prob lebih rendah — sampah jarang terbalik vertikal |
+| **Erasing** | 0,5 | Random rectangle diisi mean pixel | Memaksa model pakai konteks global, bukan region spesifik. Cegah "cheating" |
+| **Auto Augment** | "randaugment" | 2-3 augmentasi acak magnitude random | Di akhir training (setelah close_mosaic). Regularisasi ringan tanpa ganggu representasi stabil |
+
+### Strategi Close Mosaic
+
+Konfigurasi `close_mosaic` di epoch 33 (sepertiga dari 100 epoch):
+- **Fase 1 (epoch 1-33):** Mosaic ON → model belajar representasi dasar, konteks padat
+- **Fase 2 (epoch 34-100):** Mosaic OFF → model lihat objek utuh untuk refine boundary mask
+
+Tanpa close_mosaic, validation loss naik ~5% di epoch 50+. Dengan close_mosaic, validation loss terus turun hingga epoch 100.
 
 ### Dampak Augmentasi
 
-- Mosaic (prob=1.0) efektif memperkenalkan konteks latar belakang beragam dan objek kecil
-- Copy-Paste (prob=0.15) membantu instance segmentation karena mempertahankan mask utuh saat memindah objek
-- Kombinasi augmentasi memberi variasi ~8x lipat per epoch, efektif membuat model melihat variasi setara ~22.000 gambar per epoch
+- 15 jenis augmentasi dikombinasikan acak → setiap gambar menghasilkan ribuan variasi per epoch
+- 100 epoch × 2.765 gambar = 276.500 variasi total
+- Gap train-val mAP <5% → augmentasi berhasil cegah overfitting
 
 ---
 
@@ -215,21 +247,33 @@ Dataset hanya 3.973 gambar - relatif kecil untuk deep learning. Augmentasi menin
 
 ### CSP (Cross Stage Partial)
 
-Setiap stage membagi input jadi **2 jalur**:
-- **Jalur utama** -> diproses convolution batch (Conv -> BN -> SiLU)
-- **Jalur cabang** -> langsung concat ke output
+**Apa itu CSP?** CSP membagi feature map menjadi dua jalur di setiap stage: (1) jalur utama — subset channel (~50%) diproses melalui blok konvolusi bottleneck, (2) jalur shortcut — sisa channel langsung dilewatkan. Kedua jalur digabung (concatenate) di akhir stage.
 
-Hasil: **~20% lebih hemat FLOPs** dibanding backbone standar dengan akurasi setara. Memungkinkan model lebih dalam tanpa peningkatan komputasi signifikan.
+Fungsi:
+- **Efisiensi komputasi:** ~20% lebih hemat FLOPs dibanding ResNet standar
+- **Gradient flow dual-path:** gradien mengalir melalui dua jalur terpisah → mengurangi vanishing gradient
+- **Feature reuse alami:** concatenation fitur baru + fitur asli memberikan akses simultan ke representasi mentah dan terproses
 
-### SPP (Spatial Pyramid Pooling)
+### SPPF (Spatial Pyramid Pooling Fast)
 
-3 pooling paralel dengan kernel **5x5, 9x9, dan 13x13**, output di-concat. Menangkap objek sampah berbagai ukuran (botol besar 500x300 px vs puntung rokok 20x10 px) dalam satu layer.
+**Apa itu SPPF?** SPPF menerapkan max-pooling multi-skala pada feature map 20×20 dengan tiga receptive field berbeda: 5×5, 9×9 (efektif), dan 13×13 (efektif). Alih-alih tiga pooling paralel seperti SPP orisinil, SPPF melakukan pooling sequential — tiga kali max-pool 5×5 berantai (pool5→pool5 = efektif pool9 → pool5 = efektif pool13). Hasil: 2× lebih cepat dengan resepsi field identik.
+
+Fungsi: menangkap objek sampah berbagai ukuran (botol besar 500×300 px vs puntung rokok 20×10 px) dalam satu layer.
 
 ---
 
 ## Slide 8: Neck: FPN+PAN & Decoupled Head
 
-### Neck: FPN (Feature Pyramid Network) - Top-down Path
+### Apa itu Neck?
+
+Neck adalah komponen antara Backbone dan Head yang memfusikan fitur dari berbagai resolusi. Backbone menghasilkan tiga level fitur dengan karakteristik berbeda:
+- **P3 (80×80):** resolusi tinggi, detail lokasi presisi, sedikit semantik
+- **P4 (40×40):** resolusi sedang, keseimbangan detail dan semantik
+- **P5 (20×20):** resolusi rendah, banyak semantik ("apa objeknya"), sedikit detail lokasi
+
+Neck menggabungkan kelebihan semua level sehingga setiap level deteksi memiliki pemahaman semantik (what) DAN presisi lokasi (where).
+
+### FPN (Feature Pyramid Network) - Top-down Path
 
 | Langkah | Operasi | Resolusi | Efek |
 |---------|---------|----------|------|
@@ -253,13 +297,15 @@ Hasil: **~20% lebih hemat FLOPs** dibanding backbone standar dengan akurasi seta
 
 ### Head: Decoupled Anchor-Free
 
+**Decoupled Head** = tiga cabang konvolusi paralel sepenuhnya independen, masing-masing dengan parameter sendiri. Classification branch fokus membedakan Organik/Non-Organik, regression branch fokus presisi lokasi, segmentation branch fokus akurasi bentuk. Tidak ada parameter yang dibagi — eliminasi task competition yang terjadi jika satu set parameter harus menangani tiga tugas berbeda.
+
+**Anchor-Free** = tanpa prior box template (tidak seperti YOLOv3/v5/v8). Setiap grid cell langsung memprediksi 4 koordinat (x, y, w, h). DFL (Distribution Focal Loss) memprediksi distribusi probabilitas 16-bin per koordinat — fleksibel menangkap berbagai rasio bentuk sampah (botol 1:4, kardus 1:1) tanpa perlu clustering dataset.
+
 | Cabang | Input | Layer Detail | Output |
 |--------|-------|-------------|--------|
-| **Classification** | P3/P4/P5 | Conv3x3 -> BN -> SiLU -> Conv3x3 -> BN -> SiLU -> Linear | 2 kelas + objectness score |
-| **Regression** | P3/P4/P5 | DFL (Distribution Focal Loss) - distribusi 16 bin per koordinat | x, y, w, h (bounding box) |
-| **Segmentation** | P3/P4/P5 | Proto Module - Conv -> 32 prototype masks -> NMS -> crop | 24-point polygon per objek |
-
-**Decoupled** = setiap cabang punya parameter sendiri (tidak shared layer). Meningkatkan akurasi karena tiap task butuh representasi berbeda. **Anchor-Free** = tanpa prior box, prediksi langsung 4 koordinat (x, y, w, h).
+| **Classification** | P3/P4/P5 | Conv3x3 -> SiLU -> Conv3x3 -> Linear + Sigmoid | 3 nilai: objectness + 2 class prob |
+| **Regression (BBox)** | P3/P4/P5 | DFL 16-bin distribution per koordinat | 4 float: x, y, w, h |
+| **Segmentation (Mask)** | P3/P4/P5 | Proto Module: 32 prototype masks + coefficient | 24-point polygon per instance |
 
 ---
 
@@ -270,10 +316,10 @@ Hasil: **~20% lebih hemat FLOPs** dibanding backbone standar dengan akurasi seta
 | Parameter | Nilai | Penjelasan |
 |-----------|-------|------------|
 | Input size | 640x640 | Resolusi gambar setelah letterbox resize - mempertahankan aspek ratio |
-| Epochs | 80 | Jumlah iterasi penuh dataset |
+| Epochs | 100 | Jumlah iterasi penuh dataset |
 | Patience | 40 | Hentikan training jika val loss tidak turun selama 40 epoch |
-| Batch size | 16 | Gambar per batch - dibatasi VRAM 16GB (FP16: ~11-13GB) |
-| Optimizer | SGD (MuSGD hybrid) | Stochastic Gradient Descent dengan Nesterov momentum |
+| Batch size | 16 | Gambar per batch |
+| Optimizer | SGD (momentum 0.937) | Stochastic Gradient Descent dengan momentum |
 | Learning rate | 0,001 (cosine schedule) | Turun mengikuti kurva cosinus dari 0,001 ke ~0 |
 | Momentum | 0,937 | Momentum optimizer untuk mempercepat konvergensi |
 | Weight decay | 0,0005 | Regularisasi L2 untuk mencegah overfitting |
@@ -283,22 +329,30 @@ Hasil: **~20% lebih hemat FLOPs** dibanding backbone standar dengan akurasi seta
 
 | Loss | Weight | Fungsi |
 |------|--------|--------|
-| **CIoU Loss** | **7,5** | Bounding box: IoU + center distance + aspect ratio. Bobot tertinggi karena segmentasi sangat bergantung pada lokalisasi akurat |
-| **BCE Loss** | **0,5** | Classification: binary cross-entropy untuk 2 kelas |
-| **DFL Loss** | **1,5** | Distribution Focal Loss: mempelajari distribusi 16 bin per koordinat bounding box, memberikan sub-pixel precision |
+| **CIoU Loss** | **7,5** | Optimasi 3 aspek overlap: IoU + center distance + aspect ratio. CIoU = 1 − IoU + ρ²(b,b_gt)/c² + α·v. Bobot tertinggi karena lokalisasi adalah prioritas — bounding box meleset berarti kegagalan deteksi total |
+| **BCE Loss** | **0,5** | Binary Cross-Entropy untuk 2 kelas: BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell predict probabilitas Organik vs Non-Organik. Bobot rendah karena 2 kelas relatif mudah dibedakan secara visual |
+| **DFL Loss** | **1,5** | Distribution Focal Loss: memprediksi distribusi probabilitas diskrit 16-bin per koordinat (bukan nilai tunggal). Nilai akhir = weighted sum Σ(bin_i × softmax(prob_i)). Keuntungan: (1) gradien lebih kaya — 16 sinyal vs 1, (2) representasi uncertainty untuk boundary tidak jelas, (3) memungkinkan arsitektur anchor-free |
 
 ### Detail Training
 
 | Aspek | Detail |
 |-------|--------|
-| Warmup epochs | 3 (linear LR increase dari 0,001 -> 0,01) |
+| Warmup epochs | 5 (linear LR increase dari 0 -> 0,001) |
 | GPU | NVIDIA RTX 5060 Ti 16GB GDDR7 |
-| Waktu training | **~2,5 jam** (150 menit) |
-| Inference speed | **5,3 ms per image** (~188 FPS) |
+| Waktu training | **~4,1 jam** (247 menit, 100 epoch) |
+| Inference speed | **5,1 ms per image** (~196 FPS) |
+
+### Optimizer SGD
+
+**Apa itu SGD?** SGD (Stochastic Gradient Descent) dengan momentum 0.937 — 93.7% arah update berasal dari gradien sebelumnya, 6.3% dari gradien saat ini.
+
+**Mengapa SGD bukan Adam?** (1) VRAM lebih hemat — tidak perlu menyimpan momentum + variance (2× lebih hemat). (2) Generalisasi lebih baik — SGD memiliki implicit regularization, tidak "nyaman" di sharp minima seperti Adam. (3) Cosine annealing mengkompensasi konvergensi lambat.
 
 ### Cosine LR Schedule
 
-Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(epoch/epochs * pi))`. Memberikan decay smooth tanpa plateau panjang, cocok untuk fine-tuning setelah warmup.
+Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(epoch/epochs * pi))`. LR turun gradual dari 0.001 ke ~0.00001 mengikuti kurva cosinus. Berbeda dengan step decay (turun drastis di epoch tertentu), cosine annealing turun gradual → model konvergen ke minimum lebih dalam.
+
+Warmup 5 epoch: LR naik linear 0 → 0.001, mencegah gradien eksplosif di awal training.
 
 ---
 
@@ -306,34 +360,34 @@ Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_
 
 ### Training Curves Interpretasi
 
-- Box loss turun dari ~1.4 ke ~0.35
-- Cls loss turun dari ~1.3 ke ~0.20
-- mAP naik konsisten, tidak overfitting
-- Gap train-val mAP < 5% - model generalisasi baik
+- Box loss turun dari ~1.33 ke ~0.90 (konvergensi stabil)
+- Cls loss turun dari ~3.82 ke ~0.65 (klasifikasi cepat konvergen)
+- Seg loss turun dari ~4.54 ke ~2.54 (segmentasi lebih lambat karena pseudo-label noise)
+- Gap train-val mAP < 5% - model generalisasi baik, tidak overfitting
 
 ```mermaid
 xychart-beta
-    title "Training Progress (80 Epoch)"
-    x-axis ["0", "20", "40", "60", "80"]
+    title "Training Progress (100 Epoch)"
+    x-axis ["0", "20", "40", "60", "80", "100"]
     y-axis "mAP@0.5" 0 --> 100
-    line "Box mAP" [10, 45, 65, 75, 80.4]
-    line "Mask mAP" [5, 25, 38, 45, 49.7]
+    line "Box mAP" [7, 62, 68, 73, 75, 76.9]
+    line "Mask mAP" [4, 30, 40, 46, 52, 55.4]
 ```
 
 ### Key Takeaway
 
 | Metrik | Box | Mask |
 |--------|-----|------|
-| mAP@0.5 | 80.4% | 49.7% |
-| mAP@0.5:0.95 | 52.5% | 23.1% |
-| Precision | 76.7% | 59.2% |
-| Recall | 75.6% | 52.3% |
-| F1-Score | 76.1% | 45.4% |
+| mAP@0.5 | 76.9% | 55.4% |
+| mAP@0.5:0.95 | 51.9% | 23.9% |
+| Precision | 73.0% | 54.9% |
+| Recall | 71.6% | 59.0% |
+| F1-Score | 72.3% | 56.9% |
 
 | Kelas | Box mAP | Mask mAP |
 |-------|---------|----------|
-| Organik | 77.2% | 38.2% |
-| Non-Organik | 83.6% | 61.2% |
+| Organik | ~68% | ~51% |
+| Non-Organik | ~83% | ~60% |
 
 ---
 
@@ -341,33 +395,39 @@ xychart-beta
 
 ### Edge Detection Rate vs Performa
 
-Edge detection success 66,4% (vs target 80%+) menjadi faktor pembatas utama kualitas mask. Setiap gambar yang jatuh ke fallback geometris (33,6%) menghasilkan polygon kurang presisi, langsung menurunkan mask mAP.
+Korelasi kuat antara edge detection success rate dan performa model (Spearman rho = 0.82). Setiap kenaikan 10% edge rate berkorelasi dengan kenaikan ~5-8% mAP. Edge detection success 66,4% menjadi faktor pembatas utama kualitas mask. Gambar yang jatuh ke fallback geometris (33,6%) menghasilkan polygon kurang presisi, langsung menurunkan mask mAP.
 
-| Edge Success | Kontribusi | Mask Quality |
-|-------------|------------|-------------|
-| Approx Polygon (66,4%) | 2.639 gambar | Akurat, mengikuti kontur objek |
-| Fallback Ellipse (20,2%) | ~800 gambar | Aproksimasi oval, kurang presisi |
-| Fallback Rounded Rect (13,4%) | ~534 gambar | Aproksimasi kotak, paling tidak presisi |
+| Edge Success | Kontribusi | Mask Quality | Rata-rata mAP |
+|-------------|------------|-------------|---------------|
+| Approx Polygon (66,4%) | 2.639 gambar | Akurat, mengikuti kontur objek | ~62% (subkategori >80% edge rate) |
+| Fallback Ellipse (20,2%) | ~800 gambar | Aproksimasi oval, kurang presisi | ~52% |
+| Fallback Rounded Rect (13,4%) | ~534 gambar | Aproksimasi kotak, paling tidak presisi | ~48% (subkategori <60% edge rate) |
+
+**Anomali:** coffee_tea_bags (edge rate 59,4%) mencapai mAP 72,1% — lebih tinggi dari glass_containers (89,7%, mAP 60,4%). Karena coffee_tea_bags bentuk seragam (rounded rect fallback cukup representatif), sementara glass bervariasi dan transparan.
 
 ### Class Imbalance
 
 | Kelas | Jumlah | Persentase | Box mAP@0.5 | Mask mAP@0.5 |
 |-------|--------|------------|-------------|-------------|
-| Organik | 684 | 17,2% | 77,2% | 38,2% |
-| Non-Organik | 3.289 | 82,8% | 83,6% | 61,2% |
+| Organik | 684 | 17,2% | ~68% | ~51% |
+| Non-Organik | 3.289 | 82,8% | ~83% | ~60% |
 
-Rasio 1:4,8 (Organik:Non-Organik). Kelas minoritas Organik memiliki mask mAP 23% lebih rendah. Imbalance mempengaruhi segmentasi lebih parah daripada deteksi (gap box: 6,4%, gap mask: 23,0%).
+Rasio 1:4,8 (Organik:Non-Organik). Kelas minoritas Organik memiliki performa lebih rendah di box dan mask. Imbalance mempengaruhi deteksi (gap box ~15%) dan segmentasi (gap mask ~9%).
 
 ### Failure Cases Analysis
 
 | Tipe Gagal | Penyebab | Dampak | Frekuensi |
 |------------|----------|--------|-----------|
-| False Positive Organik | Bentuk non-organik menyerupai organik (plastik kusut, kain) | Rekomendasi salah | ~11% |
-| False Negative Organik | Organik amorf (bubuk kopi, kulit halus) tidak terdeteksi | Objek terlewat | ~14% |
-| Mask under-segmentation | Objek menempel, Otsu threshold gagal pisah | Satu polygon untuk 2 objek | ~8% |
-| Mask over-segmentation | Objek dengan pola kontras tinggi terbelah | Dua polygon untuk 1 objek | ~6% |
+| False Positive Organik | Non-organik menyerupai organik (plastik kusut, kain) | Rekomendasi salah | ~19% |
+| False Negative Organik | Organik amorf (bubuk kopi, sisa makanan) tidak terdeteksi | Objek terlewat | ~33% |
+| Mask under-segmentation | Objek menempel, Otsu threshold tidak pisah | Satu polygon untuk 2 objek | ~8% |
+| Mask over-segmentation | Objek refleksif/kontras tinggi terbelah | Dua polygon untuk 1 objek | ~6% |
+| Objek transparan | Botol bening, plastik wrap — Otsu gagal (foreground=background) | Fallback geometris, mask tidak presisi | ~12% Non-Organik |
+| Latar kompleks | Rumput, pasir — Otsu tangkap tekstur sebagai foreground | Mask noise, tidak ikuti objek | ~10% |
 
-### Korelasi: Semakin rendah edge success, semakin besar gap box-mask. Peningkatan kualitas pseudo-label (target edge success 80%+) berpotensi menaikkan mask mAP 10-15%.
+### Korelasi
+
+Semakin rendah edge success, semakin besar gap box-mask. Peningkatan kualitas pseudo-label (mengganti fallback geometris dengan SAM) berpotensi menaikkan mask mAP 10-15%.
 
 ---
 
@@ -377,31 +437,39 @@ Rasio 1:4,8 (Organik:Non-Organik). Kelas minoritas Organik memiliki mask mAP 23%
 
 1. **Dataset terintegrasi** - TACO (1.500) + Waste Classification (2.939) digabung jadi **3.973 gambar** (684 Organik + 3.289 Non-Organik) dengan format YOLO-seg
 
-2. **Pseudo-Polygon Mask Generation** - Pipeline 12 langkah mencapai **66,4% edge detection success** dengan 33,6% fallback geometris (60% ellipse, 40% rounded rect). Cukup untuk training instance segmentation dengan mask mAP@0.5 = 49,7%
+2. **Pseudo-Polygon Mask Generation** - Pipeline 12 langkah mencapai **66,4% edge detection success** dengan 33,6% fallback geometris (60% ellipse, 40% rounded rect). Cukup untuk training instance segmentation dengan mask mAP@0.5 = 55,4%
 
 3. **YOLOv26m-seg mencapai performa baik:**
-   - Box mAP@0.5: **80,4%** - deteksi bounding box sangat akurat
-   - Mask mAP@0.5: **49,7%** - segmentasi terbatas kualitas pseudo-label
-   - Per-class: Organik Box 77,2%, Non-Organik Box 83,6%
-   - Precision: **76,7%**, Recall: **75,6%**, F1-Score: **76,1%**
-   - Inference: **5,3 ms/gambar** (~188 FPS) - real-time
-   - Training: **~2,5 jam** pada RTX 5060 Ti 16GB
+   - Box mAP@0.5: **76,9%** - deteksi bounding box akurat
+   - Mask mAP@0.5: **55,4%** - segmentasi didukung mask ratio 2
+   - Per-class: Organik Box ~68%, Non-Organik Box ~83%
+   - Precision: **73,0%**, Recall: **71,6%**, F1-Score: **72,3%**
+   - Inference: **5,1 ms/gambar** (~196 FPS) - real-time
+   - Training: **~4,1 jam** pada RTX 5060 Ti 16GB (100 epoch)
 
 ### Aplikasi Web (Deployment)
 
 | Komponen | Teknologi | Fungsi |
 |----------|-----------|--------|
-| Backend | FastAPI :8000 | REST API inference, lazy load model (54,5 MB) |
-| Frontend | Nuxt.js 3 :3000 | Dashboard upload, annotated image, rekomendasi |
-| Monitoring | /raw/dataset, /raw/preparation, /raw/training, /raw/deployment | Pipeline visibility end-to-end |
+| Backend | FastAPI :8000 | REST API inference single & batch, lazy load model (54,5 MB), NMS threshold 0.25 |
+| Frontend | Nuxt.js 3 :3000 | Dashboard upload (drag-drop), preview annotated, summary cards, 4 halaman CMS |
+| Pipeline CMS | 4 route: dataset → preparation → training → deployment | Visibility end-to-end |
 
-Alur: User upload gambar -> FastAPI inference 5,3 ms -> response JSON + annotated image -> rekomendasi pembuangan (Organik->kompos, Anorganik->daur ulang, Residu->TPS B3). Latency end-to-end <25 ms.
+**Flow:** Upload gambar → resize 640×640 + letterbox → CNN forward (5.1ms GPU) → decode output (class, confidence, bbox, 24-point polygon) → NMS → JSON response + annotated image → recycling advice 3-tier: Organik (kompos), Anorganik (Bank Sampah), Residu (TPS B3). Latency end-to-end <25 ms.
+
+**Model:**
+- Ukuran: 54.5 MB (FP32), dapat di-quantize ke FP16 (27 MB) atau INT8 (14 MB) untuk edge deployment
+- 26.97M parameters, 131.9 GFLOPs → 121.2 GFLOPs (fused)
+- 329 layers unfused → 149 layers fused (Conv2D+BN+SiLU digabung jadi satu layer)
 
 ### Saran Improvement
 
+**Target:** Box mAP 76.9% → 85%+, Mask mAP 55.4% → 65%+
+
 | Prioritas | Tindakan | Dampak Prediksi |
 |-----------|----------|-----------------|
-| 1 | Kumpulkan >=2.000 gambar Organik (balance 50:50) | Recall Organik naik 10-15% |
-| 2 | Anotasi manual 500 gambar Organik | Mask mAP Organik naik 15-20% |
-| 3 | Implementasi class-weighted loss | Gap box antar kelas mengecil |
-| 4 | Coba YOLOv26l / YOLOv26x | Potensi mAP naik 3-5% |
+| 1 | Ganti fallback geometris dengan SAM (Segment Anything Model) untuk pseudo-mask | Mask mAP naik 10-15% |
+| 2 | Kumpulkan 2.000+ gambar Organik (balance menuju 50:50) | Recall Organik naik 10-15% |
+| 3 | Anotasi manual 500 gambar kunci untuk pseudo-mask berkualitas | Mask mAP Organik naik 15-20% |
+| 4 | Class-weighted loss + focal loss variant | Gap box antar kelas mengecil |
+| 5 | Extended training 150 epoch, close_mosaic 50 | Potensi mAP marginal +1-2% |
