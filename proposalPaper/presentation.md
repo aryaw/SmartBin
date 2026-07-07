@@ -275,6 +275,7 @@ Backbone bertanggung jawab mengekstraksi fitur visual secara hierarkis dari gamb
 
 ### Arsitektur 3-Komponen Utama
 
+
 | Komponen | Fungsi | Output |
 |----------|--------|--------|
 | **Backbone: CSPDarknet** | Ekstraksi fitur bertahap dari gambar input | 4 skala fitur map (P3/P4/P5) |
