@@ -51,9 +51,9 @@ Pipeline penelitian ini terdiri dari 5 subgraph utama yang merepresentasikan alu
 
 #### D. Evaluation - Metrics
 
-****Node L** - "Box mAP@0.5: 76.9%, Mask mAP@0.5: 55.4%": Evaluasi pada test set menggunakan metrik COCO. Box mAP@0.5 76.9% — deteksi bounding box cukup akurat. Box mAP@0.5:0.95 51.9% — konsisten. Mask mAP@0.5 55.4% — didukung mask ratio 2 dan overlap mask aktif. Precision 73.0% menunjukkan proporsi prediksi benar terhadap total. Recall 71.6% menunjukkan proporsi objek nyata terdeteksi. F1-Score 72.3%.
+****Node L** - "Box mAP@0.5: 76.9%, Mask mAP@0.5: 55.4%": Evaluasi pada test set menggunakan metrik COCO. Box mAP@0.5 76.9% - deteksi bounding box cukup akurat. Box mAP@0.5:0.95 51.9% - konsisten. Mask mAP@0.5 55.4% - didukung mask ratio 2 dan overlap mask aktif. Precision 73.0% menunjukkan proporsi prediksi benar terhadap total. Recall 71.6% menunjukkan proporsi objek nyata terdeteksi. F1-Score 72.3%.
 
-**Node M** - "Organik: ~68%, Non-Organik: ~83%": Non-Organik (Box mAP ~83%, Mask mAP ~60%) unggul dari Organik (Box mAP ~68%, Mask mAP ~51%). Gap Box mAP ~15% — dipengaruhi class imbalance (Organik 684 vs Non-Organik 3.289, rasio 1:4.8). Gap Mask mAP ~9% — mask ratio 2 meningkatkan kualitas segmentasi kedua kelas. Bentuk organik amorf (sisa makanan, daun) tetap menjadi tantangan utama.
+**Node M** - "Organik: ~68%, Non-Organik: ~83%": Non-Organik (Box mAP ~83%, Mask mAP ~60%) unggul dari Organik (Box mAP ~68%, Mask mAP ~51%). Gap Box mAP ~15% - dipengaruhi class imbalance (Organik 684 vs Non-Organik 3.289, rasio 1:4.8). Gap Mask mAP ~9% - mask ratio 2 meningkatkan kualitas segmentasi kedua kelas. Bentuk organik amorf (sisa makanan, daun) tetap menjadi tantangan utama.
 
 **Aliran data:** Model terbaik dari training dievaluasi pada test set menghasilkan metrik box dan mask. Analisis per-kelas menunjukkan performa lebih tinggi pada Non-Organik.
 
@@ -288,11 +288,11 @@ Pipeline merge membaca seluruh gambar dari kedua sumber, mendeteksi struktur fol
 
 **Apa itu Stratified Split?**
 
-Stratified split adalah teknik pembagian dataset yang mempertahankan proporsi kelas asli di setiap subset (train/val/test). Untuk dataset tidak seimbang, stratified split memastikan setiap subset mewakili distribusi populasi secara proporsional — menghindari subset dengan dominasi kelas mayoritas yang bias.
+Stratified split adalah teknik pembagian dataset yang mempertahankan proporsi kelas asli di setiap subset (train/val/test). Untuk dataset tidak seimbang, stratified split memastikan setiap subset mewakili distribusi populasi secara proporsional - menghindari subset dengan dominasi kelas mayoritas yang bias.
 
 **Mekanisme: Sampling per Kelas**
 
-Stratified split bekerja dengan melakukan sampling acak secara TERPISAH dalam setiap kelas, lalu menggabungkan potongan-potongan tersebut ke masing-masing subset. Dengan cara ini, rasio kelas di train set, val set, dan test set identik — sama persis dengan rasio dataset asli.
+Stratified split bekerja dengan melakukan sampling acak secara TERPISAH dalam setiap kelas, lalu menggabungkan potongan-potongan tersebut ke masing-masing subset. Dengan cara ini, rasio kelas di train set, val set, dan test set identik - sama persis dengan rasio dataset asli.
 
 **Ilustrasi Algoritma:**
 
@@ -315,11 +315,11 @@ Hasil akhir: rasio Organik di setiap subset = 17.20–17.22%, identik dengan dat
 
 Fungsi `train_test_split` dari scikit-learn hanya mendukung satu kali split (train/test). Untuk tiga subset (train/val/test), stratified split dilakukan dalam dua tahap:
 
-**Tahap 1 (70/30):** `train_test_split(data, test_size=0.30, stratify=cls_ids, random_state=42)` — parameter `stratify=cls_ids` menerima array label untuk 18 subkategori (bukan hanya kelas biner Organik/Non-Organik). Scikit-learn menghitung frekuensi setiap subkategori, lalu melakukan sampling dalam setiap subkategori secara proporsional ke train set (70%) dan temp set (30%).
+**Tahap 1 (70/30):** `train_test_split(data, test_size=0.30, stratify=cls_ids, random_state=42)` - parameter `stratify=cls_ids` menerima array label untuk 18 subkategori (bukan hanya kelas biner Organik/Non-Organik). Scikit-learn menghitung frekuensi setiap subkategori, lalu melakukan sampling dalam setiap subkategori secara proporsional ke train set (70%) dan temp set (30%).
 
-**Tahap 2 (50/50 dari sisa 30%):** `train_test_split(temp, test_size=0.50, stratify=temp_cls_ids, random_state=42)` — sisa 30% data dipecah menjadi dua bagian sama besar: validation (15%) dan test (15%). Stratifikasi tetap berdasarkan 18 subkategori.
+**Tahap 2 (50/50 dari sisa 30%):** `train_test_split(temp, test_size=0.50, stratify=temp_cls_ids, random_state=42)` - sisa 30% data dipecah menjadi dua bagian sama besar: validation (15%) dan test (15%). Stratifikasi tetap berdasarkan 18 subkategori.
 
-**Mengapa stratify dengan 18 subkategori, bukan 2 kelas biner?** Stratifikasi per subkategori memberikan jaminan distribusi yang lebih ketat. Jika hanya stratify berdasarkan Organik/Non-Organik, distribusi subkategori DALAM setiap kelas bisa menyimpang — misalnya val set kelebihan subkategori "Kaca" dan kekurangan "Plastik" meskipun total Non-Organik tetap 82.8%. Dengan 18 subkategori, komposisi fine-grade identik di semua subset.
+**Mengapa stratify dengan 18 subkategori, bukan 2 kelas biner?** Stratifikasi per subkategori memberikan jaminan distribusi yang lebih ketat. Jika hanya stratify berdasarkan Organik/Non-Organik, distribusi subkategori DALAM setiap kelas bisa menyimpang - misalnya val set kelebihan subkategori "Kaca" dan kekurangan "Plastik" meskipun total Non-Organik tetap 82.8%. Dengan 18 subkategori, komposisi fine-grade identik di semua subset.
 
 ---
 
@@ -334,7 +334,7 @@ Fungsi `train_test_split` dari scikit-learn hanya mendukung satu kali split (tra
 
 Per-kelas: Organik → 476 train + 102 val + 102 test = 680. Non-Organik → 2.289 train + 491 val + 491 test = 3.271. Proporsi Organik identik di semua subset (17.20–17.22%) vs total (17.21%).
 
-Setiap subset memiliki peran spesifik: **training set** (2.765 gambar) untuk optimasi parameter model via backpropagation; **validation set** (593 gambar) untuk early stopping, hyperparameter tuning, dan monitoring overfitting; **test set** (593 gambar) untuk evaluasi final performa generalisasi — hanya digunakan satu kali di akhir. Seed 42 menjamin bahwa hasil split dapat direproduksi kapan saja, memungkinkan perbandingan model secara fair antar percobaan.
+Setiap subset memiliki peran spesifik: **training set** (2.765 gambar) untuk optimasi parameter model via backpropagation; **validation set** (593 gambar) untuk early stopping, hyperparameter tuning, dan monitoring overfitting; **test set** (593 gambar) untuk evaluasi final performa generalisasi - hanya digunakan satu kali di akhir. Seed 42 menjamin bahwa hasil split dapat direproduksi kapan saja, memungkinkan perbandingan model secara fair antar percobaan.
 
 ---
 
@@ -382,7 +382,7 @@ Pada gambar 640x480, bounding box objek sampah memiliki pojok kiri-atas di (120,
 
 **Apa masalahnya?** Dataset Waste Classification dari Kaggle hanya berupa folder-folder berisi gambar, TANPA anotasi sama sekali. Tidak ada bounding box, tidak ada polygon. YOLO-seg butuh polygon 24 titik. Jadi kita harus BIKIN polygon dari gambar mentah.
 
-**Langkah 1: Mode Color Conversion — Kenapa perlu?**
+**Langkah 1: Mode Color Conversion - Kenapa perlu?**
 
 Gambar dari internet bisa punya berbagai "mode warna":
 - **RGB**: 3 channel (Merah, Hijau, Biru). Standar. ✅
@@ -396,21 +396,21 @@ Gambar dari internet bisa punya berbagai "mode warna":
 - Mode P (Palette 8-bit): indeks warna diekspansi ke nilai RGB penuh
 - Mode L (Grayscale 1 channel): nilai intensitas di-copy 3 kali ke channel R, G, B
 
-**Langkah 2: Extension Normalization — Kenapa perlu?**
+**Langkah 2: Extension Normalization - Kenapa perlu?**
 
 File gambar bisa berekstensi png, jpg, jpeg, bmp, webp. YOLO lebih stabil dengan format jpg. Semua dikonversi ke format JPG dengan kualitas 95 persen (hampir lossless, agar kualitas tidak turun).
 
-**Langkah 3: Sequential Renaming — Kenapa perlu?**
+**Langkah 3: Sequential Renaming - Kenapa perlu?**
 
 Nama file asli dari Kaggle bisa kacang (spasi, karakter khusus, nama panjang). Lebih aman memberi nama ulang dengan format nama_split_diikuti_lima_digit_nomor_urut, misal train_00001, val_00042, test_00099. Lima digit bisa menampung 99.999 gambar per split.
 
 5 digit = bisa tampung 99.999 gambar per split. Jauh lebih dari cukup.
 
-**Langkah 4: Pseudo-mask generation — 3 Metode Berantai**
+**Langkah 4: Pseudo-mask generation - 3 Metode Berantai**
 
 Lihat penjelasan lengkap di Slide 5 (Pseudo-Mask Pipeline).
 
-**Langkah 5: Polygon Format — Seperti apa bentuknya?**
+**Langkah 5: Polygon Format - Seperti apa bentuknya?**
 
 YOLO-seg menyimpan polygon bukan sebagai kumpulan piksel, tapi sebagai daftar koordinat (x,y) yang membentuk segi banyak (polygon).
 
@@ -424,7 +424,7 @@ Artinya:
 
 **Visual:** Titik-titik polygon membentuk segitiga pada gambar: titik 1 di koordinat (0.25, 0.30), titik 2 di (0.45, 0.35), dan titik 3 di (0.30, 0.50). Semua koordinat ternormalisasi antara 0 dan 1.
 
-**Langkah 6: Randomized vs Deterministic — Kenapa beda?**
+**Langkah 6: Randomized vs Deterministic - Kenapa beda?**
 
 Untuk **training set**: parameter fallback di-acak agar model melihat variasi mask yang berbeda tiap kali training diulang. Ini bentuk augmentasi data untuk segmentasi.
 
@@ -434,15 +434,15 @@ Untuk **validation/test set**: parameter fallback TETAP (deterministic) agar eva
 
 Selain gambar dan label, pipeline menghasilkan dua file konfigurasi:
 
-**data.yaml** — file konfigurasi yang memberitahu YOLO lokasi folder train, val, test serta jumlah kelas (2 kelas: Organik dan Non-Organik).
+**data.yaml** - file konfigurasi yang memberitahu YOLO lokasi folder train, val, test serta jumlah kelas (2 kelas: Organik dan Non-Organik).
 
-**class_names.json** — file metadata yang menyimpan jumlah kelas (2) dan nama kelas (Organik dan Non-Organik) untuk keperluan aplikasi frontend.
+**class_names.json** - file metadata yang menyimpan jumlah kelas (2) dan nama kelas (Organik dan Non-Organik) untuk keperluan aplikasi frontend.
 
 ---
 
 **Normalisasi Koordinat:**
 
-**Apa itu normalisasi?** Normalisasi mengubah koordinat dari satuan piksel absolut (bergantung resolusi) menjadi nilai relatif 0.0–1.0 (independen resolusi). Contoh: titik x=320px pada gambar lebar 640px menjadi 0.5. Tujuannya: jika gambar di-resize ke resolusi berbeda saat training (YOLO secara internal me-resize ke 640x640), koordinat polygon tetap valid karena sudah dalam bentuk persentase — tidak perlu konversi ulang.
+**Apa itu normalisasi?** Normalisasi mengubah koordinat dari satuan piksel absolut (bergantung resolusi) menjadi nilai relatif 0.0–1.0 (independen resolusi). Contoh: titik x=320px pada gambar lebar 640px menjadi 0.5. Tujuannya: jika gambar di-resize ke resolusi berbeda saat training (YOLO secara internal me-resize ke 640x640), koordinat polygon tetap valid karena sudah dalam bentuk persentase - tidak perlu konversi ulang.
 
 **Rumus:**
 ```
@@ -452,7 +452,7 @@ y_norm = y_pixel / height_image
 
 Nilai x_norm dan y_norm selalu berada di [0.0, 1.0], merepresentasikan posisi relatif terhadap lebar dan tinggi gambar. Inversinya: `x_pixel = x_norm × width_image`.
 
-**Mengapa YOLO menggunakan koordinat ternormalisasi?** YOLO memproses batch gambar dengan resolusi seragam (640x640) melalui letterboxing. Karena koordinat sudah ternormalisasi, proses resize dan padding tidak memerlukan transformasi koordinat ulang — YOLO cukup mengalikan dengan resolusi target. Tanpa normalisasi, setiap resize membutuhkan transformasi koordinat manual yang rawan error.
+**Mengapa YOLO menggunakan koordinat ternormalisasi?** YOLO memproses batch gambar dengan resolusi seragam (640x640) melalui letterboxing. Karena koordinat sudah ternormalisasi, proses resize dan padding tidak memerlukan transformasi koordinat ulang - YOLO cukup mengalikan dengan resolusi target. Tanpa normalisasi, setiap resize membutuhkan transformasi koordinat manual yang rawan error.
 
 **Contoh Konkret:**
 
@@ -464,14 +464,14 @@ Jika gambar di-resize ke 320×240 (setengah resolusi):
 - Nilai normalisasi tetap 0.5000 (tidak berubah)
 - Piksel aktual setelah resize: x = 0.5 × 320 = 160px (tepat di tengah gambar baru)
 
-**Presisi 6 desimal:** Semua koordinat disimpan dengan 6 angka di belakang koma untuk menjaga akurasi sub-piksel. Pada gambar 640px, 6 desimal = presisi 640 / 10⁶ = 0.00064 piksel — jauh di bawah 1 piksel, lebih dari cukup untuk segmentasi.
+**Presisi 6 desimal:** Semua koordinat disimpan dengan 6 angka di belakang koma untuk menjaga akurasi sub-piksel. Pada gambar 640px, 6 desimal = presisi 640 / 10⁶ = 0.00064 piksel - jauh di bawah 1 piksel, lebih dari cukup untuk segmentasi.
 
 **Dua Jenis Clamping**
 
 Pipeline menerapkan dua strategi clamping berbeda untuk dua code path terpisah (lihat `kaggle_service.py`):
 
 **Edge detection → clamp [0.0, 1.0]**
-Polygon dari edge detection menggunakan rentang penuh [0.0, 1.0]. Kontur hasil edge detection sah-sah saja menyentuh batas gambar — objek seperti botol atau kardus yang memenuhi bingkai menghasilkan kontur di tepi gambar. Koordinat 0.0 (tepi kiri/atas) atau 1.0 (tepi kanan/bawah) adalah nilai valid. Tidak ada clipping di dalam rentang ini.
+Polygon dari edge detection menggunakan rentang penuh [0.0, 1.0]. Kontur hasil edge detection sah-sah saja menyentuh batas gambar - objek seperti botol atau kardus yang memenuhi bingkai menghasilkan kontur di tepi gambar. Koordinat 0.0 (tepi kiri/atas) atau 1.0 (tepi kanan/bawah) adalah nilai valid. Tidak ada clipping di dalam rentang ini.
 
 **Fallback ellipse/rect → clamp [0.005, 0.995]**
 Fallback polygon (ellipse atau rectangle, digunakan saat edge detection gagal) sengaja di-inset 0.5% dari tepi gambar. Koordinat di-clamp ke [0.005, 0.995], bukan [0.0, 1.0]. Alasannya: jika polygon menyentuh koordinat 0.0 atau 1.0 persis, YOLO dapat menghasilkan error numerik saat menghitung loss segmentasi (division-by-zero atau gradien explosion pada boundary). Inset 0.5% memberikan buffer aman tanpa mengubah bentuk polygon secara kasatmata.
@@ -504,7 +504,7 @@ Algoritma Douglas-Peucker menyederhanakan kontur. Tergantung kompleksitas bentuk
 
 **Logika 3 Kondisi Resampling:**
 
-**Kondisi 1: jumlah titik polygon kurang dari 6 — Douglas-Peucker gagal total**
+**Kondisi 1: jumlah titik polygon kurang dari 6 - Douglas-Peucker gagal total**
 
 Terjadi ketika objek sangat sederhana (misal: bola, telur) atau edge detection menghasilkan kontur noise. Douglas-Peucker mereduksi menjadi segitiga (3 titik) atau garis (2 titik).
 
@@ -514,7 +514,7 @@ Terjadi ketika objek sangat sederhana (misal: bola, telur) atau edge detection m
 
 **Mengapa tidak pakai DP saja?** Jika DP hanya menghasilkan 3 titik (segitiga), informasinya terlalu sedikit. Sampling langsung dari kontur asli (200+ titik) mempertahankan lebih banyak detail bentuk.
 
-**Kondisi 2: jumlah titik polygon lebih dari 24 — Terlalu banyak titik**
+**Kondisi 2: jumlah titik polygon lebih dari 24 - Terlalu banyak titik**
 
 Terjadi pada objek dengan bentuk kompleks (daun, sisa makanan, plastik kusut).
 
@@ -523,7 +523,7 @@ Terjadi pada objek dengan bentuk kompleks (daun, sisa makanan, plastik kusut).
 **Visual:** Hasil Douglas-Peucker 30 titik disubsampling menjadi 24 titik dengan mengambil titik secara merata, mempertahankan distribusi asli.
 Setiap seperduapuluhempat dari total titik, ambil satu titik. Ini mempertahankan distribusi titik asli.
 
-**Kondisi 3: jumlah titik polygon antara 6 hingga 24 — Ideal**
+**Kondisi 3: jumlah titik polygon antara 6 hingga 24 - Ideal**
 
 Jumlah titik sudah dalam rentang yang bisa diterima. Polygon hasil DP langsung digunakan tanpa modifikasi.
 
@@ -587,7 +587,7 @@ Pipeline pseudo-mask adalah cascade: coba metode paling akurat dulu, fallback ke
 
 Pipeline 12 langkah dikelompokkan dalam 4 kelompok fungsional.
 
-**Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)** — *Tujuan: maksimalkan signal-to-noise ratio sebelum thresholding*
+**Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)** - *Tujuan: maksimalkan signal-to-noise ratio sebelum thresholding*
 
 | Langkah | Operasi | Deskripsi Teknis | Parameter |
 |---------|---------|-----------------|-----------|
@@ -601,7 +601,7 @@ Gaussian Blur adalah operasi konvolusi yang menerapkan kernel Gaussian untuk men
 
 G(x,y) = (1/(2πσ²)) · exp(-(x²+y²)/(2σ²))
 
-Kernel 5×5 berarti setiap output piksel mempertimbangkan lingkungan 5×5 (24 tetangga). Sigma (σ) dihitung otomatis dari ukuran kernel: σ = 0.3 × ((kernel_size - 1) × 0.5 - 1) + 0.8, menghasilkan σ ≈ 1.0 untuk kernel 5×5. Kernel Gaussian bersifat separable — konvolusi 2D dapat dipecah menjadi dua konvolusi 1D (horizontal lalu vertikal), mengurangi kompleksitas dari O(n²) ke O(2n) per piksel.
+Kernel 5×5 berarti setiap output piksel mempertimbangkan lingkungan 5×5 (24 tetangga). Sigma (σ) dihitung otomatis dari ukuran kernel: σ = 0.3 × ((kernel_size - 1) × 0.5 - 1) + 0.8, menghasilkan σ ≈ 1.0 untuk kernel 5×5. Kernel Gaussian bersifat separable - konvolusi 2D dapat dipecah menjadi dua konvolusi 1D (horizontal lalu vertikal), mengurangi kompleksitas dari O(n²) ke O(2n) per piksel.
 
 Gaussian Blur mereduksi high-frequency noise sebelum thresholding Otsu. Noise piksel tunggal dapat menggeser histogram dan menyebabkan Otsu memilih threshold yang salah. Dengan menghaluskan noise terlebih dahulu, distribusi intensitas menjadi lebih bersih dan threshold Otsu lebih akurat.
 
@@ -612,7 +612,7 @@ Perbandingan dengan alternatif:
 
 ---
 
-**Kelompok 2: Thresholding & Mask Biner (Langkah 4-6)** — *Tujuan: segmentasi foreground/background*
+**Kelompok 2: Thresholding & Mask Biner (Langkah 4-6)** - *Tujuan: segmentasi foreground/background*
 
 | Langkah | Operasi | Deskripsi Teknis | Logika |
 |---------|---------|-----------------|--------|
@@ -629,7 +629,7 @@ Otsu thresholding adalah algoritma auto-threshold yang menemukan nilai threshold
 2. Mengiterasi semua kemungkinan threshold t (0–255)
 3. Untuk setiap t, menghitung bobot (weight) dan varians dari piksel di bawah threshold (foreground) dan di atas threshold (background)
 4. Menghitung within-class variance: σ²_w(t) = w_f(t) · σ²_f(t) + w_b(t) · σ²_b(t)
-5. Memilih t yang meminimalkan σ²_w(t) — threshold optimal
+5. Memilih t yang meminimalkan σ²_w(t) - threshold optimal
 
 Threshold dihitung per-citra, membuatnya adaptif terhadap variasi pencahayaan alami. Kelebihan utama: tanpa parameter manual, cepat diproses, dan optimal untuk histogram bimodal.
 
@@ -648,7 +648,7 @@ Otsu dipilih karena dataset berasal dari beragam sumber (Flickr, Kaggle) dengan 
 
 ---
 
-**Kelompok 3: Ekstraksi Kontur (Langkah 7-9)** — *Tujuan: konversi mask biner → polygon koordinat*
+**Kelompok 3: Ekstraksi Kontur (Langkah 7-9)** - *Tujuan: konversi mask biner → polygon koordinat*
 
 | Langkah | Operasi | Deskripsi Teknis | Parameter |
 |---------|---------|-----------------|-----------|
@@ -669,7 +669,7 @@ Douglas-Peucker adalah algoritma reduksi titik yang menyederhanakan kurva poligo
 
 Epsilon = 0.01 × arcLength: nilai 0.01 berarti mempertahankan ~1% detail tepi. Nilai ini dipilih berdasarkan grid search: epsilon 0.005 → terlalu banyak titik (overfitting noise), epsilon 0.05 → terlalu sedikit titik (polygon tidak mengikuti bentuk). Dengan epsilon ini, kontur direduksi dari 100–500+ titik menjadi 10–30 titik.
 
-Douglas-Peucker dipilih karena objek sampah memiliki sudut tajam (kaleng kotak, kardus, botol segi) yang harus dipertahankan. Algoritma ini unggul dalam mempertahankan sudut siku dan tajam — properti penting untuk bentuk rigid waste — tidak seperti uniform sampling yang melewatkan sudut atau B-spline yang overshoot. Kompleksitas waktu O(n log n) membuatnya efisien untuk ribuan kontur.
+Douglas-Peucker dipilih karena objek sampah memiliki sudut tajam (kaleng kotak, kardus, botol segi) yang harus dipertahankan. Algoritma ini unggul dalam mempertahankan sudut siku dan tajam - properti penting untuk bentuk rigid waste - tidak seperti uniform sampling yang melewatkan sudut atau B-spline yang overshoot. Kompleksitas waktu O(n log n) membuatnya efisien untuk ribuan kontur.
 
 Perbandingan dengan alternatif:
 
@@ -684,7 +684,7 @@ Douglas-Peucker dengan epsilon agresif dapat mengurangi segitiga (3 titik) atau 
 
 ---
 
-**Kelompok 4: Post-processing & Format (Langkah 10-12)** — *Tujuan: konversi ke format YOLO-seg*
+**Kelompok 4: Post-processing & Format (Langkah 10-12)** - *Tujuan: konversi ke format YOLO-seg*
 
 | Langkah | Operasi | Deskripsi Teknis | Output |
 |---------|---------|-----------------|--------|
@@ -696,7 +696,7 @@ Douglas-Peucker dengan epsilon agresif dapat mengurangi segitiga (3 titik) atau 
 
 ---
 
-**Metode 2: Fallback Geometris (33.6% kasus) — Mengapa Edge Detection Gagal?**
+**Metode 2: Fallback Geometris (33.6% kasus) - Mengapa Edge Detection Gagal?**
 
 Edge detection Otsu mengasumsikan distribusi intensitas bimodal (foreground vs background terpisah jelas). Asumsi ini gagal pada:
 
@@ -783,9 +783,9 @@ Korelasi antara edge detection success rate dan performa model sangat kuat (Spea
 
 **Mengapa Augmentasi Diperlukan?**
 
-Dataset: 3.951 gambar. Jumlah ini relatif kecil untuk deep learning — YOLO biasanya dilatih pada dataset dengan puluhan hingga ratusan ribu gambar (COCO: 200K+). Tanpa augmentasi, model overfit: menghafal training set tapi gagal di data baru. Augmentasi memperbesar variasi data secara artifisial.
+Dataset: 3.951 gambar. Jumlah ini relatif kecil untuk deep learning - YOLO biasanya dilatih pada dataset dengan puluhan hingga ratusan ribu gambar (COCO: 200K+). Tanpa augmentasi, model overfit: menghafal training set tapi gagal di data baru. Augmentasi memperbesar variasi data secara artifisial.
 
-**Mengapa Online vs Offline?** Online augmentation (real-time per epoch) dipilih karena: (1) variasi tak terbatas — setiap epoch menghasilkan augmentasi berbeda, (2) tidak ada storage tambahan — variasi tidak disimpan ke disk, (3) CPU paralel preprocessing overlap dengan GPU compute — tidak ada I/O bottleneck.
+**Mengapa Online vs Offline?** Online augmentation (real-time per epoch) dipilih karena: (1) variasi tak terbatas - setiap epoch menghasilkan augmentasi berbeda, (2) tidak ada storage tambahan - variasi tidak disimpan ke disk, (3) CPU paralel preprocessing overlap dengan GPU compute - tidak ada I/O bottleneck.
 
 **Mengapa Online (real-time) vs Offline (pre-generated)?**
 
@@ -802,7 +802,7 @@ Online augmentasi diimplementasikan langsung oleh YOLO engine saat training. Par
 
 **Kategori Augmentasi & Algoritma Rationale:**
 
-**A. Augmentasi Geometrik — Mengubah Posisi dan Bentuk:**
+**A. Augmentasi Geometrik - Mengubah Posisi dan Bentuk:**
 
 Augmentasi geometrik mengubah tata letak spasial gambar. Tujuan: membuat model invariant terhadap posisi, orientasi, skala, dan sudut pandang. Jika model hanya melihat botol di tengah frame, ia gagal mendeteksi botol di pojok. Augmentasi geometrik memaksa model belajar fitur bentuk, bukan posisi.
 
@@ -820,7 +820,7 @@ Augmentasi geometrik mengubah tata letak spasial gambar. Tujuan: membuat model i
 
 ---
 
-**B. Augmentasi Fotometrik — Mengubah Warna dan Pencahayaan:**
+**B. Augmentasi Fotometrik - Mengubah Warna dan Pencahayaan:**
 
 Augmentasi fotometrik mengubah nilai piksel tanpa mengubah posisi objek. Tujuan: membuat model invariant terhadap kondisi pencahayaan (siang, mendung, malam, lampu TL, lampu kuning). Model yang hanya dilatih di laboratorium dengan pencahayaan seragam akan gagal di lapangan dengan variasi cahaya alami. Augmentasi HSV mensimulasikan variasi ini.
 
@@ -836,7 +836,7 @@ Augmentasi fotometrik mengubah nilai piksel tanpa mengubah posisi objek. Tujuan:
 
 **C. Augmentasi Spesifik Instance Segmentation:**
 
-Augmentasi spesifik segmentasi memanfaatkan informasi mask/polygon — bukan hanya bounding box. Mosaic, Mixup, dan Copy-Paste menggunakan mask untuk menggabungkan objek antar gambar secara real time. Ini penting karena model segmentasi harus belajar memisahkan instance dalam konteks padat — skenario yang tidak bisa dilatih hanya dengan gambar objek tunggal.
+Augmentasi spesifik segmentasi memanfaatkan informasi mask/polygon - bukan hanya bounding box. Mosaic, Mixup, dan Copy-Paste menggunakan mask untuk menggabungkan objek antar gambar secara real time. Ini penting karena model segmentasi harus belajar memisahkan instance dalam konteks padat - skenario yang tidak bisa dilatih hanya dengan gambar objek tunggal.
 
 | Augmentasi | Prob | Parameter | Mekanisme | Mengapa Efektif |
 |------------|------|-----------|-----------|-----------------|
@@ -848,13 +848,13 @@ Augmentasi spesifik segmentasi memanfaatkan informasi mask/polygon — bukan han
 
 **Apa itu Mosaic?** Mosaic menggabungkan 4 gambar menjadi grid 2×2. Setiap gambar di-resize 320×320, lalu ditempel membentuk 640×640. Label ke-4 gambar digabung. Objek yang terpotong di batas grid tetap dihitung loss-nya (YOLO track partial objects).
 
-Mosaic adalah augmentasi paling powerful karena efektif 4× lipat dataset per epoch — setiap batch berisi 4 gambar berbeda dalam satu komposisi. Prob=1.0 memastikan SETIAP batch adalah MOSAIC di awal training. Tanpa ini, model hanya melihat 1 objek per gambar → lemah saat inference pada tumpukan sampah.
+Mosaic adalah augmentasi paling powerful karena efektif 4× lipat dataset per epoch - setiap batch berisi 4 gambar berbeda dalam satu komposisi. Prob=1.0 memastikan SETIAP batch adalah MOSAIC di awal training. Tanpa ini, model hanya melihat 1 objek per gambar → lemah saat inference pada tumpukan sampah.
 
 **Mengapa Mixup alpha~Beta(0.5, 0.5)?**
 
 **Apa itu Mixup?** Mixup melakukan blending linear antara dua gambar: I_blend = α × I₁ + (1-α) × I₂. Label juga di-blend linier: y_blend = α × y₁ + (1-α) × y₂. α diambil dari distribusi Beta.
 
-Beta(0.5, 0.5) berbentuk U — α cenderung ke 0 atau 1 (bukan 0.5). Artinya blending dominan ke salah satu gambar, bukan rata-rata (yang akan membuat gambar buram dan confusing bagi model). Ini mempertahankan informasi visual dominan dari satu gambar sambil memberikan noise regularisasi dari gambar lain.
+Beta(0.5, 0.5) berbentuk U - α cenderung ke 0 atau 1 (bukan 0.5). Artinya blending dominan ke salah satu gambar, bukan rata-rata (yang akan membuat gambar buram dan confusing bagi model). Ini mempertahankan informasi visual dominan dari satu gambar sambil memberikan noise regularisasi dari gambar lain.
 
 ---
 
@@ -867,7 +867,7 @@ Beta(0.5, 0.5) berbentuk U — α cenderung ke 0 atau 1 (bukan 0.5). Artinya ble
 | Erasing | 0.5 | Random rectangle dihapus (diisi mean pixel値). Memaksa model pakai konteks global. Tanpa erasing, model bisa "cheat" dengan deteksi pola sempit (misal: selalu lihat label botol di sudut kanan bawah) |
 | Auto Augment | "randaugment" | Di akhir training (setelah close_mosaic), 2-3 augmentasi dipilih acak dari daftar dengan magnitude random. Stabilisasi fine-tuning |
 
-**Mengapa randaugment bukan augmentasi tetap?** Randaugment memilih 2-3 augmentasi acak dari kumpulan transformasi ringan dengan magnitude random setiap iterasi. Pada akhir training (setelah close_mosaic), model sudah memiliki representasi fitur stabil. Augmentasi tetap yang agresif akan mengganggu fine-tuning. Randaugment memberikan regularisasi ringan dan acak — cukup untuk mencegah overfitting tanpa mengganggu representasi yang sudah dipelajari.
+**Mengapa randaugment bukan augmentasi tetap?** Randaugment memilih 2-3 augmentasi acak dari kumpulan transformasi ringan dengan magnitude random setiap iterasi. Pada akhir training (setelah close_mosaic), model sudah memiliki representasi fitur stabil. Augmentasi tetap yang agresif akan mengganggu fine-tuning. Randaugment memberikan regularisasi ringan dan acak - cukup untuk mencegah overfitting tanpa mengganggu representasi yang sudah dipelajari.
 
 ---
 
@@ -886,13 +886,13 @@ Beta(0.5, 0.5) berbentuk U — α cenderung ke 0 atau 1 (bukan 0.5). Artinya ble
 
 **Compute Budget Augmentasi:**
 
-Setiap epoch: 2.765 gambar training × augmentasi online = 2.765 variasi unik. 100 epochs = 276.500 variasi total. Dengan 15 jenis augmentasi yang dikombinasikan secara acak, total kemungkinan variasi per gambar >10¹² — secara praktis tidak terbatas.
+Setiap epoch: 2.765 gambar training × augmentasi online = 2.765 variasi unik. 100 epochs = 276.500 variasi total. Dengan 15 jenis augmentasi yang dikombinasikan secara acak, total kemungkinan variasi per gambar >10¹² - secara praktis tidak terbatas.
 
 **Dampak Augmentasi terhadap Training:**
 
-Dengan 15 jenis augmentasi yang dikombinasikan secara acak, setiap gambar menghasilkan ribuan variasi unik per epoch — efektif memperbesar dataset tanpa data baru. Setiap epoch: 2.765 gambar × augmentasi online = 2.765 variasi unik. 100 epochs = 276.500 variasi total.
+Dengan 15 jenis augmentasi yang dikombinasikan secara acak, setiap gambar menghasilkan ribuan variasi unik per epoch - efektif memperbesar dataset tanpa data baru. Setiap epoch: 2.765 gambar × augmentasi online = 2.765 variasi unik. 100 epochs = 276.500 variasi total.
 
-Model yang dilatih dengan augmentasi menunjukkan gap train-val mAP <5% — mengindikasikan augmentasi berhasil mencegah overfitting. Tanpa augmentasi, gap tipikal >15% pada dataset kecil seperti ini.
+Model yang dilatih dengan augmentasi menunjukkan gap train-val mAP <5% - mengindikasikan augmentasi berhasil mencegah overfitting. Tanpa augmentasi, gap tipikal >15% pada dataset kecil seperti ini.
 
 > **Key Takeaway:**
 > 
@@ -967,7 +967,7 @@ Resepsi field dihitung sebagai: RF_n = RF_{n-1} + (kernel_size - 1) × stride_pr
 
 **CSP (Cross Stage Partial) - Fungsi dan Mekanisme**
 
-**Apa itu CSP?** CSP (Cross Stage Partial Connection) adalah mekanisme yang membagi feature map menjadi dua jalur di setiap stage backbone: (1) jalur utama — subset channel (~50%) diproses melalui blok konvolusi bottleneck, (2) jalur shortcut — sisa channel langsung dilewatkan tanpa perubahan. Kedua jalur digabung (concatenate) di akhir stage.
+**Apa itu CSP?** CSP (Cross Stage Partial Connection) adalah mekanisme yang membagi feature map menjadi dua jalur di setiap stage backbone: (1) jalur utama - subset channel (~50%) diproses melalui blok konvolusi bottleneck, (2) jalur shortcut - sisa channel langsung dilewatkan tanpa perubahan. Kedua jalur digabung (concatenate) di akhir stage.
 
 **Fungsi CSP di Backbone:**
 - **Efisiensi komputasi:** hanya setengah channel diproses di jalur utama → ~20% lebih hemat FLOPs dibanding ResNet standar
@@ -992,7 +992,7 @@ CSP memproses hanya sebagian (~50%) channel di jalur utama, sisanya dilewati lan
 
 **Fungsi Stem:**
 - **Downsampling cepat:** stride 2 mereduksi resolusi 4× dalam satu langkah → mengurangi biaya komputasi stage berikutnya (320×320 vs 640×640 memiliki 4× lebih sedikit piksel)
-- **Receptive field luas:** kernel 7 memberikan konteks visual lebih luas sejak awal — mendeteksi tepi, gradien, tekstur dasar dengan cakupan lebih besar
+- **Receptive field luas:** kernel 7 memberikan konteks visual lebih luas sejak awal - mendeteksi tepi, gradien, tekstur dasar dengan cakupan lebih besar
 - **Efisiensi arsitektur:** setara dengan 2-3 layer Conv3x3 bertumpuk dalam satu layer → menghemat 1-2 layer konvolusi dan parameter terkait
 
 Stem convolution dengan kernel 7, stride 2 langsung mereduksi 640 → 320. Kernel lebih besar (7 vs 3) memberikan resepsi field awal lebih luas tanpa perlu layer tambahan. Ini menghemat 1-2 layer Conv3x3 yang seharusnya dibutuhkan untuk mencapai resepsi field yang sama.
@@ -1001,12 +1001,12 @@ Stem convolution dengan kernel 7, stride 2 langsung mereduksi 640 → 320. Kerne
 
 **SiLU Activation - Fungsi**
 
-**Apa itu SiLU?** SiLU (Sigmoid Linear Unit) adalah fungsi aktivasi dengan formula: f(x) = x × sigmoid(x) = x / (1 + e^(-x)). SiLU adalah fungsi smooth (C∞ — semua turunan kontinu), non-monotonik — memiliki minimum negatif di sekitar x ≈ -1.28. Berbeda dari ReLU yang monotonik dan memiliki patahan di x=0.
+**Apa itu SiLU?** SiLU (Sigmoid Linear Unit) adalah fungsi aktivasi dengan formula: f(x) = x × sigmoid(x) = x / (1 + e^(-x)). SiLU adalah fungsi smooth (C∞ - semua turunan kontinu), non-monotonik - memiliki minimum negatif di sekitar x ≈ -1.28. Berbeda dari ReLU yang monotonik dan memiliki patahan di x=0.
 
 **Fungsi Aktivasi di Backbone:**
-- **Gradient flow stabil:** turunan kontinu di semua titik → tidak ada diskontinuitas gradien saat backpropagation — penting untuk arsitektur 329 layer
+- **Gradient flow stabil:** turunan kontinu di semua titik → tidak ada diskontinuitas gradien saat backpropagation - penting untuk arsitektur 329 layer
 - **Tidak ada dead neuron:** untuk x negatif besar, output mendekati 0 (bukan nol) → gradien informatif tetap ada → neuron tidak mati total seperti ReLU
-- **Self-gating mekanisme:** x × sigmoid(x) secara alami "menggate" nilai: input besar (+) dilewatkan hampir linier, input kecil/sedang ditekan — mirip mekanisme attention sederhana tanpa parameter tambahan
+- **Self-gating mekanisme:** x × sigmoid(x) secara alami "menggate" nilai: input besar (+) dilewatkan hampir linier, input kecil/sedang ditekan - mirip mekanisme attention sederhana tanpa parameter tambahan
 - **Kontribusi akurasi:** ~2-3% mAP improvement dibanding ReLU pada benchmark COCO karena gradient flow lebih baik
 
 Perbandingan aktivasi:
@@ -1023,7 +1023,7 @@ SiLU memberikan gradien lebih informatif pada nilai negatif dibanding ReLU, dan 
 
 **SPPF (Spatial Pyramid Pooling Fast) - Fungsi**
 
-**Apa itu SPPF?** SPPF (Spatial Pyramid Pooling Fast) adalah modul pooling multi-skala yang menerapkan max-pooling pada feature map 20×20 dengan tiga skala receptive field berbeda: 5×5, 9×9 (efektif), dan 13×13 (efektif). Alih-alih menjalankan tiga operasi pooling paralel seperti SPP orisinil, SPPF melakukan pooling sequential — tiga kali max-pool 5×5 berantai.
+**Apa itu SPPF?** SPPF (Spatial Pyramid Pooling Fast) adalah modul pooling multi-skala yang menerapkan max-pooling pada feature map 20×20 dengan tiga skala receptive field berbeda: 5×5, 9×9 (efektif), dan 13×13 (efektif). Alih-alih menjalankan tiga operasi pooling paralel seperti SPP orisinil, SPPF melakukan pooling sequential - tiga kali max-pool 5×5 berantai.
 
 **Mekanisme Sequential Pooling:**
 - Pool 5×5 pertama → receptive field 5×5 (mencakup 25 piksel tetangga)
@@ -1031,7 +1031,7 @@ SiLU memberikan gradien lebih informatif pada nilai negatif dibanding ReLU, dan 
 - Pool 5×5 ketiga pada output → receptive field efektif 13×13 (5 + 5 + 5 − 2 = 13)
 
 **Fungsi SPPF:**
-- **Multi-skala feature extraction:** menangkap informasi pada tiga resolusi berbeda dari lokasi spasial yang sama — fitur lokal (5×5), regional (9×9), dan konteks luas (13×13)
+- **Multi-skala feature extraction:** menangkap informasi pada tiga resolusi berbeda dari lokasi spasial yang sama - fitur lokal (5×5), regional (9×9), dan konteks luas (13×13)
 - **Context aggregation:** pooling menggabungkan informasi dari area sekitar → memberikan model pemahaman konteks spasial untuk deteksi objek besar dan kecil secara simultan
 - **Efisiensi:** sequential pooling 2× lebih cepat dari paralel karena data tetap di cache GPU; parameter identik dengan SPP
 
@@ -1049,7 +1049,7 @@ SPPF adalah optimasi SPP: alih-alih 3 pooling paralel, SPPF melakukan 3 pooling 
 
 Model: 329 layers (unfused) → 149 layers (fused), 26.971.750 parameters, 131.9 GFLOPs (unfused) → 121.2 GFLOPs (fused). Fusing menggabungkan Conv2D + BatchNorm + SiLU menjadi satu layer untuk inference lebih cepat.
 
-**Apa Arti 131.9 GFLOPs?** Setiap forward pass model melakukan 131.9 × 10⁹ operasi floating point. Dengan inference 5.1ms/gambar (log), model memproses ~25.8 × 10¹² FLOPs/detik — ≈25.8 TFLOPS, yang berarti GPU RTX 5060 Ti (rated ~22 TFLOPS FP32) bekerja pada ~85% utilisasi.
+**Apa Arti 131.9 GFLOPs?** Setiap forward pass model melakukan 131.9 × 10⁹ operasi floating point. Dengan inference 5.1ms/gambar (log), model memproses ~25.8 × 10¹² FLOPs/detik - ≈25.8 TFLOPS, yang berarti GPU RTX 5060 Ti (rated ~22 TFLOPS FP32) bekerja pada ~85% utilisasi.
 
 > **Key Takeaway:**
 > 
@@ -1081,7 +1081,7 @@ Model: 329 layers (unfused) → 149 layers (fused), 26.971.750 parameters, 131.9
 
 **Apa itu Neck?**
 
-Neck adalah komponen arsitektur yang berada di antara Backbone dan Head. Tugasnya: memfusikan fitur dari berbagai resolusi yang dihasilkan Backbone — menggabungkan informasi semantik (apa objeknya) dan detail lokasi (di mana objeknya) dari setiap level resolusi.
+Neck adalah komponen arsitektur yang berada di antara Backbone dan Head. Tugasnya: memfusikan fitur dari berbagai resolusi yang dihasilkan Backbone - menggabungkan informasi semantik (apa objeknya) dan detail lokasi (di mana objeknya) dari setiap level resolusi.
 
 Hal ini penting karena Backbone menghasilkan fitur dengan karakteristik berbeda di setiap level. Semakin dalam resolusi, fitur semakin "tahu apa objeknya" tapi tidak "tahu di mana persisnya". Sebaliknya, fitur resolusi tinggi tahu lokasi presisi tapi tidak tahu apa objek itu. Neck menjembatani kesenjangan ini:
 
@@ -1097,7 +1097,7 @@ Masalahnya: P3 tahu persis di mana objek berada tetapi tidak tahu objek itu apa.
 
 **FPN (Feature Pyramid Network) - Top-Down Pathway:**
 
-**Apa itu FPN?** FPN (Feature Pyramid Network) adalah jalur top-down di Neck yang membawa informasi semantik dari resolusi rendah (P5, 20×20) ke resolusi lebih tinggi (P4 40×40, P3 80×80). Informasi semantik adalah "pengetahuan tentang apa objek itu" — P5 tahu "ini botol" atau "ini kardus".
+**Apa itu FPN?** FPN (Feature Pyramid Network) adalah jalur top-down di Neck yang membawa informasi semantik dari resolusi rendah (P5, 20×20) ke resolusi lebih tinggi (P4 40×40, P3 80×80). Informasi semantik adalah "pengetahuan tentang apa objek itu" - P5 tahu "ini botol" atau "ini kardus".
 
 **Mekanisme FPN (setiap level):**
 1. Upsample feature map level atas 2× (nearest neighbor interpolation)
@@ -1106,7 +1106,7 @@ Masalahnya: P3 tahu persis di mana objek berada tetapi tidak tahu objek itu apa.
 
 Proses diulang dari P5 → P4 → P3.
 
-**Fungsi FPN:** Memberikan pemahaman semantik (what object) ke resolusi tinggi — P3 (deteksi objek kecil) mendapat konteks "ini puntung rokok" dari P5 sambil tetap mempertahankan detail lokasi presisi dari P3 asli.
+**Fungsi FPN:** Memberikan pemahaman semantik (what object) ke resolusi tinggi - P3 (deteksi objek kecil) mendapat konteks "ini puntung rokok" dari P5 sambil tetap mempertahankan detail lokasi presisi dari P3 asli.
 
 FPN bekerja dari resolusi rendah ke tinggi (atas ke bawah), membawa informasi semantik dari P5 ke P4 dan P3. Prosesnya:
 
@@ -1121,7 +1121,7 @@ Setelah FPN, P3' dapat mendeteksi objek kecil (puntung rokok 20x10 px) dengan ak
 
 **PAN (Path Aggregation Network) - Bottom-Up Pathway:**
 
-**Apa itu PAN?** PAN (Path Aggregation Network) adalah jalur bottom-up di Neck yang membawa informasi detail lokasi dari resolusi tinggi (P3, 80×80) ke resolusi lebih rendah (P4 40×40, P5 20×20). Detail lokasi adalah "pengetahuan tentang di mana persis objek berada" — P3 tahu "tepi botol ada di pixel (120, 340)".
+**Apa itu PAN?** PAN (Path Aggregation Network) adalah jalur bottom-up di Neck yang membawa informasi detail lokasi dari resolusi tinggi (P3, 80×80) ke resolusi lebih rendah (P4 40×40, P5 20×20). Detail lokasi adalah "pengetahuan tentang di mana persis objek berada" - P3 tahu "tepi botol ada di pixel (120, 340)".
 
 **Mekanisme PAN (setiap level):**
 1. Downsample feature map level bawah 2× (convolution stride 2)
@@ -1130,7 +1130,7 @@ Setelah FPN, P3' dapat mendeteksi objek kecil (puntung rokok 20x10 px) dengan ak
 
 Proses diulang dari P3 → P4 → P5.
 
-**Fungsi PAN:** Memberikan presisi lokalisasi (where object) ke resolusi rendah — P5 (deteksi objek besar) mendapat detail "botol di pojok kiri bawah" dari P3 sambil tetap mempertahankan pemahaman semantik dari P5 asli.
+**Fungsi PAN:** Memberikan presisi lokalisasi (where object) ke resolusi rendah - P5 (deteksi objek besar) mendapat detail "botol di pojok kiri bawah" dari P3 sambil tetap mempertahankan pemahaman semantik dari P5 asli.
 
 PAN bekerja dari resolusi tinggi ke rendah (bawah ke atas), membawa informasi detail lokasi dari P3 ke P4 dan P5. Prosesnya:
 
@@ -1155,7 +1155,7 @@ Total grid cells: 6.400 + 1.600 + 400 = 8.400 sel. Setiap sel dapat mendeteksi s
 
 **Decoupled Head:**
 
-**Apa itu Decoupled Head?** Decoupled Head adalah bagian akhir arsitektur yang memproduksi keputusan final melalui tiga cabang konvolusi paralel sepenuhnya independen: classification branch, regression branch (bbox), dan segmentation branch (mask). Setiap cabang memiliki 2 layer Conv3x3 sendiri dan layer prediksi sendiri — tidak ada satu pun parameter yang dibagi antar cabang (independent parameter-wise).
+**Apa itu Decoupled Head?** Decoupled Head adalah bagian akhir arsitektur yang memproduksi keputusan final melalui tiga cabang konvolusi paralel sepenuhnya independen: classification branch, regression branch (bbox), dan segmentation branch (mask). Setiap cabang memiliki 2 layer Conv3x3 sendiri dan layer prediksi sendiri - tidak ada satu pun parameter yang dibagi antar cabang (independent parameter-wise).
 
 **Fungsi Decoupled Head:** Setiap cabang mengoptimalkan representasi untuk satu task spesifik tanpa kompetisi parameter atau gradient conflict. Classification branch fokus pada diskriminasi kelas (apa objek), regression branch fokus pada presisi lokasi (di mana objek), segmentation branch fokus pada akurasi bentuk (bagaimana bentuk objek).
 
@@ -1172,11 +1172,11 @@ Layer: 2x Conv3x3 + DFL module
 
 **Apa itu Regression?** Regression di sini berarti memprediksi nilai numerik kontinu (koordinat) dari feature map. YOLOv26 menggunakan DFL (Distribution Focal Loss): alih-alih memprediksi satu nilai float per koordinat, DFL memprediksi distribusi probabilitas diskrit 16-bin. Nilai akhir = weighted sum: koordinat = Σ(bin_i × softmax(prob_i)). Contoh posisi x: 16 bin merepresentasikan 16 posisi relatif dalam grid cell.
 
-**Fungsi:** Memprediksi 4 koordinat bounding box (x_center, y_center, width, height) — lokasi dan ukuran objek dalam grid cell.
+**Fungsi:** Memprediksi 4 koordinat bounding box (x_center, y_center, width, height) - lokasi dan ukuran objek dalam grid cell.
 
 **Fungsi DFL untuk Regresi:**
 - **Gradient lebih kaya:** setiap 16 bin memberikan sinyal gradien independen → lebih banyak sinyal dibanding L1/L2
-- **Representasi uncertainty:** jika boundary objek tidak jelas (botol transparan), distribusi akan lebar — model mengekspresikan ketidakyakinan secara eksplisit
+- **Representasi uncertainty:** jika boundary objek tidak jelas (botol transparan), distribusi akan lebar - model mengekspresikan ketidakyakinan secara eksplisit
 - **Akurasi boundary:** DFL lebih unggul untuk boundary tidak jelas/tidak tegas dibanding regresi titik tunggal
 
 Output: 4 nilai float (x, y, w, h) dalam koordinat grid-normalized
@@ -1184,7 +1184,7 @@ Output: 4 nilai float (x, y, w, h) dalam koordinat grid-normalized
 **Segmentation Branch (Mask):**
 Layer: Proto Module (Conv + 32 prototype masks)
 
-**Apa itu Proto Module?** Proto Module adalah mekanisme segmentasi efisien yang mendekomposisi masalah prediksi mask menjadi dua sub-masalah: (1) menghasilkan 32 prototype mask dasar (20×20) dari fitur multi-skala P3+P4+P5 — setiap prototype merepresentasikan "bentuk dasar" seperti lingkaran, tepi vertikal, cekungan; (2) setiap instance/grid cell memprediksi 32 coefficient yang menentukan bagaimana menggabungkan prototype menjadi mask spesifik untuk objek tersebut.
+**Apa itu Proto Module?** Proto Module adalah mekanisme segmentasi efisien yang mendekomposisi masalah prediksi mask menjadi dua sub-masalah: (1) menghasilkan 32 prototype mask dasar (20×20) dari fitur multi-skala P3+P4+P5 - setiap prototype merepresentasikan "bentuk dasar" seperti lingkaran, tepi vertikal, cekungan; (2) setiap instance/grid cell memprediksi 32 coefficient yang menentukan bagaimana menggabungkan prototype menjadi mask spesifik untuk objek tersebut.
 
 **Fungsi:** Menghasilkan polygon mask 24 titik yang mengikuti bentuk objek
 
@@ -1230,7 +1230,7 @@ Channel progression: P3 (256ch) → P4 (512ch) → P5 (512ch). Perhatikan bahwa 
 
 **Decoupled Head - Fungsi**
 
-**Apa itu Decoupled Head?** Decoupled Head adalah struktur head deteksi yang menggunakan tiga cabang konvolusi paralel terpisah (masing-masing 2× Conv3x3 + layer output) untuk tiga task berbeda: klasifikasi (class + objectness), regresi bounding box (x, y, w, h), segmentasi (mask coefficients). Setiap cabang memiliki parameter sepenuhnya independen — tidak ada satu pun bobot konvolusi yang dibagi antar cabang.
+**Apa itu Decoupled Head?** Decoupled Head adalah struktur head deteksi yang menggunakan tiga cabang konvolusi paralel terpisah (masing-masing 2× Conv3x3 + layer output) untuk tiga task berbeda: klasifikasi (class + objectness), regresi bounding box (x, y, w, h), segmentasi (mask coefficients). Setiap cabang memiliki parameter sepenuhnya independen - tidak ada satu pun bobot konvolusi yang dibagi antar cabang.
 
 **Fungsi Decoupled Head:**
 - **Task specialization:** setiap cabang mengoptimalkan representasi untuk satu task spesifik tanpa kompromi
@@ -1275,7 +1275,7 @@ Konfigurasi dari log: mask_ratio 2 (faktor downsampling prototype) dan overlap_m
 
 **Mekanisme Anchor-Free:**
 - Setiap grid cell memprediksi 4 nilai float: offset pusat (x, y) relatif terhadap grid cell, serta lebar (w) dan tinggi (h) relatif terhadap gambar
-- Tidak ada langkah "anchor matching" — tidak perlu memilih anchor terbaik dari k template
+- Tidak ada langkah "anchor matching" - tidak perlu memilih anchor terbaik dari k template
 - DFL memprediksi distribusi 16-bin per koordinat → fleksibel menangkap berbagai rasio bentuk tanpa template eksplisit
 
 **Fungsi Anchor-Free:**
@@ -1343,16 +1343,16 @@ Konfigurasi loss dari log: box 7.5, cls 0.5, dfl 1.5. Tiga komponen loss menguku
 
 ---
 
-**A. CIoU Loss (bobot 7.5) — Regresi Bounding Box**
+**A. CIoU Loss (bobot 7.5) - Regresi Bounding Box**
 
-**Apa itu CIoU?** CIoU (Complete IoU) adalah loss function untuk regresi bounding box yang mengoptimalkan tiga aspek secara simultan: (1) overlap area — IoU (Intersection over Union), (2) jarak pusat antar bounding box — center distance, (3) kesamaan aspect ratio (lebar/tinggi). Formula: CIoU = 1 − IoU + ρ²(b, b_gt)/c² + α·v.
+**Apa itu CIoU?** CIoU (Complete IoU) adalah loss function untuk regresi bounding box yang mengoptimalkan tiga aspek secara simultan: (1) overlap area - IoU (Intersection over Union), (2) jarak pusat antar bounding box - center distance, (3) kesamaan aspect ratio (lebar/tinggi). Formula: CIoU = 1 − IoU + ρ²(b, b_gt)/c² + α·v.
 
 **Komponen CIoU:**
 - **IoU (Intersection over Union):** rasio area overlap dibagi area union antara prediksi dan ground truth. Range [0,1], 1 = overlap sempurna. Fungsi: mengukur seberapa baik prediksi menutupi objek
-- **Center distance (ρ²/c²):** jarak Euclidean kuadrat antar pusat bounding box, dinormalisasi diagonal kotak terkecil yang mencakup kedua box. Fungsi: menarik pusat prediksi mendekati pusat ground truth — konvergensi lebih cepat, mengatasi IoU yang tidak memberi gradien saat box tidak overlap
-- **Aspect ratio (α·v):** v = (4/π²) × (arctan(w_gt/h_gt) − arctan(w/h))² mengukur perbedaan rasio lebar/tinggi. α = v / ((1−IoU) + v) adalah adaptive weight — lebih besar saat IoU kecil. Fungsi: memastikan bentuk (proporsi) bounding box cocok dengan objek
+- **Center distance (ρ²/c²):** jarak Euclidean kuadrat antar pusat bounding box, dinormalisasi diagonal kotak terkecil yang mencakup kedua box. Fungsi: menarik pusat prediksi mendekati pusat ground truth - konvergensi lebih cepat, mengatasi IoU yang tidak memberi gradien saat box tidak overlap
+- **Aspect ratio (α·v):** v = (4/π²) × (arctan(w_gt/h_gt) − arctan(w/h))² mengukur perbedaan rasio lebar/tinggi. α = v / ((1−IoU) + v) adalah adaptive weight - lebih besar saat IoU kecil. Fungsi: memastikan bentuk (proporsi) bounding box cocok dengan objek
 
-**Fungsi CIoU:** Mengoptimalkan bounding box lebih presisi daripada IoU sederhana. IoU hanya menghukum overlap area tanpa memberi sinyal bagaimana memperbaikinya. CIoU memberikan tiga sinyal gradien terarah (pusat, bentuk, overlap) — model belajar memperbaiki bounding box dari ketiga dimensi secara simultan.
+**Fungsi CIoU:** Mengoptimalkan bounding box lebih presisi daripada IoU sederhana. IoU hanya menghukum overlap area tanpa memberi sinyal bagaimana memperbaikinya. CIoU memberikan tiga sinyal gradien terarah (pusat, bentuk, overlap) - model belajar memperbaiki bounding box dari ketiga dimensi secara simultan.
 
 **Perbandingan IoU Variants:**
 
@@ -1373,7 +1373,7 @@ CIoU = 1 − IoU + ρ²(b, b_gt)/c² + α·v
 
 ---
 
-**B. BCE Loss (bobot 0.5) — Klasifikasi 2 Kelas**
+**B. BCE Loss (bobot 0.5) - Klasifikasi 2 Kelas**
 
 **Apa itu BCE?** BCE (Binary Cross-Entropy) adalah loss function untuk klasifikasi biner: BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell memprediksi probabilitas p untuk kelas Organik dan Non-Organik. BCE mengukur perbedaan antara distribusi probabilitas prediksi dan label sebenarnya (0 atau 1).
 
@@ -1390,11 +1390,11 @@ Nilai loss untuk berbagai confidence:
 | 0.25 | 1.39 | Salah arah |
 | 0.01 | 4.61 | Sangat percaya diri, SALAH |
 
-**Bobot 0.5:** Klasifikasi 2 kelas relatif mudah (vs 80 kelas COCO). Bobot lebih rendah karena model tidak perlu "belajar keras" untuk bedakan 2 kelas — perbedaan visual Organik vs Non-Organik cukup jelas.
+**Bobot 0.5:** Klasifikasi 2 kelas relatif mudah (vs 80 kelas COCO). Bobot lebih rendah karena model tidak perlu "belajar keras" untuk bedakan 2 kelas - perbedaan visual Organik vs Non-Organik cukup jelas.
 
 ---
 
-**C. DFL Loss (bobot 1.5) — Distribusi Posisi Boundary**
+**C. DFL Loss (bobot 1.5) - Distribusi Posisi Boundary**
 
 **Apa itu DFL?** DFL (Distribution Focal Loss) adalah loss function yang memprediksi distribusi probabilitas diskrit untuk setiap koordinat boundary, bukan nilai tunggal. Untuk setiap sisi bounding box (kiri, kanan, atas, bawah), DFL memprediksi 16 bin probabilitas yang merepresentasikan 16 posisi relatif yang mungkin. Loss = cross-entropy antara distribusi prediksi dan distribusi target (one-hot pada posisi ground truth).
 
@@ -1440,7 +1440,7 @@ Konfigurasi dari log training:
 
 **Fungsi SGD di Training YOLO:**
 - **VRAM lebih hemat:** tidak menyimpan momentum + variance seperti Adam → ~2× lebih hemat VRAM (krusial untuk batch 16 di VRAM 16GB)
-- **Generalisasi lebih baik:** SGD memiliki implicit regularization — tanpa adaptive LR, model tidak terlalu "nyaman" di sharp minima → generalisasi lebih baik
+- **Generalisasi lebih baik:** SGD memiliki implicit regularization - tanpa adaptive LR, model tidak terlalu "nyaman" di sharp minima → generalisasi lebih baik
 - **Cosine annealing:** LR turun gradual 0.001 → ~0.00001 mengikuti kurva cosinus → model mengeksplorasi loss landscape secara sistematis
 
 | Aspek | SGD + Momentum | Adam | AdamW |
@@ -1580,10 +1580,10 @@ Pada epoch 1: box loss 1.33, classification loss 3.82, segmentation loss 4.54, d
 
 | Prediksi ↓ Aktual → | Organik | Non-Organik | Interpretasi |
 |---------------------|---------|-------------|--------------|
-| Organik | **~67%** (TP) | ~33% (FN) | Recall Organik ~67% — masih sering terlewat |
-| Non-Organik | ~19% (FP) | **~81%** (TN) | Specificity ~81% — cukup baik |
+| Organik | **~67%** (TP) | ~33% (FN) | Recall Organik ~67% - masih sering terlewat |
+| Non-Organik | ~19% (FP) | **~81%** (TN) | Specificity ~81% - cukup baik |
 
-FN Organik ~33%: Sisa makanan, ampas kopi, kulit halus — bentuk amorf tidak terdeteksi sebagai objek (confidence < threshold 0.25). FP Non-Organik ~19%: Plastik kusut, kain — secara visual mirip organik.
+FN Organik ~33%: Sisa makanan, ampas kopi, kulit halus - bentuk amorf tidak terdeteksi sebagai objek (confidence < threshold 0.25). FP Non-Organik ~19%: Plastik kusut, kain - secara visual mirip organik.
 
 > **Key Takeaway:**
 > 
@@ -1660,13 +1660,13 @@ Mengapa dampak class imbalance lebih besar pada mask? (1) Organik memiliki bentu
 
 | Tipe Failure | Penyebab Teknis | Dampak ke Output | Frekuensi |
 |-------------|-----------------|------------------|-----------|
-| **Objek transparan** | Pipeline gagal di langkah 4 (Otsu thresholding). Botol bening, plastik wrap, gelas kaca — objek transparan meneruskan cahaya latar sehingga intensitas piksel foreground ≈ background. `cv2.cvtColor(RGB2GRAY)` menghasilkan grayscale dengan luminance objek dan latar hampir identik. Histogram menjadi unimodal — Otsu tidak dapat menemukan threshold karena within-class variance minimal di semua threshold t (0..255). Pipeline masuk ke fallback geometris (langkah 9B/9C). Fallback ellipse/rect untuk botol silinder panjang menghasilkan mask berbentuk oval yang tidak presisi. Pada sisi model: DFL (Distribution Focal Loss) masih bisa mendeteksi bounding box karena kontras tipis di tepi botol (refraksi cahaya menciptakan edge tipis), tetapi Proto Module (segmentation branch) tidak memiliki contoh mask botol transparan yang akurat saat training — coefficient 32 prototype tidak bisa merekonstruksi silinder dari ellipse ground truth | **Box mAP:** masih ~50% (DFL menangkap boundary tipis). **Mask mAP:** turun drastis ke ~25-30% (mask ellipse tidak mengikuti silinder botol). **Bounding box:** overestimated karena ellipse fallback lebih lebar dari botol asli. **Output aplikasi:** mask tidak akurat ditampilkan di frontend — user trust turun. **Recycling advice:** bounding box benar (Non-Organik) jadi rekomendasi tidak salah, tapi verifikasi visual oleh operator tidak bisa mengandalkan mask | ~12% Non-Organik |
-| **Objek kecil** | Pipeline gagal di langkah 8 (validasi area ≥20%). Puntung rokok (~15×5px, ~0.5% frame 640×640), baterai kecil, biji, pecahan kecil — kontur berhasil terekstraksi di langkah 7 (`cv2.findContours`), tetapi `cv2.contourArea(largest) < 0.20 × h × w` → return None. Threshold 20% (≈81.920 px² dari 409.600 px²) dirancang untuk menyaring noise preprocessing (debu, bayangan kecil), tetapi juga memfilter objek valid yang kecil. Pada sisi arsitektur: feature map P3 (80×80) hanya mengalokasikan 1-2 grid cells untuk objek kecil — representasi fitur sangat sparse. DFL 16-bin distribution pada 1 grid cell tidak memiliki resolusi untuk lokalisasi presisi (setiap bin mewakili 1/16 dari 8×8 px = 0.5 px — terlalu kasar). Anchor-free detection kesulitan karena tanpa prior anchor untuk skala kecil | **Box mAP:** rendah (~30-40%) — model bisa mendeteksi dengan bantuan konteks P4/P5, tapi bounding box tidak presisi. **Mask mAP:** sangat rendah (<20%) — fallback geometris tidak mengikuti bentuk asli (puntung rokok silinder kecil → ellipse terlalu besar). **Output aplikasi:** objek kecil sering terlewat total saat bertumpuk dengan objek lebih besar (occlusion + NMS suppression). **Dampak operasional:** puntung rokok lolos ke aliran kompos (kontaminasi) atau residu yang tidak sesuai | ~8% gambar |
-| **Bentuk amorf** | Pipeline gagal karena asumsi bentuk rigid tidak terpenuhi. Sisa makanan basah, ampas kopi, kulit buah halus — objek tidak memiliki tepi tegas atau kontur geometris konsisten. Pada langkah 2 (grayscale): distribusi intensitas menyatu dengan latar (sisa nasi di piring putih → histogram unimodal). Otsu thresholding (langkah 4) gagal menemukan threshold bermakna. Langkah 9B fallback ellipse menghasilkan mask oval yang tidak merepresentasikan bentuk sisa makanan yang menyebar tidak beraturan. **Dampak compounding:** ground truth mask yang salah (ellipse) digunakan untuk training segmentation branch. Proto Module belajar bahwa "sisa makanan = bentuk oval" — associasi yang salah. Saat inference pada sisa makanan bentuk menyebar, model memprediksi mask oval yang hanya mencakup ~40% area asli. DFL loss (regression) masih bisa mendeteksi bounding box karena feature map P4/P5 menangkap keberadaan objek dari fitur tekstur (bukan bentuk), tapi IoU mask sangat rendah | **Box mAP Organik:** ~68% (masih bisa deteksi dari tekstur). **Mask mAP Organik:** ~51% (terbatas kualitas pseudo-mask). **Gap Box-Mask:** ~17% — terbesar di antara semua subkategori. **Output aplikasi:** mask segmentasi tidak bisa digunakan untuk verifikasi bentuk — operator tidak bisa memastikan area yang terdeteksi benar-benar sisa makanan. **Resiko:** sisa makanan yang tidak terdeteksi (FN ~33%) lolos ke Non-Organik → tidak bisa dikompos, membusuk di TPA | ~15% gambar Organik |
-| **Tumpukan objek** | Pipeline gagal di langkah 7 (`cv2.findContours` mode `RETR_EXTERNAL`). Mode ini hanya mendeteksi kontur terluar — jika dua objek saling bersentuhan atau tumpang tindih, edge detection menghasilkan satu kontur yang mengelilingi kedua objek. `cv2.approxPolyDP` (langkah 9) menyederhanakan kontur gabungan menjadi satu polygon yang mencakup area kedua objek. Label YOLO-seg menyimpan 1 polygon untuk 2 instance. Model segmentation branch (Proto Module) menerima ground truth di mana satu polygon = 2 objek — belajar bahwa mask boleh mencakup multiple objek. Saat inference, NMS (Non-Maximum Suppression) tidak bisa memisahkan karena hanya ada satu prediksi dengan confidence tinggi. **Faktor compounding:** morphological close (langkah 6, kernel 5×5, 2 iterasi) memperkuat penyatuan dengan mengisi celah sempit antar objek | **Instance count:** undercount — 2 objek dihitung 1. **Mask mAP:** penalti IoU besar — satu polygon prediksi dibandingkan dengan 2 ground truth mask → IoU maksimal ~50% (hanya overlap dengan satu objek). **Output aplikasi:** rekomendasi pembuangan salah — jika botol plastik + sisa makanan menyatu, sistem memberi satu rekomendasi yang tidak mungkin dieksekusi. **Dampak downstream:** CMS tidak bisa memisahkan secara manual karena hanya menerima satu polygon | ~6% gambar |
-| **Latar kompleks** | Pipeline gagal di langkah 3-4 (Gaussian blur + Otsu). Sampah di rumput, pasir, karpet — latar memiliki variasi intensitas alami high-frequency (tekstur rumput: variasi ±30-50 intensity per piksel). Gaussian blur kernel 5×5 (σ≈1.0) tidak cukup mereduksi noise tekstur karena skala korelasi spasial tekstur >5 piksel. Histogram grayscale menjadi multimodal (>2 puncak): satu puncak untuk objek, beberapa puncak kecil untuk variasi latar. Otsu thresholding memilih threshold yang mengoptimalkan separasi 2 kelas terbesar — seringkali salah satu puncak latar terpilih sebagai foreground. Langkah 6 (morphological close + open) dengan kernel 5×5 tidak bisa menghapus noise tekstur karena ukuran noise cluster >5×5 piksel. `cv2.findContours` mendeteksi kontur noise di area latar. Jika luas noise > objek, kontur terbesar (langkah 7A) adalah area latar → fallback geometris. Fallback ellipse/rect terlalu besar (mencakup area noise + objek) | **Box mAP:** turun ~5-10% pada kondisi latar kompleks — bounding box overestimated (mengikuti fallback yang terlalu besar). **Mask mAP:** turun ~10-15% — polygon edge detection (jika berhasil) memiliki tepi bergerigi dari noise kontur, polygon tidak mulus. **Fallback case:** mask terlalu besar dari objek asli → IoU rendah. **Generalization:** model belajar asosiasi salah antara fitur latar (rumput) dengan objek → false positive pada gambar dengan latar rumput serupa saat inference | ~10% gambar |
-| **Cahaya rendah** | Pipeline gagal di langkah 4 (Otsu thresholding) karena distribusi intensitas menyempit. Gambar gelap (low-light) memiliki rentang intensitas terkompresi — nilai piksel terkonsentrasi di rentang 0-50 (dari 0-255). Histogram menjadi narrow unimodal — semua piksel memiliki intensitas hampir sama. Otsu menghitung within-class variance σ²_w(t) untuk t=0..255 → variance minimal terjadi di threshold yang membelah distribusi narrow secara acak → tidak bermakna secara visual. Langkah 5 (mean > 127?) juga tidak berguna karena mean intensitas < 50 → tidak invert. Mask biner (jika Otsu "berhasil") memiliki boundary acak yang tidak mengikuti objek. **Faktor tambahan:** noise sensor kamera lebih dominan di kondisi low-light (shot noise ~√(signal)) — Gaussian blur 5×5 tidak cukup mereduksi noise-to-signal ratio yang tinggi | **Pipeline:** 80%+ kasus cahaya rendah masuk fallback geometris. **Box mAP:** turun ~10% — DFL distribution menjadi lebar (uncertainty tinggi) karena boundary tidak jelas. **Mask mAP:** turun ~15-20% — fallback geometris + noise prediksi. **Output aplikasi:** gambar malam/mendung menghasilkan deteksi tidak stabil. **Threshold NMS:** confidence score turun di bawah 0.25 untuk banyak objek → missed detections meningkat | ~5% gambar |
-| **Objek reflektif** | Pipeline gagal setelah langkah 4-6 (Otsu + morph). Plastik mengkilap, kaleng aluminium, kaca botol — refleksi cahaya menciptakan area intensitas sangat tinggi (≥200) di tengah area objek dengan intensitas normal (100-150). Otsu thresholding mendeteksi area refleksi sebagai foreground terpisah karena distribusi intensitasnya membentuk puncak histogram tambahan. Langkah 7 (`cv2.findContours`) mendeteksi kontur terpisah untuk badan objek dan area refleksi. Langkah 7A (seleksi kontur terbesar) mengambil badan objek, tetapi area refleksi tetap ada sebagai kontur independen dengan area signifikan. Langkah 9 (approxPolyDP) pada kontur badan objek menghasilkan polygon dengan cekungan di area refleksi (seolah objek berlubang). Label YOLO-seg yang salah ini mengajarkan model bahwa objek reflektif memiliki bentuk tidak utuh | **Box mAP:** masih baik (~70%) karena DFL menangkap distribusi boundary dari kontras tepi objek vs latar. **Mask mAP:** turun ~10-15% — polygon memiliki cekungan/celah palsu. **Over-segmentation:** pada kasus ekstrim, dua deteksi untuk satu objek (badan + refleksi) — keduanya lolos NMS jika confidence ≥0.25 dan IoU <0.7. **Output aplikasi:** satu objek ditampilkan sebagai dua instance dengan bounding box terpisah → user bingung, recycling advice ganda untuk objek sama | ~4% gambar |
+| **Objek transparan** | Pipeline gagal di langkah 4 (Otsu thresholding). Botol bening, plastik wrap, gelas kaca - objek transparan meneruskan cahaya latar sehingga intensitas piksel foreground ≈ background. `cv2.cvtColor(RGB2GRAY)` menghasilkan grayscale dengan luminance objek dan latar hampir identik. Histogram menjadi unimodal - Otsu tidak dapat menemukan threshold karena within-class variance minimal di semua threshold t (0..255). Pipeline masuk ke fallback geometris (langkah 9B/9C). Fallback ellipse/rect untuk botol silinder panjang menghasilkan mask berbentuk oval yang tidak presisi. Pada sisi model: DFL (Distribution Focal Loss) masih bisa mendeteksi bounding box karena kontras tipis di tepi botol (refraksi cahaya menciptakan edge tipis), tetapi Proto Module (segmentation branch) tidak memiliki contoh mask botol transparan yang akurat saat training - coefficient 32 prototype tidak bisa merekonstruksi silinder dari ellipse ground truth | **Box mAP:** masih ~50% (DFL menangkap boundary tipis). **Mask mAP:** turun drastis ke ~25-30% (mask ellipse tidak mengikuti silinder botol). **Bounding box:** overestimated karena ellipse fallback lebih lebar dari botol asli. **Output aplikasi:** mask tidak akurat ditampilkan di frontend - user trust turun. **Recycling advice:** bounding box benar (Non-Organik) jadi rekomendasi tidak salah, tapi verifikasi visual oleh operator tidak bisa mengandalkan mask | ~12% Non-Organik |
+| **Objek kecil** | Pipeline gagal di langkah 8 (validasi area ≥20%). Puntung rokok (~15×5px, ~0.5% frame 640×640), baterai kecil, biji, pecahan kecil - kontur berhasil terekstraksi di langkah 7 (`cv2.findContours`), tetapi `cv2.contourArea(largest) < 0.20 × h × w` → return None. Threshold 20% (≈81.920 px² dari 409.600 px²) dirancang untuk menyaring noise preprocessing (debu, bayangan kecil), tetapi juga memfilter objek valid yang kecil. Pada sisi arsitektur: feature map P3 (80×80) hanya mengalokasikan 1-2 grid cells untuk objek kecil - representasi fitur sangat sparse. DFL 16-bin distribution pada 1 grid cell tidak memiliki resolusi untuk lokalisasi presisi (setiap bin mewakili 1/16 dari 8×8 px = 0.5 px - terlalu kasar). Anchor-free detection kesulitan karena tanpa prior anchor untuk skala kecil | **Box mAP:** rendah (~30-40%) - model bisa mendeteksi dengan bantuan konteks P4/P5, tapi bounding box tidak presisi. **Mask mAP:** sangat rendah (<20%) - fallback geometris tidak mengikuti bentuk asli (puntung rokok silinder kecil → ellipse terlalu besar). **Output aplikasi:** objek kecil sering terlewat total saat bertumpuk dengan objek lebih besar (occlusion + NMS suppression). **Dampak operasional:** puntung rokok lolos ke aliran kompos (kontaminasi) atau residu yang tidak sesuai | ~8% gambar |
+| **Bentuk amorf** | Pipeline gagal karena asumsi bentuk rigid tidak terpenuhi. Sisa makanan basah, ampas kopi, kulit buah halus - objek tidak memiliki tepi tegas atau kontur geometris konsisten. Pada langkah 2 (grayscale): distribusi intensitas menyatu dengan latar (sisa nasi di piring putih → histogram unimodal). Otsu thresholding (langkah 4) gagal menemukan threshold bermakna. Langkah 9B fallback ellipse menghasilkan mask oval yang tidak merepresentasikan bentuk sisa makanan yang menyebar tidak beraturan. **Dampak compounding:** ground truth mask yang salah (ellipse) digunakan untuk training segmentation branch. Proto Module belajar bahwa "sisa makanan = bentuk oval" - associasi yang salah. Saat inference pada sisa makanan bentuk menyebar, model memprediksi mask oval yang hanya mencakup ~40% area asli. DFL loss (regression) masih bisa mendeteksi bounding box karena feature map P4/P5 menangkap keberadaan objek dari fitur tekstur (bukan bentuk), tapi IoU mask sangat rendah | **Box mAP Organik:** ~68% (masih bisa deteksi dari tekstur). **Mask mAP Organik:** ~51% (terbatas kualitas pseudo-mask). **Gap Box-Mask:** ~17% - terbesar di antara semua subkategori. **Output aplikasi:** mask segmentasi tidak bisa digunakan untuk verifikasi bentuk - operator tidak bisa memastikan area yang terdeteksi benar-benar sisa makanan. **Resiko:** sisa makanan yang tidak terdeteksi (FN ~33%) lolos ke Non-Organik → tidak bisa dikompos, membusuk di TPA | ~15% gambar Organik |
+| **Tumpukan objek** | Pipeline gagal di langkah 7 (`cv2.findContours` mode `RETR_EXTERNAL`). Mode ini hanya mendeteksi kontur terluar - jika dua objek saling bersentuhan atau tumpang tindih, edge detection menghasilkan satu kontur yang mengelilingi kedua objek. `cv2.approxPolyDP` (langkah 9) menyederhanakan kontur gabungan menjadi satu polygon yang mencakup area kedua objek. Label YOLO-seg menyimpan 1 polygon untuk 2 instance. Model segmentation branch (Proto Module) menerima ground truth di mana satu polygon = 2 objek - belajar bahwa mask boleh mencakup multiple objek. Saat inference, NMS (Non-Maximum Suppression) tidak bisa memisahkan karena hanya ada satu prediksi dengan confidence tinggi. **Faktor compounding:** morphological close (langkah 6, kernel 5×5, 2 iterasi) memperkuat penyatuan dengan mengisi celah sempit antar objek | **Instance count:** undercount - 2 objek dihitung 1. **Mask mAP:** penalti IoU besar - satu polygon prediksi dibandingkan dengan 2 ground truth mask → IoU maksimal ~50% (hanya overlap dengan satu objek). **Output aplikasi:** rekomendasi pembuangan salah - jika botol plastik + sisa makanan menyatu, sistem memberi satu rekomendasi yang tidak mungkin dieksekusi. **Dampak downstream:** CMS tidak bisa memisahkan secara manual karena hanya menerima satu polygon | ~6% gambar |
+| **Latar kompleks** | Pipeline gagal di langkah 3-4 (Gaussian blur + Otsu). Sampah di rumput, pasir, karpet - latar memiliki variasi intensitas alami high-frequency (tekstur rumput: variasi ±30-50 intensity per piksel). Gaussian blur kernel 5×5 (σ≈1.0) tidak cukup mereduksi noise tekstur karena skala korelasi spasial tekstur >5 piksel. Histogram grayscale menjadi multimodal (>2 puncak): satu puncak untuk objek, beberapa puncak kecil untuk variasi latar. Otsu thresholding memilih threshold yang mengoptimalkan separasi 2 kelas terbesar - seringkali salah satu puncak latar terpilih sebagai foreground. Langkah 6 (morphological close + open) dengan kernel 5×5 tidak bisa menghapus noise tekstur karena ukuran noise cluster >5×5 piksel. `cv2.findContours` mendeteksi kontur noise di area latar. Jika luas noise > objek, kontur terbesar (langkah 7A) adalah area latar → fallback geometris. Fallback ellipse/rect terlalu besar (mencakup area noise + objek) | **Box mAP:** turun ~5-10% pada kondisi latar kompleks - bounding box overestimated (mengikuti fallback yang terlalu besar). **Mask mAP:** turun ~10-15% - polygon edge detection (jika berhasil) memiliki tepi bergerigi dari noise kontur, polygon tidak mulus. **Fallback case:** mask terlalu besar dari objek asli → IoU rendah. **Generalization:** model belajar asosiasi salah antara fitur latar (rumput) dengan objek → false positive pada gambar dengan latar rumput serupa saat inference | ~10% gambar |
+| **Cahaya rendah** | Pipeline gagal di langkah 4 (Otsu thresholding) karena distribusi intensitas menyempit. Gambar gelap (low-light) memiliki rentang intensitas terkompresi - nilai piksel terkonsentrasi di rentang 0-50 (dari 0-255). Histogram menjadi narrow unimodal - semua piksel memiliki intensitas hampir sama. Otsu menghitung within-class variance σ²_w(t) untuk t=0..255 → variance minimal terjadi di threshold yang membelah distribusi narrow secara acak → tidak bermakna secara visual. Langkah 5 (mean > 127?) juga tidak berguna karena mean intensitas < 50 → tidak invert. Mask biner (jika Otsu "berhasil") memiliki boundary acak yang tidak mengikuti objek. **Faktor tambahan:** noise sensor kamera lebih dominan di kondisi low-light (shot noise ~√(signal)) - Gaussian blur 5×5 tidak cukup mereduksi noise-to-signal ratio yang tinggi | **Pipeline:** 80%+ kasus cahaya rendah masuk fallback geometris. **Box mAP:** turun ~10% - DFL distribution menjadi lebar (uncertainty tinggi) karena boundary tidak jelas. **Mask mAP:** turun ~15-20% - fallback geometris + noise prediksi. **Output aplikasi:** gambar malam/mendung menghasilkan deteksi tidak stabil. **Threshold NMS:** confidence score turun di bawah 0.25 untuk banyak objek → missed detections meningkat | ~5% gambar |
+| **Objek reflektif** | Pipeline gagal setelah langkah 4-6 (Otsu + morph). Plastik mengkilap, kaleng aluminium, kaca botol - refleksi cahaya menciptakan area intensitas sangat tinggi (≥200) di tengah area objek dengan intensitas normal (100-150). Otsu thresholding mendeteksi area refleksi sebagai foreground terpisah karena distribusi intensitasnya membentuk puncak histogram tambahan. Langkah 7 (`cv2.findContours`) mendeteksi kontur terpisah untuk badan objek dan area refleksi. Langkah 7A (seleksi kontur terbesar) mengambil badan objek, tetapi area refleksi tetap ada sebagai kontur independen dengan area signifikan. Langkah 9 (approxPolyDP) pada kontur badan objek menghasilkan polygon dengan cekungan di area refleksi (seolah objek berlubang). Label YOLO-seg yang salah ini mengajarkan model bahwa objek reflektif memiliki bentuk tidak utuh | **Box mAP:** masih baik (~70%) karena DFL menangkap distribusi boundary dari kontras tepi objek vs latar. **Mask mAP:** turun ~10-15% - polygon memiliki cekungan/celah palsu. **Over-segmentation:** pada kasus ekstrim, dua deteksi untuk satu objek (badan + refleksi) - keduanya lolos NMS jika confidence ≥0.25 dan IoU <0.7. **Output aplikasi:** satu objek ditampilkan sebagai dua instance dengan bounding box terpisah → user bingung, recycling advice ganda untuk objek sama | ~4% gambar |
 
 **E. Implikasi untuk Pengembangan:**
 
@@ -1751,7 +1751,7 @@ Selisih ~21.5% antara Box mAP (76.9%) dan Mask mAP (55.4%) mengindikasikan bahwa
 | Objek transparan | Edge detection gagal pada ~12% gambar Non-Organik | Sedang |
 | Objek kecil (<20% area) | Fallback geometris pada ~8% gambar | Rendah |
 
-Pseudo-label noise adalah tantangan dominan — 33.6% mask menggunakan fallback geometris yang tidak presisi. Model belajar segmentasi dari ground truth yang sudah tidak akurat sejak awal. Peningkatan kualitas pseudo-mask (misal dengan SAM) diproyeksikan menaikkan Mask mAP 10-15%. Class imbalance berdampak lebih besar pada mask (bentuk amorf organik sulit dipelajari dari sedikit contoh) dibanding box (deteksi lokasi lebih toleran).
+Pseudo-label noise adalah tantangan dominan - 33.6% mask menggunakan fallback geometris yang tidak presisi. Model belajar segmentasi dari ground truth yang sudah tidak akurat sejak awal. Peningkatan kualitas pseudo-mask (misal dengan SAM) diproyeksikan menaikkan Mask mAP 10-15%. Class imbalance berdampak lebih besar pada mask (bentuk amorf organik sulit dipelajari dari sedikit contoh) dibanding box (deteksi lokasi lebih toleran).
 
 ---
 
