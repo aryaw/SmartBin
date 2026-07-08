@@ -933,13 +933,13 @@ YOLO secara historis menggunakan Darknet (YOLOv1-v3) dan kemudian CSPDarknet (YO
 
 **Perbandingan Varian Model YOLOv26-seg:**
 
-| Varian | Parameters | GFLOPs | Model Size | Box mAP COCO | Kecepatan (T4) | Keputusan |
-|--------|-----------|--------|------------|-------------|----------------|-----------|
-| n (nano) | 3.2M | 12.8 | 6.5 MB | 37.3% | ~2ms | Terlalu kecil, akurasi rendah |
-| s (small) | 11.2M | 46.2 | 22.5 MB | 44.9% | ~3ms | Opsional trade-off |
-| **m (medium)** | **26.97M** | **131.9** | **54.5 MB** | **50.6%** | **~5ms** | **Dipilih** |
-| l (large) | 58.3M | 236.7 | 117 MB | 53.0% | ~8ms | Terlalu besar untuk edge |
-| x (xlarge) | 97.8M | 397.5 | 196 MB | 54.7% | ~12ms | Tidak feasible, VRAM >16GB |
+| Varian | Parameters | GFLOPs | Model Size | Box mAP COCO | Kecepatan (T4) | Keputusan | Referensi |
+|--------|-----------|--------|------------|-------------|----------------|-----------|-----------|
+| n (nano) | 3.2M | 12.8 | 6.5 MB | 37.3% | ~2ms | Terlalu kecil, akurasi rendah | [8] |
+| s (small) | 11.2M | 46.2 | 22.5 MB | 44.9% | ~3ms | Opsional trade-off | [8] |
+| **m (medium)** | **26.97M** | **131.9** | **54.5 MB** | **50.6%** | **~5ms** | **Dipilih** | [8] |
+| l (large) | 58.3M | 236.7 | 117 MB | 53.0% | ~8ms | Terlalu besar untuk edge | [8] |
+| x (xlarge) | 97.8M | 397.5 | 196 MB | 54.7% | ~12ms | Tidak feasible, VRAM >16GB | [8] |
 
 **Varian m dipilih** karena: (1) keseimbangan akurasi-kecepatan optimal, (2) ukuran model 54.5 MB muat di flash storage perangkat edge, (3) inference 5.1ms (log) memenuhi syarat real-time (<30ms).
 
@@ -951,15 +951,15 @@ Backbone terdiri dari 11 layer berurutan: Stem convolution (input 3 channel RGB 
 
 **Proses Ekstraksi Fitur Bertahap:**
 
-| Stage | Input → Output | Stride | Channel | Pixels | Resepsi Field | Fungsi |
-|-------|--------------|--------|---------|--------|---------------|--------|
-| Stem Conv | 640×640 → 320×320 | 2x | 64 | 102.400 (25%) | 7×7 | Tepi dasar (garis, gradien) |
-| Stage 1 CSP | 320×320 → 160×160 | 4x | 256 | 25.600 (6.25%) | 15×15 | Sudut, kontur, lingkaran |
-| Stage 2 CSP | 160×160 → 80×80 | 8x | 512 | 6.400 (1.56%) | 31×31 | Pola geometrik: silinder, lipatan |
-| Stage 3 CSP | 80×80 → 40×40 | 16x | 512 | 1.600 (0.39%) | 63×63 | Tekstur: plastik vs kertas |
-| Stage 4 CSP | 40×40 → 20×20 | 32x | 512 | 400 (0.098%) | 127×127 | Semantik: "buatan pabrik" vs "alami" |
-| SPPF | 20×20 → 20×20 | 32x | 512 | 400 (0.098%) | 127+pool | Multi-skala (pool 5/9/13) |
-| C2PSA | 20×20 → 20×20 | 32x | 512 | 400 (0.098%) | global | Attention mekanisme |
+| Stage | Input → Output | Stride | Channel | Pixels | Resepsi Field | Fungsi | Referensi |
+|-------|--------------|--------|---------|--------|---------------|--------|-----------|
+| Stem Conv | 640×640 → 320×320 | 2x | 64 | 102.400 (25%) | 7×7 | Tepi dasar (garis, gradien) | [14][21] |
+| Stage 1 CSP | 320×320 → 160×160 | 4x | 256 | 25.600 (6.25%) | 15×15 | Sudut, kontur, lingkaran | [14][21] |
+| Stage 2 CSP | 160×160 → 80×80 | 8x | 512 | 6.400 (1.56%) | 31×31 | Pola geometrik: silinder, lipatan | [14][21] |
+| Stage 3 CSP | 80×80 → 40×40 | 16x | 512 | 1.600 (0.39%) | 63×63 | Tekstur: plastik vs kertas | [14][21] |
+| Stage 4 CSP | 40×40 → 20×20 | 32x | 512 | 400 (0.098%) | 127×127 | Semantik: "buatan pabrik" vs "alami" | [14][21] |
+| SPPF | 20×20 → 20×20 | 32x | 512 | 400 (0.098%) | 127+pool | Multi-skala (pool 5/9/13) | [22][14][8] |
+| C2PSA | 20×20 → 20×20 | 32x | 512 | 400 (0.098%) | global | Attention mekanisme | [14][21] |
 
 Resepsi field dihitung sebagai: RF_n = RF_{n-1} + (kernel_size - 1) × stride_product. Stem (kernel 7, stride 2) → RF=7. Stage 1 (ker 3, stride 2) → RF = 7 + 2×4 = 15. Seterusnya hingga Stage 4 mencapai 127×127 piksel pada gambar asli.
 
@@ -974,13 +974,13 @@ Resepsi field dihitung sebagai: RF_n = RF_{n-1} + (kernel_size - 1) × stride_pr
 - **Gradient flow dual-path:** gradien mengalir melalui dua jalur terpisah (konvolusi + shortcut) → mengurangi vanishing gradient, memungkinkan backbone lebih dalam
 - **Feature reuse alami:** concatenation fitur baru + fitur asli memberikan akses simultan ke representasi mentah dan terproses
 
-| Aspek | ResNet | DenseNet | CSP (dipilih) |
-|-------|--------|----------|--------------|
-| Koneksi shortcut | Identity skip connection | Semua layer terhubung ke semua | Split + concat partial |
-| Parameter efisiensi | Medium | Boros (bottleneck 1×1) | Tinggi (~20% lebih hemat) |
-| FLOPs | 100% baseline | 130% | ~80% |
-| Gradien flow | Baik | Sangat baik (dense) | Sangat baik (dual path) |
-| Representasi | Fitur residual | Fitur reuse maksimal | Fitur baru + fitur asli |
+| Aspek | ResNet | DenseNet | CSP (dipilih) | Referensi |
+|-------|--------|----------|--------------|-----------|
+| Koneksi shortcut | Identity skip connection | Semua layer terhubung ke semua | Split + concat partial | [21] |
+| Parameter efisiensi | Medium | Boros (bottleneck 1×1) | Tinggi (~20% lebih hemat) | [21] |
+| FLOPs | 100% baseline | 130% | ~80% | [21] |
+| Gradien flow | Baik | Sangat baik (dense) | Sangat baik (dual path) | [21] |
+| Representasi | Fitur residual | Fitur reuse maksimal | Fitur baru + fitur asli | [21] |
 
 CSP memproses hanya sebagian (~50%) channel di jalur utama, sisanya dilewati langsung. Ini memberikan representasi yang lebih kaya (fitur baru + fitur asli digabung) dengan FLOPs lebih rendah.
 
@@ -1214,11 +1214,11 @@ Output: 48 float (24 titik x 2 koordinat), ternormalisasi [0,1]
 
 **Mengapa FPN saja tidak cukup?** FPN hanya mengalirkan semantik ke bawah. P5 (deteksi objek besar) hanya punya semantik tanpa detail lokasi → bounding box kurang presisi untuk objek besar seperti kardus. FPN+PAN memastikan setiap level memiliki semantic understanding (what) AND precise localization (where).
 
-| Konfigurasi | Informasi Semantik (P3) | Detail Lokasi (P5) | Kecepatan |
-|-------------|------------------------|-------------------|-----------|
-| Hanya FPN | Tinggi | Rendah | Cepat |
-| Hanya PAN | Rendah | Tinggi | Cepat |
-| **FPN+PAN** (dipilih) | **Tinggi** | **Tinggi** | **Sedang (butuh 2x lebih banyak layer)** |
+| Konfigurasi | Informasi Semantik (P3) | Detail Lokasi (P5) | Kecepatan | Referensi |
+|-------------|------------------------|-------------------|-----------|-----------|
+| Hanya FPN | Tinggi | Rendah | Cepat | [23] |
+| Hanya PAN | Rendah | Tinggi | Cepat | [24] |
+| **FPN+PAN** (dipilih) | **Tinggi** | **Tinggi** | **Sedang (butuh 2x lebih banyak layer)** | [23][24] |
 
 Tanpa PAN, P5 (deteksi objek besar) tidak memiliki detail lokasi → bounding box kurang presisi untuk objek besar seperti kardus. Tanpa FPN, P3 (deteksi objek kecil) tidak memiliki informasi semantik → false positive pada tekstur latar.
 
@@ -1237,11 +1237,11 @@ Channel progression: P3 (256ch) → P4 (512ch) → P5 (512ch). Perhatikan bahwa 
 - **Eliminasi task competition:** pada coupled head, satu set parameter harus menyeimbangkan kebutuhan tiga task yang sering bertentangan. Decoupled head menghilangkan konflik ini
 - **Akurasi lebih tinggi:** +2-3% mAP dibanding coupled head (YOLO paper)
 
-| Aspek | Coupled Head (YOLOv5/v8) | Decoupled Head (YOLOv26) |
-|-------|--------------------------|--------------------------|
-| Struktur | 1 Conv → 3 task bersama | 3 Conv paralel, 1 per task |
-| Conflict task | Klasifikasi vs regresi kompetisi parameter | Tidak ada conflict (parameter terpisah) |
-| Akurasi | Baseline | +2-3% mAP (YOLO paper) |
+| Aspek | Coupled Head (YOLOv5/v8) | Decoupled Head (YOLOv26) | Referensi |
+|-------|--------------------------|--------------------------|-----------|
+| Struktur | 1 Conv → 3 task bersama | 3 Conv paralel, 1 per task | [25] |
+| Conflict task | Klasifikasi vs regresi kompetisi parameter | Tidak ada conflict (parameter terpisah) | [25] |
+| Akurasi | Baseline | +2-3% mAP (YOLO paper) | [25] |
 | Parameter | Lebih hemat | ~20% lebih banyak |
 | Kecepatan | Sama | Sama (paralel) |
 
@@ -1286,13 +1286,13 @@ Konfigurasi dari log: mask_ratio 2 (faktor downsampling prototype) dan overlap_m
 
 YOLOv26 menghilangkan anchor boxes (template bounding box) yang digunakan di v3/v5/v8. Perbandingan:
 
-| Aspek | Anchor-Based | Anchor-Free (dipilih) |
-|-------|-------------|----------------------|
-| Cara kerja | Pilih anchor terbaik dari k template per grid cell | Langsung prediksi 4 koordinat |
-| Parameter tuning | Butuh clustering dataset untuk determine anchor size/shape | Tidak perlu tuning |
-| Dataset transfer | Anchor optimal beda per dataset (COCO ≠ sampah) | Zero tuning |
-| Bentuk ekstrem | Anchor tidak mencakup rasio ekstrem (1:10) | Bisa prediksi rasio berapapun |
-| Post-processing | NMS kompleks (anchor suppression) | NMS sederhana |
+| Aspek | Anchor-Based | Anchor-Free (dipilih) | Referensi |
+|-------|-------------|----------------------|-----------|
+| Cara kerja | Pilih anchor terbaik dari k template per grid cell | Langsung prediksi 4 koordinat | [25] |
+| Parameter tuning | Butuh clustering dataset untuk determine anchor size/shape | Tidak perlu tuning | [25] |
+| Dataset transfer | Anchor optimal beda per dataset (COCO ≠ sampah) | Zero tuning | [25] |
+| Bentuk ekstrem | Anchor tidak mencakup rasio ekstrem (1:10) | Bisa prediksi rasio berapapun | [25] |
+| Post-processing | NMS kompleks (anchor suppression) | NMS sederhana | [25] |
 
 **Mengapa sekarang bisa anchor-free?** YOLOv26 menggunakan DFL (Distribution Focal Loss) yang memprediksi distribusi probabilitas posisi boundary. Distribusi ini secara implisit menangkap variasi bentuk objek tanpa perlu template eksplisit. Perbaikan lain: feature pyramid yang lebih baik (FPN+PAN+C2PSA) memberikan representasi multi-skala yang cukup untuk menangani variasi ukuran tanpa anchor.
 
@@ -1356,12 +1356,12 @@ Konfigurasi loss dari log: box 7.5, cls 0.5, dfl 1.5. Tiga komponen loss menguku
 
 **Perbandingan IoU Variants:**
 
-| Loss | Faktor | Kelebihan | Kekurangan |
-|------|--------|-----------|------------|
-| IoU | IoU saja | Sederhana | Gradien 0 jika tidak overlap |
-| GIoU | IoU + smallest enclosing box | Gradien ada walau tidak overlap | Konvergen lambat |
-| DIoU | IoU + center distance | Konvergen lebih cepat | Abaikan aspect ratio |
-| **CIoU** (dipilih) | IoU + center distance + aspect ratio | Paling komprehensif | Kompleksitas komputasi sedikit lebih tinggi |
+| Loss | Faktor | Kelebihan | Kekurangan | Referensi |
+|------|--------|-----------|------------|-----------|
+| IoU | IoU saja | Sederhana | Gradien 0 jika tidak overlap | [26] |
+| GIoU | IoU + smallest enclosing box | Gradien ada walau tidak overlap | Konvergen lambat | [26] |
+| DIoU | IoU + center distance | Konvergen lebih cepat | Abaikan aspect ratio | [26] |
+| **CIoU** (dipilih) | IoU + center distance + aspect ratio | Paling komprehensif | Kompleksitas komputasi sedikit lebih tinggi | [26] |
 
 CIoU = 1 − IoU + ρ²(b, b_gt)/c² + α·v
 - ρ: jarak Euclidean antar pusat
@@ -1405,11 +1405,11 @@ Nilai loss untuk berbagai confidence:
 
 Perbandingan metode regresi:
 
-| Metode | Output | Karakteristik |
-|--------|--------|--------------|
-| L1 loss | Nilai tunggal (x, y, w, h) | Gradien konstan, tidak informatif untuk boundary tidak jelas |
-| L2 loss | Nilai tunggal | Gradien proporsional error, sensitif outlier |
-| **DFL** (dipilih) | Distribusi 16-bin | Representasi uncertainty, gradien informatif |
+| Metode | Output | Karakteristik | Referensi |
+|--------|--------|--------------|-----------|
+| L1 loss | Nilai tunggal (x, y, w, h) | Gradien konstan, tidak informatif untuk boundary tidak jelas | — |
+| L2 loss | Nilai tunggal | Gradien proporsional error, sensitif outlier | — |
+| **DFL** (dipilih) | Distribusi 16-bin | Representasi uncertainty, gradien informatif | [26] |
 
 DFL memprediksi distribusi probabilitas posisi boundary dalam 16 bin diskrit. Loss = cross-entropy antara distribusi prediksi dan distribusi target (one-hot pada posisi ground truth). Keuntungan: jika objek transparan (botol bening) boundary tidak jelas, distribusi akan lebar (uncertainty tinggi) → model tahu bahwa ia tidak tahu persis boundary-nya. L1/L2 tidak bisa merepresentasikan uncertainty.
 
@@ -1427,12 +1427,12 @@ Log training epoch 1: box loss 1.35, segmentation loss 5.94, classification loss
 
 Konfigurasi dari log training:
 
-| Parameter | Log Nilai | Alasan Pemilihan | Alternatif Ditolak |
-|-----------|-----------|------------------|-------------------|
-| Epochs | **100** | Cukup untuk konvergensi dengan transfer learning (890/904 item ditransfer dari COCO). Early stopping patience 40 tidak aktif (loss terus turun) | 50 epoch: underfit; 200 epoch: overfit (dimulai ~150) |
-| Batch size | **16** | VRAM 16 GB cukup untuk batch 16 dengan mask_ratio=2. SGD dengan momentum 0.937 mengkompensasi noise gradien | Batch 4: terlalu noise; Batch 32: OOM |
-| Image size | **640** | Standar YOLO. 640×640 = 409.600 px. Lebih besar = detail lebih → lebih lambat; lebih kecil = lebih cepat → kehilangan detail objek kecil | 320: terlalu kecil; 1280: terlalu lambat, OOM |
-| Optimizer | **SGD** (momentum 0.937, weight decay 0.0005) | Adam butuh 2x memori (momentum + variance) dan lebih overfit; SGD dengan cosine annealing mencapai minimum lebih baik untuk CV | AdamW: generalisasi lebih rendah; Adam: VRAM lebih tinggi |
+| Parameter | Log Nilai | Alasan Pemilihan | Alternatif Ditolak | Referensi |
+|-----------|-----------|------------------|-------------------|-----------|
+| Epochs | **100** | Cukup untuk konvergensi dengan transfer learning (890/904 item ditransfer dari COCO). Early stopping patience 40 tidak aktif (loss terus turun) | 50 epoch: underfit; 200 epoch: overfit (dimulai ~150) | [14][8] |
+| Batch size | **16** | VRAM 16 GB cukup untuk batch 16 dengan mask_ratio=2. SGD dengan momentum 0.937 mengkompensasi noise gradien | Batch 4: terlalu noise; Batch 32: OOM | [8] |
+| Image size | **640** | Standar YOLO. 640×640 = 409.600 px. Lebih besar = detail lebih → lebih lambat; lebih kecil = lebih cepat → kehilangan detail objek kecil | 320: terlalu kecil; 1280: terlalu lambat, OOM | [17][8] |
+| Optimizer | **SGD** (momentum 0.937, weight decay 0.0005) | Adam butuh 2x memori (momentum + variance) dan lebih overfit; SGD dengan cosine annealing mencapai minimum lebih baik untuk CV | AdamW: generalisasi lebih rendah; Adam: VRAM lebih tinggi | [27] |
 
 **Optimizer SGD - Fungsi dan Alasan**
 
@@ -1443,12 +1443,12 @@ Konfigurasi dari log training:
 - **Generalisasi lebih baik:** SGD memiliki implicit regularization - tanpa adaptive LR, model tidak terlalu "nyaman" di sharp minima → generalisasi lebih baik
 - **Cosine annealing:** LR turun gradual 0.001 → ~0.00001 mengikuti kurva cosinus → model mengeksplorasi loss landscape secara sistematis
 
-| Aspek | SGD + Momentum | Adam | AdamW |
-|-------|---------------|------|-------|
-| VRAM | **Dasar** | 2x (momentum + variance) | 2x |
-| Generalisasi | **Lebih baik** (implisit regularization) | Lebih rendah (adaptive LR mengurangi regularization) | Setara SGD |
-| Konvergensi | Lebih lambat (butuh tuning LR) | **Cepat** (adaptive LR) | Cepat |
-| Ketahanan LR | Sensitif | **Robust** | Robust |
+| Aspek | SGD + Momentum | Adam | AdamW | Referensi |
+|-------|---------------|------|-------|-----------|
+| VRAM | **Dasar** | 2x (momentum + variance) | 2x | [27] |
+| Generalisasi | **Lebih baik** (implisit regularization) | Lebih rendah (adaptive LR mengurangi regularization) | Setara SGD | [27] |
+| Konvergensi | Lebih lambat (butuh tuning LR) | **Cepat** (adaptive LR) | Cepat | [27] |
+| Ketahanan LR | Sensitif | **Robust** | Robust | [27] |
 
 SGD dipilih karena: (1) VRAM lebih hemat, (2) Generalisasi lebih baik (terbukti di berbagai benchmark CV), (3) Cosine annealing compensates for slower convergence.
 
@@ -1457,14 +1457,14 @@ SGD dengan learning rate 0.001 dan momentum 0.937, terdiri dari 144 grup paramet
 
 Ada 472 parameter groups total: 144 grup tanpa weight decay (bias, batchnorm), 164 grup dengan weight decay 0.0005 (bobot konvolusi), 164 grup bias dengan decay 0.0. Bias dan batchnorm tidak di-regularize karena overfitting lebih jarang pada parameter ini.
 
-| Parameter | Log Nilai | Alasan |
-|-----------|-----------|--------|
-| LR schedule | **Cosine annealing** | LR turun dari 0.001 → ~0.00001 (mendekati 0) mengikuti kurva cosinus. Berbeda dengan step decay (turun drastis di epoch tertentu), cosine annealing turun gradual → model konvergen ke minimum lebih dalam |
-| Warmup | **5 epochs** | LR naik linear dari 0 ke 0.001 selama 5 epoch pertama. Mencegah gradien eksplosif di awal saat bobot masih random. Learning rate bias layer 10x lebih tinggi dari normal untuk akselerasi awal |
-| FP16 | **True** | Mixed precision: forward/backward FP16, bobot FP32. Menghemat VRAM ~44% |
-| Cache | **ram** | Dataset (345 KB per image kali 2765 = 955 MB) di-cache ke RAM. Akses 6954 MB/s vs disk ~500 MB/s |
-| Mask ratio | **2** | Faktor downsampling prototype mask. ratio=2 berarti prototype 2x lebih kecil dari feature map. Lebih hemat VRAM dari default 4 |
-| Overlap mask | **True** | Mask boleh overlap antar instance. Penting untuk sampah bertumpuk |
+| Parameter | Log Nilai | Alasan | Referensi |
+|-----------|-----------|--------|-----------|
+| LR schedule | **Cosine annealing** | LR turun dari 0.001 → ~0.00001 (mendekati 0) mengikuti kurva cosinus. Berbeda dengan step decay (turun drastis di epoch tertentu), cosine annealing turun gradual → model konvergen ke minimum lebih dalam | [27] |
+| Warmup | **5 epochs** | LR naik linear dari 0 ke 0.001 selama 5 epoch pertama. Mencegah gradien eksplosif di awal saat bobot masih random. Learning rate bias layer 10x lebih tinggi dari normal untuk akselerasi awal | [28] |
+| FP16 | **True** | Mixed precision: forward/backward FP16, bobot FP32. Menghemat VRAM ~44% | [28] |
+| Cache | **ram** | Dataset (345 KB per image kali 2765 = 955 MB) di-cache ke RAM. Akses 6954 MB/s vs disk ~500 MB/s | [8] |
+| Mask ratio | **2** | Faktor downsampling prototype mask. ratio=2 berarti prototype 2x lebih kecil dari feature map. Lebih hemat VRAM dari default 4 | [8] |
+| Overlap mask | **True** | Mask boleh overlap antar instance. Penting untuk sampah bertumpuk | [8] |
 
 ---
 
@@ -1864,3 +1864,15 @@ Upload gambar -> resize 640x640 -> CNN forward pass (5.3ms GPU) -> decode output
 [18] Zhong, Z. et al. (2020). Random erasing data augmentation. *Proc. AAAI*.
 [19] Cubuk, E.D. et al. (2020). RandAugment. *Proc. NeurIPS*.
 [20] ITU-R (1995). Rec. BT.601-5: Studio encoding parameters of digital television.
+[21] Wang, C.Y. et al. (2020). CSPNet. *Proc. CVPR Workshop*.
+[22] He, K. et al. (2015). Spatial pyramid pooling. *IEEE TPAMI*, 37(9).
+[23] Lin, T.Y. et al. (2017). Feature pyramid networks for object detection. *Proc. CVPR*.
+[24] Liu, S. et al. (2018). Path aggregation network for instance segmentation. *Proc. CVPR*.
+[25] Ge, Z. et al. (2021). YOLOX: Exceeding YOLO series in 2021. *arXiv:2107.08430*.
+[26] Zheng, Z. et al. (2020). Distance-IoU loss. *Proc. AAAI*, 34(07).
+[27] Loshchilov, I. & Hutter, F. (2017). SGDR: Stochastic gradient descent with warm restarts. *Proc. ICLR*.
+[28] Micikevicius, P. et al. (2018). Mixed precision training. *Proc. ICLR*.
+[29] Proença, P.F. & Simões, P. (2020). TACO: Trash annotations in context. *arXiv:2003.06975*.
+[30] Kaggle (2020). Waste Classification Dataset. https://www.kaggle.com/datasets/phenomsg/waste-classification
+[31] Pergub Bali No.47/2019. Pengelolaan Sampah Berbasis Sumber.
+[32] DLHK Bali (2023). Data Produksi Sampah Harian Provinsi Bali.

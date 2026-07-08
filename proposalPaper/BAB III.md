@@ -19,10 +19,10 @@ Penelitian mengikuti pipeline:
 
 Dua sumber dataset digunakan:
 
-| Sumber | Jumlah Citra | Subkategori | Tipe Anotasi |
-|--------|-------------|-------------|--------------|
-| TACO (Trash Annotations in Context) | 1.500 | 60 | COCO format (segmentation polygon, bbox) |
-| Waste Classification Dataset (lokal) | 2.939 | 18 | Klasifikasi per folder |
+| Sumber | Jumlah Citra | Subkategori | Tipe Anotasi | Referensi |
+|--------|-------------|-------------|--------------|-----------|
+| TACO (Trash Annotations in Context) | 1.500 | 60 | COCO format (segmentation polygon, bbox) | [29] |
+| Waste Classification Dataset (lokal) | 2.939 | 18 | Klasifikasi per folder | [30] |
 
 ### 3.2.2 Mapping ke 2 Kelas
 
@@ -113,13 +113,13 @@ Semua koordinat dinormalisasi ke [0, 1].
 
 ### 3.4.2 Augmentasi
 
-| Augmentasi | Nilai |
-|------------|-------|
-| Mosaic | 1.0 |
-| Mixup | 0.2 |
-| Copy-paste | 0.15 |
-| HSV jitter | default |
-| Flip LR | 50% |
+| Augmentasi | Nilai | Referensi |
+|------------|-------|-----------|
+| Mosaic | 1.0 | [14][8] |
+| Mixup | 0.2 | [15] |
+| Copy-paste | 0.15 | [16] |
+| HSV jitter | default | [17][10] |
+| Flip LR | 50% | [10] |
 
 ---
 
@@ -155,3 +155,24 @@ Semua koordinat dinormalisasi ke [0, 1].
 | Python | 3.12 |
 | OS | Ubuntu 25.10 |
 | Training time | ~2.5 jam (80 epoch) |
+
+**Daftar Referensi:**
+
+[1] Otsu, N. (1979). A threshold selection method from gray-level histograms. *IEEE Trans. SMC*, 9(1), 62-66.
+[2] Suzuki, S. (1985). Topological structural analysis of digitized binary images by border following. *CVGIP*, 30(1), 32-46.
+[3] Douglas, D.H. & Peucker, T.K. (1973). Algorithms for the reduction of points. *Cartographica*, 10(2), 112-122.
+[4] Bradski, G. & Kaehler, A. (2008). *Learning OpenCV*. O'Reilly Media.
+[5] Serra, J. (1982). *Image Analysis and Mathematical Morphology*. Academic Press.
+[6] Soille, P. (2003). *Morphological Image Analysis* (2nd ed.). Springer.
+[7] OpenCV (2024). OpenCV 4.13.0 Documentation. https://docs.opencv.org/4.13.0/
+[8] Ultralytics (2023). YOLOv8 Documentation. https://docs.ultralytics.com/
+[9] IEEE (2019). *IEEE Standard for Floating-Point Arithmetic*. IEEE Std 754-2019.
+[10] Shorten, C. & Khoshgoftaar, T.M. (2019). A survey on image data augmentation. *J. Big Data*, 6(1), 60.
+[14] Bochkovskiy, A. et al. (2020). YOLOv4. *arXiv:2004.10934*.
+[15] Zhang, H. et al. (2018). mixup. *Proc. ICLR*.
+[16] Ghiasi, G. et al. (2021). Simple copy-paste. *Proc. CVPR*.
+[17] Redmon, J. et al. (2016). You only look once. *Proc. CVPR*, 779-788.
+[29] Proença, P.F. & Simões, P. (2020). TACO. *arXiv:2003.06975*.
+[30] Kaggle (2020). Waste Classification Dataset. https://www.kaggle.com/datasets/phenomsg/waste-classification
+[31] Pergub Bali No.47/2019. Pengelolaan Sampah Berbasis Sumber.
+[32] DLHK Bali (2023). Data Produksi Sampah Harian Provinsi Bali.

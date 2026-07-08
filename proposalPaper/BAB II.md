@@ -30,12 +30,12 @@ flowchart LR
 
 ### 2.1.2 One-Stage vs Two-Stage Detector
 
-| Aspek | One-Stage (YOLO) | Two-Stage (Faster R-CNN) |
-|-------|------------------|--------------------------|
-| Pipeline | Regresi langsung | RPN → ROI Pool → Classifier |
-| Kecepatan | Real-time (30-300 FPS) | 5-15 FPS |
-| Akurasi | Kompetitif (40-55% mAP) | Tinggi (55-65% mAP) |
-| Kompleksitas | Sederhana | Kompleks |
+| Aspek | One-Stage (YOLO) | Two-Stage (Faster R-CNN) | Referensi |
+|-------|------------------|--------------------------|-----------|
+| Pipeline | Regresi langsung | RPN → ROI Pool → Classifier | [17][14] |
+| Kecepatan | Real-time (30-300 FPS) | 5-15 FPS | [17][8] |
+| Akurasi | Kompetitif (40-55% mAP) | Tinggi (55-65% mAP) | [17][8] |
+| Kompleksitas | Sederhana | Kompleks | [17][14] |
 
 YOLO sebagai one-stage detector membagi citra menjadi grid $S \times S$. Setiap cell memprediksi $B$ bounding box dengan confidence $C = P(\text{obj}) \times \text{IoU}$ dan probabilitas kelas $P(\text{class}_i|\text{obj})$.
 
@@ -96,6 +96,8 @@ YOLOv26m-seg meresolusi citra input 640x640 menjadi 20x20 melalui 4 stage. Setia
 | Stage 2 | 80x80 | 40x40 | 128 | 16x | Pola, sudut, bentuk geometris sederhana. Deteksi orientasi dan kurvatur. | Mengenali bentuk lingkaran tutup botol, sudut kotak karton, lengkungan kaleng. 40x40 = setiap cell 16x16 pixel. |
 | Stage 3 | 40x40 | 20x20 | 256 | 32x | Bagian objek, tekstur kompleks, konteks semantik. Deteksi material. | Membedakan tekstur plastik mengkilap vs kertas buram vs daun organik vs logam. 20x20 = setiap cell 32x32 pixel. |
 | SPP Layer | 20x20 | 20x20 | 512 | 32x | Spatial Pyramid Pooling dengan kernel 5, 9, 13. Menangkap konteks multi-resolusi dalam satu layer. | Menyatukan informasi: "botol di atas meja" vs "botol di tanah" vs "botol di dalam kantong". Konteks membantu klasifikasi. |
+
+*Referensi: Arsitektur CSPDarknet backbone [14][21], SPP layer [22].*
 
 **Setiap Blok Konvolusi terdiri dari:**
 1. **Convolution 3x3 atau 1x1:** Ekstraksi fitur spasial. Conv 3x3 menangkap hubungan antar piksel tetangga. Conv 1x1 mereduksi dimensi channel.
@@ -164,10 +166,10 @@ FPN membawa semantik ke resolusi tinggi (detail halus). PAN membawa detail presi
 
 **Concatenation vs Element-wise Addition:**
 
-| Metode | Cara Kerja | Kelebihan | Kekurangan |
-|--------|-----------|-----------|------------|
-| Element-wise Addition (YOLOv3) | F1 + F2: jumlahkan pixel yang bersesuaian | Tidak tambah channel, efisien memori | Informasi tercampur: (tepi + semantik) / 2, keduanya melemah |
-| Concatenation (YOLOv26) | [F1, F2]: tumpuk channel-wise | Informasi utuh: tepi tetap tepi, semantik tetap semantik | Channel bertambah 2x, perlu conv 1x1 reduksi |
+| Metode | Cara Kerja | Kelebihan | Kekurangan | Referensi |
+|--------|-----------|-----------|------------|-----------|
+| Element-wise Addition (YOLOv3) | F1 + F2: jumlahkan pixel yang bersesuaian | Tidak tambah channel, efisien memori | Informasi tercampur: (tepi + semantik) / 2, keduanya melemah | [23] |
+| Concatenation (YOLOv26) | [F1, F2]: tumpuk channel-wise | Informasi utuh: tepi tetap tepi, semantik tetap semantik | Channel bertambah 2x, perlu conv 1x1 reduksi | [23][24] |
 
 YOLO26 memilih concatenation karena preservasi informasi lebih penting daripada efisiensi memori pada GPU modern.
 
@@ -178,6 +180,8 @@ YOLO26 memilih concatenation karena preservasi informasi lebih penting daripada 
 | P3 | 80x80 | 8x | 256 | Kecil: 0-16x16 | Biji cabai (10x10), tutup botol (15x15), potongan styrofoam, puntung rokok | 6.400 cell |
 | P4 | 40x40 | 16x | 256 | Sedang: 16-64x64 | Kaleng minuman (40x60), gelas plastik (30x50), botol kecil (25x80) | 1.600 cell |
 | P5 | 20x20 | 32x | 256 | Besar: >64x64 | Botol 1.5L (100x300), kardus (200x200), kantong sampah penuh (400x500) | 400 cell |
+
+*Referensi: FPN [23], PAN [24].*
 
 Total 8.400 grid cell untuk satu gambar 640x640. Setiap cell memprediksi satu objek.
 
@@ -212,6 +216,8 @@ YOLOv26 tidak menggunakan anchor boxes (predefined bounding box templates) seper
 |--------|--------------|--------------|-------------|-----------------|----------------------|
 | **Classification** | P3/P4/P5 (256ch) | 2x Conv3x3 (256ch, SiLU, BN) + Linear projection | S x S x C (C=2) + confidence 1D | Membedakan kelas: ekstraksi fitur diskriminatif, aktivasi sigmoid per kelas | "Cell ini 85% Organik, 15% Non-Organik" + confidence bahwa ada objek = 0.92 |
 | **Regression** | P3/P4/P5 (256ch) | 2x Conv3x3 (256ch, SiLU, BN) + 4x DFL regressor (16 bin distribusi) | S x S x 4 (x,y,w,h) + 4x16 distribusi | Lokalisasi presisi: DFL memprediksi distribusi tepi kiri, kanan, atas, bawah | "Pusat botol di (0.35, 0.42), lebar 0.12, tinggi 0.28" ternormalisasi |
+
+*Referensi: Decoupled Head [25], DFL [26].*
 | **Segmentation** | P3+P4+P5 concat | Proto Module multi-skala: up-sample P4,P5 ke P3 resolusi, concat, conv | 32 prototype mask (SxS) + coefficient per-instance (32) | Segmentasi: 32 prototype bentuk dasar dikombinasi linear untuk mask unik per objek | "Prototype 3 (kotak) x 0.8 + prototype 7 (memanjang) x 0.6 = mask botol" |
 
 **Detail Setiap Branch:**
@@ -293,11 +299,11 @@ Branch ketiga yang membedakan varian segmentasi dari varian deteksi. Menghasilka
 
 ### 2.2.4 Varian Model
 
-| Varian | Parameter | Ukuran (MB) | mAP COCO 50-95 | CPU Speed (ms) |
-|--------|-----------|-------------|----------------|-----------------|
-| yolo26n | 2,7M | 5,0 | 40,1% | 6,1 |
-| yolo26s | 9,8M | 19 | 47,8% | 8,5 |
-| yolo26m | 21,2M | 42 | 52,5% | 13,2 |
+| Varian | Parameter | Ukuran (MB) | mAP COCO 50-95 | CPU Speed (ms) | Referensi |
+|--------|-----------|-------------|----------------|-----------------|-----------|
+| yolo26n | 2,7M | 5,0 | 40,1% | 6,1 | [8] |
+| yolo26s | 9,8M | 19 | 47,8% | 8,5 | [8] |
+| yolo26m | 21,2M | 42 | 52,5% | 13,2 | [8] |
 
 Penelitian ini menggunakan YOLOv26m-seg (21,2M parameter) - varian medium dengan keseimbangan antara akurasi dan komputasi untuk segmentasi 2 kelas sampah (Organik/Non-Organik).
 
@@ -347,18 +353,18 @@ flowchart TD
 
 Augmentasi meningkatkan generalisasi dan mencegah overfitting, terutama untuk dataset (~2.917 citra). Parameter dari implementasi:
 
-| Augmentasi | Nilai | Efek |
-|------------|-------|------|
-| Mosaic | 1.0 | Gabung 4 citra, tingkatkan konteks |
-| Mixup | 0.3 | Blending 2 citra, tingkatkan generalisasi |
-| Copy-paste | 0.4 | Salin objek antar citra (segmentation) |
-| HSV-Hue | 0.05 | Variasi warna |
-| HSV-Saturation | 0.8 | Variasi intensitas warna |
-| HSV-Value | 0.5 | Variasi brightness |
-| Scale | 0.5 | Multi-skala |
-| Translation | 0.2 | Pergeseran |
-| Rotation | 15.0 | Rotasi |
-| Shear | 5.0 | Distorsi affine |
+| Augmentasi | Nilai | Efek | Referensi |
+|------------|-------|------|-----------|
+| Mosaic | 1.0 | Gabung 4 citra, tingkatkan konteks | [14][8] |
+| Mixup | 0.3 | Blending 2 citra, tingkatkan generalisasi | [15] |
+| Copy-paste | 0.4 | Salin objek antar citra (segmentation) | [16] |
+| HSV-Hue | 0.05 | Variasi warna | [17][10] |
+| HSV-Saturation | 0.8 | Variasi intensitas warna | [17][10] |
+| HSV-Value | 0.5 | Variasi brightness | [17][10] |
+| Scale | 0.5 | Multi-skala | [10] |
+| Translation | 0.2 | Pergeseran | [10] |
+| Rotation | 15.0 | Rotasi | [10] |
+| Shear | 5.0 | Distorsi affine | [10] |
 | Perspective | 0.0001 | Transformasi perspektif |
 | Flip horizontal | 0.5 | Mirroring |
 | Flip vertical | 0.2 | Vertikal |
@@ -431,3 +437,38 @@ Penelitian mencakup:
 2. **Pelatihan Model:** YOLOv26m-seg dengan MuSGD optimizer, Semantic Segmentation Loss, CIoU + BCE + DFL, FP16, cosine LR scheduler
 3. **Evaluasi:** Box & Mask mAP@0.5, mAP@0.5:0.95, precision, recall, per-class mask AP@50
 4. **Aplikasi:** Web CMS 4-menu (/raw/dataset, /raw/preparation, /raw/training, /raw/deployment) dengan pipeline 12 langkah
+
+**Daftar Referensi:**
+
+[1] Otsu, N. (1979). A threshold selection method from gray-level histograms. *IEEE Trans. SMC*, 9(1), 62-66.
+[2] Suzuki, S. (1985). Topological structural analysis of digitized binary images by border following. *CVGIP*, 30(1), 32-46.
+[3] Douglas, D.H. & Peucker, T.K. (1973). Algorithms for the reduction of the number of points required to represent a digitized line. *Cartographica*, 10(2), 112-122.
+[4] Bradski, G. & Kaehler, A. (2008). *Learning OpenCV*. O'Reilly Media.
+[5] Serra, J. (1982). *Image Analysis and Mathematical Morphology*. Academic Press.
+[6] Soille, P. (2003). *Morphological Image Analysis* (2nd ed.). Springer.
+[7] OpenCV (2024). OpenCV 4.13.0 Documentation. https://docs.opencv.org/4.13.0/
+[8] Ultralytics (2023). YOLOv8 Documentation. https://docs.ultralytics.com/
+[9] IEEE (2019). *IEEE Standard for Floating-Point Arithmetic*. IEEE Std 754-2019.
+[10] Shorten, C. & Khoshgoftaar, T.M. (2019). A survey on image data augmentation for deep learning. *J. Big Data*, 6(1), 60.
+[11] Perez, L. & Wang, J. (2017). The effectiveness of data augmentation. *arXiv:1712.04621*.
+[12] Python Software Foundation. Python random module. https://docs.python.org/3/library/random.html
+[13] NumPy Developers. numpy.random.seed. https://numpy.org/doc/stable/reference/random/generated/numpy.random.seed.html
+[14] Bochkovskiy, A., Wang, C.Y., & Liao, H.Y.M. (2020). YOLOv4. *arXiv:2004.10934*.
+[15] Zhang, H. et al. (2018). mixup: Beyond empirical risk minimization. *Proc. ICLR*.
+[16] Ghiasi, G. et al. (2021). Simple copy-paste data augmentation. *Proc. CVPR*.
+[17] Redmon, J. et al. (2016). You only look once. *Proc. CVPR*, 779-788.
+[18] Zhong, Z. et al. (2020). Random erasing data augmentation. *Proc. AAAI*.
+[19] Cubuk, E.D. et al. (2020). RandAugment. *Proc. NeurIPS*.
+[20] ITU-R (1995). Rec. BT.601-5: Studio encoding parameters of digital television.
+[21] Wang, C.Y. et al. (2020). CSPNet. *Proc. CVPR Workshop*.
+[22] He, K. et al. (2015). Spatial pyramid pooling. *IEEE TPAMI*, 37(9).
+[23] Lin, T.Y. et al. (2017). Feature pyramid networks. *Proc. CVPR*.
+[24] Liu, S. et al. (2018). Path aggregation network. *Proc. CVPR*.
+[25] Ge, Z. et al. (2021). YOLOX. *arXiv:2107.08430*.
+[26] Zheng, Z. et al. (2020). Distance-IoU loss. *Proc. AAAI*, 34(07).
+[27] Loshchilov, I. & Hutter, F. (2017). SGDR. *Proc. ICLR*.
+[28] Micikevicius, P. et al. (2018). Mixed precision training. *Proc. ICLR*.
+[29] Proença, P.F. & Simões, P. (2020). TACO. *arXiv:2003.06975*.
+[30] Kaggle (2020). Waste Classification Dataset. https://www.kaggle.com/datasets/phenomsg/waste-classification
+[31] Pergub Bali No.47/2019. Pengelolaan Sampah Berbasis Sumber.
+[32] DLHK Bali (2023). Data Produksi Sampah Harian Provinsi Bali.
