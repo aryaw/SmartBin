@@ -4,7 +4,10 @@
 
 ### 4.1.1 Dataset Statistics
 
-Dataset gabungan: 3.973 citra dari dua sumber.
+Dataset gabungan: 3.973 citra dari dua sumber. Distribusi data per sumber dan kelas ditunjukkan pada tabel berikut.
+
+![Label Distribution](../runs_result/segment/full_pipeline/labels.jpg)
+*Gambar 4.1: Distribusi label dataset — 684 Organik (17.2%) vs 3.289 Non-Organik (82.8%).*
 
 | Sumber | Organik | Non-Organik | Total |
 |--------|---------|-------------|-------|
@@ -31,6 +34,10 @@ Dari 3.951 image yang diproses pipeline:
 ### 4.2.1 Training Progress
 
 Training: 80 epoch pada NVIDIA RTX 5060 Ti (16 GB VRAM). Total ~2.5 jam.
+
+![Training Results](../runs_result/segment/full_pipeline/results.png)
+
+*Gambar 4.2: Kurva training selama 80 epoch — box loss, class loss, segmentasi loss, mAP, precision, recall.*
 
 Best model metrics:
 
@@ -62,13 +69,23 @@ Best model metrics:
 
 ### 4.3.1 Kinerja per Kelas
 
+![Confusion Matrix](../runs_result/segment/full_pipeline/confusion_matrix_normalized.png)
+
+*Gambar 4.2: Normalized confusion matrix — recall Organik ~67%, Non-Organik ~81%.*
+
+![Box PR Curve](../runs_result/segment/full_pipeline/BoxPR_curve.png)
+
+*Gambar 4.3: Precision-Recall curve box — Non-Organik (oranye) memiliki area lebih besar dari Organik (biru).*
+
 Model menunjukkan performa lebih baik pada kelas Non-Organik (Box mAP@0.5 83.6%) dibanding Organik (77.2%). Hal ini disebabkan oleh:
 - Jumlah data Non-Organik ~4.8x lebih banyak (3.289 vs 684)
 - Variasi bentuk dan tekstur lebih tinggi pada sampah Organik
 
 ### 4.3.2 Box vs Mask Performance
 
-Mask mAP@0.5 (49.7%) lebih rendah dari Box mAP@0.5 (80.4%) karena:
+![Mask PR Curve](../runs_result/segment/full_pipeline/MaskPR_curve.png)
+
+*Gambar 4.4: Precision-Recall curve mask — Mask PR lebih rendah dari Box PR, mencerminkan keterbatasan pseudo-mask.*
 - Mask membutuhkan prediksi boundary presisi (piksel-level)
 - Pseudo-mask generation tidak sempurna (hanya 66.4% edge detection)
 
@@ -79,6 +96,17 @@ Dataset Non-Organik 3.289 vs Organik 684 (rasio 4.8:1). Ini memengaruhi recall k
 ### 4.3.4 Inference Speed
 
 Model mencapai 5.3ms per image pada RTX 5060 Ti, cukup untuk real-time inference.
+
+**Sample Detections:**
+
+![Val Batch 0](../runs_result/segment/full_pipeline/val_batch0_pred.jpg)
+*Gambar 4.5: Prediksi pada validation batch 0 — bounding box (hijau=ground truth, merah muda=prediksi).*
+
+![Val Batch 1](../runs_result/segment/full_pipeline/val_batch1_pred.jpg)
+*Gambar 4.6: Prediksi pada validation batch 1.*
+
+![Val Batch 2](../runs_result/segment/full_pipeline/val_batch2_pred.jpg)
+*Gambar 4.7: Prediksi pada validation batch 2.*
 
 **Daftar Referensi:**
 
