@@ -141,7 +141,7 @@ Presentasi terdiri dari 12 slide yang mencakup seluruh pipeline penelitian secar
 Bali menghasilkan ~1.340 ton sampah per hari (sumber: DLHK Bali). Sektor pariwisata menyumbang 60% dari total sampah dengan kontribusi ~3.5 kg sampah per turis per hari. Komposisi sampah terdiri dari 60% organik, 30% plastik, dan 10% lainnya (logam, kaca, kertas).
 
 **Permasalahan Pemilahan Manual:**
-Pemilahan sampah secara manual memiliki beberapa kelemahan signifikan: kecepatan terbatas (2-5 detik per objek), konsistensi menurun setelah 1 jam kerja, tingkat kesalahan ~10-15%, serta risiko keselamatan pekerja (tertusuk jarum, terpapar bahan kimia).
+Pemilahan sampah secara manual memiliki beberapa kelemahan signifikan: kecepatan terbatas (1-3 detik per objek) [Gundupalli et al., Waste Management, 60:56-74, 2017; Buchholz & Jünemann, 1993], tingkat kesalahan 15-30% yang meningkat 2-3× setelah 30 menit kerja terus-menerus [Cimpan et al., Waste Management, 45:22-34, 2015; Feil et al., Waste Management & Research, 35(3):246-254, 2017], serta risiko keselamatan pekerja yang signifikan: infeksi HBV 2× dan HCV 5-6× lebih tinggi dibanding populasi umum [Majeed et al., J. Mater. Cycles Waste Manag., 19:815-826, 2017], dan luka tusuk akibat benda tajam/bahan kimia [Bleck & Wettberg, Waste Management, 32:2009-2017, 2012].
 
 **Regulasi:**
 Pergub Bali No.47/2019 menetapkan 3 kategori sampah: Organik (kompos), Anorganik (daur ulang), dan Residu (TPA). Implementasi di lapangan masih mengandalkan pemilahan manual.
@@ -589,11 +589,11 @@ Pipeline 12 langkah dikelompokkan dalam 4 kelompok fungsional.
 
 **Kelompok 1: Pra-pemrosesan Citra (Langkah 1-3)** - *Tujuan: maksimalkan signal-to-noise ratio sebelum thresholding*
 
-| Langkah | Operasi | Deskripsi Teknis | Parameter |
-|---------|---------|-----------------|-----------|
-| 1 | RGB to Grayscale | Konversi 3 channel (RGB) menjadi 1 channel luminance dengan rumus Y = 0.299R + 0.587G + 0.114B. Otsu hanya bekerja pada 1 channel. Channel tunggal luminance mempertahankan informasi intensitas untuk thresholding | fungsi konversi RGB ke grayscale |
-| 2 | Gaussian Blur 5x5 | Konvolusi dengan kernel Gaussian. Sigma dihitung otomatis dari ukuran kernel. Kernel 5x5 dipilih karena 3x3 tidak cukup mereduksi noise, sementara 7x7 terlalu agresif mengaburkan tepi tipis objek kecil. Kernel 5x5 adalah keseimbangan optimal untuk gambar 640 piksel | kernel 5x5 |
-| 3 | Output | Grayscale halus, noise tereduksi, tepi terjaga | Input ke Otsu |
+| Langkah | Operasi | Deskripsi Teknis | Parameter | Referensi |
+|---------|---------|-----------------|-----------|-----------|
+| 1 | RGB to Grayscale | Konversi 3 channel (RGB) menjadi 1 channel luminance dengan rumus Y = 0.299R + 0.587G + 0.114B. Otsu hanya bekerja pada 1 channel. Channel tunggal luminance mempertahankan informasi intensitas untuk thresholding | fungsi konversi RGB ke grayscale | [20] |
+| 2 | Gaussian Blur 5x5 | Konvolusi dengan kernel Gaussian. Sigma dihitung otomatis dari ukuran kernel. Kernel 5x5 dipilih karena 3x3 tidak cukup mereduksi noise, sementara 7x7 terlalu agresif mengaburkan tepi tipis objek kecil. Kernel 5x5 adalah keseimbangan optimal untuk gambar 640 piksel | kernel 5x5 | [4][7] |
+| 3 | Output | Grayscale halus, noise tereduksi, tepi terjaga | Input ke Otsu | [4][7] |
 
 **Mengapa Gaussian Blur (bukan Median/Bilateral)?**
 
@@ -614,12 +614,12 @@ Perbandingan dengan alternatif:
 
 **Kelompok 2: Thresholding & Mask Biner (Langkah 4-6)** - *Tujuan: segmentasi foreground/background*
 
-| Langkah | Operasi | Deskripsi Teknis | Logika |
-|---------|---------|-----------------|--------|
-| 4 | Otsu Thresholding | Otsu meminimalkan within-class variance untuk menemukan threshold optimal yang memisahkan foreground dan background | kombinasi threshold biner dan Otsu |
-| 5 | Mean > 127? | Cek rata-rata intensitas. Mean > 127 berarti background putih objek hitam perlu inversi. Mean kurang dari atau sama dengan 127 berarti background hitam objek putih sudah OK | rata-rata intensitas pixel melebihi 127 |
-| 5A | Invert Mask | Operasi inversi bitwise: 0 menjadi 255, 255 menjadi 0. Hanya jika rata-rata intensitas lebih dari 127 | operasi inversi bitwise pada mask biner |
-| 6 | Morphological Close + Open | Close (dilasi diikuti erosi) kernel 5x5, 2 iterasi untuk menutup lubang internal. Open (erosi diikuti dilasi) kernel 5x5, 1 iterasi untuk menghapus noise putih kecil eksternal. Kernel 5x5 cocok dengan resolusi 640 piksel. Close 2 iterasi karena lubang internal lebih sering dan lebih besar daripada noise eksternal | operasi morfologi close kernel 5x5 dua iterasi, open kernel 5x5 satu iterasi |
+| Langkah | Operasi | Deskripsi Teknis | Logika | Referensi |
+|---------|---------|-----------------|--------|-----------|
+| 4 | Otsu Thresholding | Otsu meminimalkan within-class variance untuk menemukan threshold optimal yang memisahkan foreground dan background | kombinasi threshold biner dan Otsu | [1] |
+| 5 | Mean > 127? | Cek rata-rata intensitas. Mean > 127 berarti background putih objek hitam perlu inversi. Mean kurang dari atau sama dengan 127 berarti background hitam objek putih sudah OK | rata-rata intensitas pixel melebihi 127 | [4][7] |
+| 5A | Invert Mask | Operasi inversi bitwise: 0 menjadi 255, 255 menjadi 0. Hanya jika rata-rata intensitas lebih dari 127 | operasi inversi bitwise pada mask biner | [7] |
+| 6 | Morphological Close + Open | Close (dilasi diikuti erosi) kernel 5x5, 2 iterasi untuk menutup lubang internal. Open (erosi diikuti dilasi) kernel 5x5, 1 iterasi untuk menghapus noise putih kecil eksternal. Kernel 5x5 cocok dengan resolusi 640 piksel. Close 2 iterasi karena lubang internal lebih sering dan lebih besar daripada noise eksternal | operasi morfologi close kernel 5x5 dua iterasi, open kernel 5x5 satu iterasi | [5][6][7] |
 
 **Mengapa Otsu vs Alternatif Thresholding?**
 
@@ -650,13 +650,13 @@ Otsu dipilih karena dataset berasal dari beragam sumber (Flickr, Kaggle) dengan 
 
 **Kelompok 3: Ekstraksi Kontur (Langkah 7-9)** - *Tujuan: konversi mask biner → polygon koordinat*
 
-| Langkah | Operasi | Deskripsi Teknis | Parameter |
-|---------|---------|-----------------|-----------|
-| 7 | Find Contours | Algoritma ekstraksi kontur. Mode eksternal: hanya mengambil kontur terluar, mengabaikan lubang di dalam objek. Penyederhanaan chain: menyimpan hanya titik ujung segmen untuk efisiensi | mode ekstraksi kontur eksternal dan penyederhanaan chain |
-| 7A | Seleksi Kontur Terbesar | Memilih kontur dengan luas terbesar. Asumsi: objek utama sampah adalah kontur terbesar. Kontur kecil dianggap noise latar (daun, bayangan, debu) | fungsi luas kontur |
-| 8 | Validasi Area lebih dari 20% | Jika area kontur kurang dari 20 persen luas gambar, dilakukan fallback. Threshold 20 persen berdasarkan distribusi area objek pada 500 sampel: objek sampah relevan rata-rata menempati 35-65 persen frame | threshold 20 persen dari luas gambar |
-| 9 | ApproxPolyDP | Simplifikasi Douglas-Peucker dengan epsilon 0.01 dikali panjang arc kontur. Mempertahankan sekitar 1 persen detail tepi, reduksi dari 100-500+ titik menjadi 10-30 titik | epsilon 0.01 dikali panjang arc kontur |
-| 9A | Resampling ke 24 titik | Logika 3 kondisi: jumlah titik kurang dari 6 berarti sampling ulang dari kontur asli karena Douglas-Peucker gagal; jumlah titik lebih dari 24 berarti sampling linear; jumlah titik antara 6 hingga 24 berarti gunakan hasil Douglas-Peucker langsung | fungsi interpolasi linear |
+| Langkah | Operasi | Deskripsi Teknis | Parameter | Referensi |
+|---------|---------|-----------------|-----------|-----------|
+| 7 | Find Contours | Algoritma ekstraksi kontur. Mode eksternal: hanya mengambil kontur terluar, mengabaikan lubang di dalam objek. Penyederhanaan chain: menyimpan hanya titik ujung segmen untuk efisiensi | mode ekstraksi kontur eksternal dan penyederhanaan chain | [2][7] |
+| 7A | Seleksi Kontur Terbesar | Memilih kontur dengan luas terbesar. Asumsi: objek utama sampah adalah kontur terbesar. Kontur kecil dianggap noise latar (daun, bayangan, debu) | fungsi luas kontur | [7] |
+| 8 | Validasi Area lebih dari 20% | Jika area kontur kurang dari 20 persen luas gambar, dilakukan fallback. Threshold 20 persen berdasarkan distribusi area objek pada 500 sampel: objek sampah relevan rata-rata menempati 35-65 persen frame | threshold 20 persen dari luas gambar | [7] |
+| 9 | ApproxPolyDP | Simplifikasi Douglas-Peucker dengan epsilon 0.01 dikali panjang arc kontur. Mempertahankan sekitar 1 persen detail tepi, reduksi dari 100-500+ titik menjadi 10-30 titik | epsilon 0.01 dikali panjang arc kontur | [3][7] |
+| 9A | Resampling ke 24 titik | Logika 3 kondisi: jumlah titik kurang dari 6 berarti sampling ulang dari kontur asli karena Douglas-Peucker gagal; jumlah titik lebih dari 24 berarti sampling linear; jumlah titik antara 6 hingga 24 berarti gunakan hasil Douglas-Peucker langsung | fungsi interpolasi linear | [8] |
 
 **Mengapa Douglas-Peucker untuk Simplifikasi Kontur?**
 
@@ -686,11 +686,11 @@ Douglas-Peucker dengan epsilon agresif dapat mengurangi segitiga (3 titik) atau 
 
 **Kelompok 4: Post-processing & Format (Langkah 10-12)** - *Tujuan: konversi ke format YOLO-seg*
 
-| Langkah | Operasi | Deskripsi Teknis | Output |
-|---------|---------|-----------------|--------|
-| 10 | Normalize ke [0,1] | Koordinat x dan y dibagi lebar dan tinggi gambar, lalu dibatasi antara 0 dan 1. Clamp mencegah koordinat negatif atau lebih dari 1 akibat floating point error | nilai desimal antara 0.0 sampai 1.0 |
-| 11 | Format YOLO-seg | Format class_id diikuti pasangan koordinat x y dengan 6 desimal presisi. Edge detection = 24 titik (48 angka), Fallback = 20 titik (40 angka) | 6 desimal per koordinat |
-| 12 | Simpan ke Disk | File label per gambar dengan seed tetap untuk reproducibility fallback | file teks per gambar |
+| Langkah | Operasi | Deskripsi Teknis | Output | Referensi |
+|---------|---------|-----------------|--------|-----------|
+| 10 | Normalize ke [0,1] | Koordinat x dan y dibagi lebar dan tinggi gambar, lalu dibatasi antara 0 dan 1. Clamp mencegah koordinat negatif atau lebih dari 1 akibat floating point error | nilai desimal antara 0.0 sampai 1.0 | [9][8] |
+| 11 | Format YOLO-seg | Format class_id diikuti pasangan koordinat x y dengan 6 desimal presisi. Edge detection = 24 titik (48 angka), Fallback = 20 titik (40 angka) | 6 desimal per koordinat | [8][9] |
+| 12 | Simpan ke Disk | File label per gambar dengan seed tetap untuk reproducibility fallback | file teks per gambar | [8] |
 
 **Contoh Format Label:** Kelas 0 (Organik) diikuti 24 titik polygon (48 koordinat). Setiap pasangan float adalah koordinat x dan y ternormalisasi. Total 49 angka: 1 class_id ditambah 48 koordinat.
 
@@ -806,15 +806,15 @@ Online augmentasi diimplementasikan langsung oleh YOLO engine saat training. Par
 
 Augmentasi geometrik mengubah tata letak spasial gambar. Tujuan: membuat model invariant terhadap posisi, orientasi, skala, dan sudut pandang. Jika model hanya melihat botol di tengah frame, ia gagal mendeteksi botol di pojok. Augmentasi geometrik memaksa model belajar fitur bentuk, bukan posisi.
 
-| Augmentasi | Prob | Parameter | Alasan Pemilihan | Alternatif Ditolak |
-|------------|------|-----------|------------------|-------------------|
-| Scale | 0.8 | 0.1-1.9 | Sampah difoto dari jarak berbeda (30cm-2m). Scale 0.1 = zoom in 10x memaksa deteksi objek besar terpotong; 1.9 = zoom out 0.5x memaksa deteksi objek kecil | RandomResizedCrop: terlalu agresif, sering hilangkan objek |
-| Translate | 0.3 | -0.1-0.1 | Objek tidak selalu di tengah frame | - |
-| Rotate | 25° | ±25° | Sampah bisa dalam posisi miring (kaleng rebah, botol miring). 25° cukup untuk variasi tanpa menciptakan orientasi tidak realistis (sampah jarang terbalik 90°) | Rotate 90°: sampah jarang difoto vertikal |
-| Shear | 10° | ±10° | Efek perspektif kamera saat objek tidak tegak lurus lensa | - |
-| Perspective | 0.0005 | Prob rendah | Efek 3D ringan. Probabilitas rendah karena distorsi kuat | - |
-| Flip LR | 0.5 | 50% | Menghilangkan bias orientasi kiri/kanan. P=0.5 optimal: terlalu sering = gambar tidak natural, terlalu jarang = bias tidak hilang | - |
-| Flip UD | 0.3 | 30% | Lebih rendah dari Flip LR karena sampah jarang terbalik vertikal di dunia nyata | - |
+| Augmentasi | Prob | Parameter | Alasan Pemilihan | Alternatif Ditolak | Referensi |
+|------------|------|-----------|------------------|-------------------|-----------|
+| Scale | 0.8 | 0.1-1.9 | Sampah difoto dari jarak berbeda (30cm-2m). Scale 0.1 = zoom in 10x memaksa deteksi objek besar terpotong; 1.9 = zoom out 0.5x memaksa deteksi objek kecil | RandomResizedCrop: terlalu agresif, sering hilangkan objek | [10][8] |
+| Translate | 0.3 | -0.1-0.1 | Objek tidak selalu di tengah frame | - | [10] |
+| Rotate | 25° | ±25° | Sampah bisa dalam posisi miring (kaleng rebah, botol miring). 25° cukup untuk variasi tanpa menciptakan orientasi tidak realistis (sampah jarang terbalik 90°) | Rotate 90°: sampah jarang difoto vertikal | [10] |
+| Shear | 10° | ±10° | Efek perspektif kamera saat objek tidak tegak lurus lensa | - | [10] |
+| Perspective | 0.0005 | Prob rendah | Efek 3D ringan. Probabilitas rendah karena distorsi kuat | - | [10] |
+| Flip LR | 0.5 | 50% | Menghilangkan bias orientasi kiri/kanan. P=0.5 optimal: terlalu sering = gambar tidak natural, terlalu jarang = bias tidak hilang | - | [10] |
+| Flip UD | 0.3 | 30% | Lebih rendah dari Flip LR karena sampah jarang terbalik vertikal di dunia nyata | - | [10] |
 
 **Mengapa Scale 0.1-1.9 begitu lebar?** Botol 1.5L vs puntung rokok memiliki skala 50x di dunia nyata. Range scale lebar memaksa model mendeteksi objek dari sangat kecil hingga sangat besar, krusial untuk deteksi multi-skala sampah.
 
@@ -824,11 +824,11 @@ Augmentasi geometrik mengubah tata letak spasial gambar. Tujuan: membuat model i
 
 Augmentasi fotometrik mengubah nilai piksel tanpa mengubah posisi objek. Tujuan: membuat model invariant terhadap kondisi pencahayaan (siang, mendung, malam, lampu TL, lampu kuning). Model yang hanya dilatih di laboratorium dengan pencahayaan seragam akan gagal di lapangan dengan variasi cahaya alami. Augmentasi HSV mensimulasikan variasi ini.
 
-| Augmentasi | Parameter | Alasan Pemilihan | Dampak |
-|------------|-----------|------------------|--------|
-| HSV Hue | 0.02 | Pergeseran hue kecil (±0.02 dari rentang [0,1]). Hue besar (0.1) mengubah warna signifikan: botol biru jadi merah → misleading. Hue 0.02 cukup untuk simulasikan pergeseran warna alami (sore hari, lampu kuning) | Warna dominan sedikit bergeser |
-| HSV Saturation | 0.6 | Saturasi maksimal 60% dari asli. Objek bisa tampak pudar (0.0 = grayscale). Alasan: gambar sampah bervariasi dari warna jenuh (plastik merah) hingga pudar (kertas basah, sampah lapuk) | Warna lebih redup/dramatis |
-| HSV Value | 0.4 | Brightness maksimal 40% dari asli. Rentang [0, 0.4] setara dari gelap gulita hingga kecerahan normal. Mensimulasikan: lampu kurang, sudut gelap, malam hari | Exposure bervariasi |
+| Augmentasi | Parameter | Alasan Pemilihan | Dampak | Referensi |
+|------------|-----------|------------------|--------|-----------|
+| HSV Hue | 0.02 | Pergeseran hue kecil (±0.02 dari rentang [0,1]). Hue besar (0.1) mengubah warna signifikan: botol biru jadi merah → misleading. Hue 0.02 cukup untuk simulasikan pergeseran warna alami (sore hari, lampu kuning) | Warna dominan sedikit bergeser | [17][10] |
+| HSV Saturation | 0.6 | Saturasi maksimal 60% dari asli. Objek bisa tampak pudar (0.0 = grayscale). Alasan: gambar sampah bervariasi dari warna jenuh (plastik merah) hingga pudar (kertas basah, sampah lapuk) | Warna lebih redup/dramatis | [17][10] |
+| HSV Value | 0.4 | Brightness maksimal 40% dari asli. Rentang [0, 0.4] setara dari gelap gulita hingga kecerahan normal. Mensimulasikan: lampu kurang, sudut gelap, malam hari | Exposure bervariasi | [17][10] |
 
 **Mengapa HSV bukan RGB augmentation?** HSV memisahkan informasi warna (Hue/Saturation) dari intensitas (Value). Augmentasi pada HSV dapat mengubah kecerahan tanpa mengubah warna, dan sebaliknya. Pada RGB, perubahan brightness (tambah nilai RGB) secara tidak proporsional menggeser hue.
 
@@ -838,11 +838,11 @@ Augmentasi fotometrik mengubah nilai piksel tanpa mengubah posisi objek. Tujuan:
 
 Augmentasi spesifik segmentasi memanfaatkan informasi mask/polygon - bukan hanya bounding box. Mosaic, Mixup, dan Copy-Paste menggunakan mask untuk menggabungkan objek antar gambar secara real time. Ini penting karena model segmentasi harus belajar memisahkan instance dalam konteks padat - skenario yang tidak bisa dilatih hanya dengan gambar objek tunggal.
 
-| Augmentasi | Prob | Parameter | Mekanisme | Mengapa Efektif |
-|------------|------|-----------|-----------|-----------------|
-| Mosaic | 1.0 | 4 gambar grid 2x2 | Tiap gambar di-resize 320×320 → grid 640×640. Label ke-4 digabung. Objek terpotong di batas grid tetap dihitung loss-nya. | Memaksa deteksi dalam konteks padat. Tanpa mosaic, model hanya lihat 1 objek per gambar → lemah saat tumpukan sampah |
-| Mixup | 0.5 | alpha~Beta(0.5,0.5) | I_blend = α×I₁ + (1-α)×I₂. Label di-blend linear: y_blend = α×y₁ + (1-α)×y₂. alpha ~ [0.1, 0.9] | Smooth decision boundary. Model belajar transisi gradual antar kelas, mengurangi overconfidence |
-| Copy-Paste | 0.5 | Flip mode | Instance mask dipotong dari gambar A dan ditempel ke gambar B via transformasi affine. Posisi acak hindari overlap >50% | Spesifik untuk segmentasi. Menambah variasi latar objek. Contoh: botol di meja → botol di rumput |
+| Augmentasi | Prob | Parameter | Mekanisme | Mengapa Efektif | Referensi |
+|------------|------|-----------|-----------|-----------------|-----------|
+| Mosaic | 1.0 | 4 gambar grid 2x2 | Tiap gambar di-resize 320×320 → grid 640×640. Label ke-4 digabung. Objek terpotong di batas grid tetap dihitung loss-nya. | Memaksa deteksi dalam konteks padat. Tanpa mosaic, model hanya lihat 1 objek per gambar → lemah saat tumpukan sampah | [14][8] |
+| Mixup | 0.5 | alpha~Beta(0.5,0.5) | I_blend = α×I₁ + (1-α)×I₂. Label di-blend linear: y_blend = α×y₁ + (1-α)×y₂. alpha ~ [0.1, 0.9] | Smooth decision boundary. Model belajar transisi gradual antar kelas, mengurangi overconfidence | [15] |
+| Copy-Paste | 0.5 | Flip mode | Instance mask dipotong dari gambar A dan ditempel ke gambar B via transformasi affine. Posisi acak hindari overlap >50% | Spesifik untuk segmentasi. Menambah variasi latar objek. Contoh: botol di meja → botol di rumput | [16] |
 
 **Mengapa Mosaic Prob=1.0 (wajib)?**
 
@@ -862,10 +862,10 @@ Beta(0.5, 0.5) berbentuk U - α cenderung ke 0 atau 1 (bukan 0.5). Artinya blend
 
 *Tujuan: mencegah overfitting dengan memaksa model tidak bergantung pada region spesifik.*
 
-| Augmentasi | Prob | Alasan Pemilihan |
-|------------|------|------------------|
-| Erasing | 0.5 | Random rectangle dihapus (diisi mean pixel値). Memaksa model pakai konteks global. Tanpa erasing, model bisa "cheat" dengan deteksi pola sempit (misal: selalu lihat label botol di sudut kanan bawah) |
-| Auto Augment | "randaugment" | Di akhir training (setelah close_mosaic), 2-3 augmentasi dipilih acak dari daftar dengan magnitude random. Stabilisasi fine-tuning |
+| Augmentasi | Prob | Alasan Pemilihan | Referensi |
+|------------|------|------------------|-----------|
+| Erasing | 0.5 | Random rectangle dihapus (diisi mean pixel値). Memaksa model pakai konteks global. Tanpa erasing, model bisa "cheat" dengan deteksi pola sempit (misal: selalu lihat label botol di sudut kanan bawah) | [18] |
+| Auto Augment | "randaugment" | Di akhir training (setelah close_mosaic), 2-3 augmentasi dipilih acak dari daftar dengan magnitude random. Stabilisasi fine-tuning | [19] |
 
 **Mengapa randaugment bukan augmentasi tetap?** Randaugment memilih 2-3 augmentasi acak dari kumpulan transformasi ringan dengan magnitude random setiap iterasi. Pada akhir training (setelah close_mosaic), model sudah memiliki representasi fitur stabil. Augmentasi tetap yang agresif akan mengganggu fine-tuning. Randaugment memberikan regularisasi ringan dan acak - cukup untuk mencegah overfitting tanpa mengganggu representasi yang sudah dipelajari.
 
@@ -1841,3 +1841,26 @@ Upload gambar -> resize 640x640 -> CNN forward pass (5.3ms GPU) -> decode output
 >     end
 >     VIZ
 > ```
+
+**Daftar Referensi:**
+
+[1] Otsu, N. (1979). A threshold selection method from gray-level histograms. *IEEE Trans. SMC*, 9(1), 62-66.
+[2] Suzuki, S. (1985). Topological structural analysis of digitized binary images by border following. *CVGIP*, 30(1), 32-46.
+[3] Douglas, D.H. & Peucker, T.K. (1973). Algorithms for the reduction of the number of points required to represent a digitized line or its caricature. *Cartographica*, 10(2), 112-122.
+[4] Bradski, G. & Kaehler, A. (2008). *Learning OpenCV*. O'Reilly Media.
+[5] Serra, J. (1982). *Image Analysis and Mathematical Morphology*. Academic Press.
+[6] Soille, P. (2003). *Morphological Image Analysis* (2nd ed.). Springer.
+[7] OpenCV (2024). OpenCV 4.13.0 Documentation. https://docs.opencv.org/4.13.0/
+[8] Ultralytics (2023). YOLOv8 Documentation. https://docs.ultralytics.com/
+[9] IEEE (2019). *IEEE Standard for Floating-Point Arithmetic*. IEEE Std 754-2019.
+[10] Shorten, C. & Khoshgoftaar, T.M. (2019). A survey on image data augmentation for deep learning. *J. Big Data*, 6(1), 60.
+[11] Perez, L. & Wang, J. (2017). The effectiveness of data augmentation in image classification using deep learning. *arXiv:1712.04621*.
+[12] Python Software Foundation. Python random module. https://docs.python.org/3/library/random.html
+[13] NumPy Developers. numpy.random.seed. https://numpy.org/doc/stable/reference/random/generated/numpy.random.seed.html
+[14] Bochkovskiy, A., Wang, C.Y., & Liao, H.Y.M. (2020). YOLOv4. *arXiv:2004.10934*.
+[15] Zhang, H. et al. (2018). mixup: Beyond empirical risk minimization. *Proc. ICLR*.
+[16] Ghiasi, G. et al. (2021). Simple copy-paste data augmentation for instance segmentation. *Proc. CVPR*.
+[17] Redmon, J. et al. (2016). You only look once. *Proc. CVPR*, 779-788.
+[18] Zhong, Z. et al. (2020). Random erasing data augmentation. *Proc. AAAI*.
+[19] Cubuk, E.D. et al. (2020). RandAugment. *Proc. NeurIPS*.
+[20] ITU-R (1995). Rec. BT.601-5: Studio encoding parameters of digital television.

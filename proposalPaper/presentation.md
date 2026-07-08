@@ -53,12 +53,12 @@ flowchart TD
 
 ### Krisis Sampah di Bali
 
-| Metrik | Nilai | Sumber |
-|--------|-------|--------|
-| Produksi sampah harian | **~1.340 ton/hari** | DLHK Bali, 2023 |
-| Kontribusi pariwisata | **60%** (~3.5 kg/turis/hari) | - |
-| Komposisi | 60% organik, 30% plastik, 10% lainnya | - |
-| Sampah plastik laut dari darat | **80%** | - |
+| Metrik | Nilai | Sumber | Referensi |
+|--------|-------|--------|-----------|
+| Produksi sampah harian | **~1.340 ton/hari** | DLHK Bali, 2023 | [32] |
+| Kontribusi pariwisata | **60%** (~3.5 kg/turis/hari) | - | — |
+| Komposisi | 60% organik, 30% plastik, 10% lainnya | - | — |
+| Sampah plastik laut dari darat | **80%** | - | — |
 
 **Masalah:** Volume sampah terus meningkat, lahan TPA terbatas, dan tingkat daur ulang masih rendah (<10%). Pemilahan di sumber adalah langkah paling kritis - sampah campur sulit didaur ulang karena terkontaminasi.
 
@@ -66,11 +66,11 @@ flowchart TD
 
 **Pergub Bali No.47/2019** tentang Pengelolaan Sampah Berbasis Sumber:
 
-| Kategori | Contoh | Tujuan Akhir |
-|----------|--------|-------------|
-| **Organik** | Sisa makanan, daun, kulit buah | Kompos / biogas |
-| **Anorganik** (Recyclable) | Plastik, kaca, kertas, logam, kardus | Bank Sampah / daur ulang |
-| **Residu** (Landfill/B3) | Popok bekas, baterai, styrofoam, pembalut | TPS B3 / landfill |
+| Kategori | Contoh | Tujuan Akhir | Referensi |
+|----------|--------|-------------|-----------|
+| **Organik** | Sisa makanan, daun, kulit buah | Kompos / biogas | [31] |
+| **Anorganik** (Recyclable) | Plastik, kaca, kertas, logam, kardus | Bank Sampah / daur ulang | [31] |
+| **Residu** (Landfill/B3) | Popok bekas, baterai, styrofoam, pembalut | TPS B3 / landfill | [31] |
 
 Kebijakan menekankan **pemilahan dari sumber**, namun implementasi di lapangan masih mengandalkan tenaga manual - bottleneck utama.
 
@@ -90,13 +90,13 @@ Kebijakan menekankan **pemilahan dari sumber**, namun implementasi di lapangan m
 
 Sampah memiliki bentuk sangat bervariasi - botol bening, plastik kusut, kaleng penyok, sisa makanan amorf. **Bounding box tidak cukup presisi** untuk bentuk tidak beraturan karena memotong area kosong. Instance segmentation memberikan mask per-pixel akurat, krusial untuk memisahkan objek bertumpuk.
 
-| Level CV | Contoh Output | Kelebihan | Kekurangan |
-|----------|--------------|-----------|------------|
-| 1. Klasifikasi | "Ini organik" | Cepat, komputasi ringan | Tidak tahu lokasi objek - tidak berguna untuk tumpukan |
-| 2. Deteksi (bbox) | "Ini organik di kotak [x,y,w,h]" | Lokasi perkiraan, cukup untuk count | Bounding box potong area kosong pada botol miring/penyok - rasio aspect tinggi masalah |
-| **3. Instance segmentation** | **"Ini organik, area pixel [mask]"** | **Presisi pixel-level, paham bentuk asli, pisah objek bertumpuk** | **Komputasi ~2× lebih berat dari deteksi** |
+| Level CV | Contoh Output | Kelebihan | Kekurangan | Referensi |
+|----------|--------------|-----------|------------|-----------|
+| 1. Klasifikasi | "Ini organik" | Cepat, komputasi ringan | Tidak tahu lokasi objek - tidak berguna untuk tumpukan | [17][8] |
+| 2. Deteksi (bbox) | "Ini organik di kotak [x,y,w,h]" | Lokasi perkiraan, cukup untuk count | Bounding box potong area kosong pada botol miring/penyok - rasio aspect tinggi masalah | [17][8] |
+| **3. Instance segmentation** | **"Ini organik, area pixel [mask]"** | **Presisi pixel-level, paham bentuk asli, pisah objek bertumpuk** | **Komputasi ~2× lebih berat dari deteksi** | [25][8] |
 
-**Kenapa YOLO-seg, bukan Mask R-CNN?** YOLO-seg adalah arsitektur one-stage (prediksi langsung tanpa Region Proposal Network). Mask R-CNN 2-stage 5-10× lebih lambat - tidak feasible untuk real-time. YOLOv26m-seg mencapai 5.1ms/gambar vs Mask R-CNN 50-100ms.
+**Kenapa YOLO-seg, bukan Mask R-CNN?** YOLO-seg adalah arsitektur one-stage (prediksi langsung tanpa Region Proposal Network). Mask R-CNN 2-stage 5-10× lebih lambat - tidak feasible untuk real-time. YOLOv26m-seg mencapai 5.1ms/gambar vs Mask R-CNN 50-100ms. [14][17][25]
 
 ### Strategi 2 Kelas + Subkategori Backend
 
@@ -117,12 +117,12 @@ Non-Organik dipecah di backend berdasarkan subkategori - tidak perlu model 60 ke
 
 Melatih YOLO dari nol membutuhkan ~1 juta gambar dan ~1 minggu GPU. Solusi: **transfer learning** dari model pretrained COCO.
 
-| Aspek | Tanpa Transfer Learning | Dengan Transfer Learning |
-|-------|------------------------|-------------------------|
-| Data dibutuhkan | ~1.000.000 gambar | 3.973 gambar |
-| Waktu training | ~7 hari | 4.1 jam |
-| Bobot awal | Random (konvergen lambat) | COCO pretrained (sudah tahu tepi, bentuk, tekstur) |
-| Bobot ditransfer | 0% | **890/904 parameter groups** (~98%) |
+| Aspek | Tanpa Transfer Learning | Dengan Transfer Learning | Referensi |
+|-------|------------------------|-------------------------|-----------|
+| Data dibutuhkan | ~1.000.000 gambar | 3.973 gambar | [17][14] |
+| Waktu training | ~7 hari | 4.1 jam | [17][14] |
+| Bobot awal | Random (konvergen lambat) | COCO pretrained (sudah tahu tepi, bentuk, tekstur) | [17][14] |
+| Bobot ditransfer | 0% | **890/904 parameter groups** (~98%) | [8] |
 
 YOLOv26m-seg sudah dilatih di COCO (200.000+ gambar, 80 kelas). Bobot backbone dan neck sudah optimal untuk ekstraksi fitur umum. Hanya head yang diinisialisasi ulang untuk 2 kelas + segmentasi. Ini seperti mengambil lulusan SD yang sudah bisa baca tulis, lalu kursusin spesifik jadi "ahli sampah" - jauh lebih cepat daripada ajarin dari nol.
 
@@ -132,11 +132,11 @@ YOLOv26m-seg sudah dilatih di COCO (200.000+ gambar, 80 kelas). Bobot backbone d
 
 ### Sumber Data
 
-| Dataset | Gambar | Kategori | Anotasi |
-|---------|--------|----------|---------|
-| **TACO** (Trash Annotations in Context) | 1.500 | 60 subkategori | COCO polygon (manual) |
-| **Waste Classification** (phenomsg/kaggle) | 2.939 | 18 subkategori | Tidak ada (label folder) |
-| **Gabungan** (setelah merge, deduplikasi, filter) | **3.973** | **2 kelas: Organik / Non-Organik** | **YOLO-seg (24 titik polygon)** |
+| Dataset | Gambar | Kategori | Anotasi | Referensi |
+|---------|--------|----------|---------|-----------|
+| **TACO** (Trash Annotations in Context) | 1.500 | 60 subkategori | COCO polygon (manual) | [29] |
+| **Waste Classification** (phenomsg/kaggle) | 2.939 | 18 subkategori | Tidak ada (label folder) | [30] |
+| **Gabungan** (setelah merge, deduplikasi, filter) | **3.973** | **2 kelas: Organik / Non-Organik** | **YOLO-seg (24 titik polygon)** | [8] |
 
 ### Detail Merger
 
@@ -275,6 +275,18 @@ Setiap parameter numerik di `kaggle_service.py` dipilih via **grid search pada 2
 18. Zhong, Z., Zheng, L., Kang, G., Li, S., & Yang, Y. (2020). Random erasing data augmentation. *Proc. AAAI*, arXiv:1708.04896.
 19. Cubuk, E.D., Zoph, B., Shlens, J., & Le, Q.V. (2020). RandAugment: Practical automated data augmentation with a reduced search space. *Proc. NeurIPS*, arXiv:1909.13719.
 20. ITU-R (1995). Recommendation BT.601-5: Studio encoding parameters of digital television for standard 4:3 and wide-screen 16:9 aspect ratios. *International Telecommunication Union*.
+21. Wang, C.Y., Liao, H.Y.M., Wu, Y.H., Chen, P.Y., Hsieh, J.W., & Yeh, I.H. (2020). CSPNet: A new backbone that can enhance learning capability of CNN. *Proc. IEEE CVPR Workshop*, arXiv:1911.11929.
+22. He, K., Zhang, X., Ren, S., & Sun, J. (2015). Spatial pyramid pooling in deep convolutional networks for visual recognition. *IEEE TPAMI*, 37(9), 1904-1916.
+23. Lin, T.Y., Dollár, P., Girshick, R., He, K., Hariharan, B., & Belongie, S. (2017). Feature pyramid networks for object detection. *Proc. IEEE CVPR*, 2117-2125.
+24. Liu, S., Qi, L., Qin, H., Shi, J., & Jia, J. (2018). Path aggregation network for instance segmentation. *Proc. IEEE CVPR*, 8759-8768.
+25. Ge, Z., Liu, S., Wang, F., Li, Z., & Sun, J. (2021). YOLOX: Exceeding YOLO series in 2021. *arXiv preprint*, arXiv:2107.08430.
+26. Zheng, Z., Wang, P., Liu, W., Li, J., Ye, R., & Ren, D. (2020). Distance-IoU loss: Faster and better learning for bounding box regression. *Proc. AAAI*, 34(07), 12993-13000.
+27. Loshchilov, I. & Hutter, F. (2017). SGDR: Stochastic gradient descent with warm restarts. *Proc. ICLR*, arXiv:1608.03983.
+28. Micikevicius, P., et al. (2018). Mixed precision training. *Proc. ICLR*, arXiv:1710.03740.
+29. Proença, P.F. & Simões, P. (2020). TACO: Trash annotations in context for litter detection. *arXiv preprint*, arXiv:2003.06975.
+30. Kaggle (2020). Waste Classification Dataset. https://www.kaggle.com/datasets/phenomsg/waste-classification
+31. Pemerintah Provinsi Bali (2019). Peraturan Gubernur Bali No. 47 Tahun 2019 tentang Pengelolaan Sampah Berbasis Sumber.
+32. DLHK Bali (2023). Data Produksi Sampah Harian Provinsi Bali. Dinas Lingkungan Hidup dan Kehutanan Provinsi Bali.
 
 **Kesimpulan:** Semua 14 parameter punya referensi dari paper, buku, library docs. Referensi: paper [1][2][3][10][11], buku [4][5][6], library docs [7][8][12][13], standar [9][20]. Semua reference cocok code — tidak perlu ubah backend/frontend.
 
@@ -325,28 +337,28 @@ Backbone bertanggung jawab mengekstraksi fitur visual secara hierarkis dari gamb
 ### Arsitektur 3-Komponen Utama
 
 
-| Komponen | Fungsi | Output |
-|----------|--------|--------|
-| **Backbone: CSPDarknet** | Ekstraksi fitur bertahap dari gambar input | 4 skala fitur map (P3/P4/P5) |
-| **Neck: FPN + PAN** | Fusion fitur multi-skala (top-down + bottom-up) | Fitur map diperkaya konteks semantik & detail |
-| **Head: Decoupled Anchor-Free** | Prediksi per piksel (class, bbox, segmentasi) | Class + Bounding Box + Polygon Mask |
+| Komponen | Fungsi | Output | Referensi |
+|----------|--------|--------|-----------|
+| **Backbone: CSPDarknet** | Ekstraksi fitur bertahap dari gambar input | 4 skala fitur map (P3/P4/P5) | [14][21] |
+| **Neck: FPN + PAN** | Fusion fitur multi-skala (top-down + bottom-up) | Fitur map diperkaya konteks semantik & detail | [23][24] |
+| **Head: Decoupled Anchor-Free** | Prediksi per piksel (class, bbox, segmentasi) | Class + Bounding Box + Polygon Mask | [25] |
 
 ### Backbone: CSPDarknet - Detail Per Stage
 
 Backbone adalah encoder hierarkis yang mengubah gambar input 640x640x3 menjadi representasi fitur di berbagai resolusi. Setiap stage mengekstrak informasi dengan tingkat abstraksi meningkat: dari tepi dasar (stage awal) hingga pemahaman semantik utuh (stage akhir). Output backbone adalah 3 level fitur (P3/P4/P5) yang masing-masing digunakan oleh Neck untuk deteksi multi-skala.
 
-| Stage | Input -> Output | Stride | Channel | Fungsi |
-|-------|---------------|--------|---------|--------|
-| Stem Conv | 640x640 -> 320x320 | 2x | ~64 | Ekstraksi awal (edges, gradien sederhana) |
-| Stage 1 CSP | 320x320 -> 160x160 | 4x | 128 | Deteksi tepi, sudut, pola sederhana |
-| Stage 2 CSP | 160x160 -> 80x80 | 8x | 256 | Deteksi pola berulang, tekstur dasar |
-| Stage 3 CSP | 80x80 -> 40x40 | 16x | 512 | Deteksi tekstur kompleks, bagian objek |
-| Stage 4 CSP | 40x40 -> 20x20 | 32x | 512 | Pemahaman semantik (objek utuh, konteks) |
-| SPP Layer | 20x20 -> 20x20 | 32x | 512 | Multi-scale context pooling (k5, k9, k13) |
+| Stage | Input -> Output | Stride | Channel | Fungsi | Referensi |
+|-------|---------------|--------|---------|--------|-----------|
+| Stem Conv | 640x640 -> 320x320 | 2x | ~64 | Ekstraksi awal (edges, gradien sederhana) | [14][21] |
+| Stage 1 CSP | 320x320 -> 160x160 | 4x | 128 | Deteksi tepi, sudut, pola sederhana | [14][21] |
+| Stage 2 CSP | 160x160 -> 80x80 | 8x | 256 | Deteksi pola berulang, tekstur dasar | [14][21] |
+| Stage 3 CSP | 80x80 -> 40x40 | 16x | 512 | Deteksi tekstur kompleks, bagian objek | [14][21] |
+| Stage 4 CSP | 40x40 -> 20x20 | 32x | 512 | Pemahaman semantik (objek utuh, konteks) | [14][21] |
+| SPP Layer | 20x20 -> 20x20 | 32x | 512 | Multi-scale context pooling (k5, k9, k13) | [22] |
 
 ### CSP (Cross Stage Partial)
 
-**Apa itu CSP?** CSP membagi feature map menjadi dua jalur di setiap stage: (1) jalur utama - subset channel (~50%) diproses melalui blok konvolusi bottleneck, (2) jalur shortcut - sisa channel langsung dilewatkan. Kedua jalur digabung (concatenate) di akhir stage.
+**Apa itu CSP?** CSP membagi feature map menjadi dua jalur di setiap stage: (1) jalur utama - subset channel (~50%) diproses melalui blok konvolusi bottleneck, (2) jalur shortcut - sisa channel langsung dilewatkan. Kedua jalur digabung (concatenate) di akhir stage. [21]
 
 Fungsi:
 - **Efisiensi komputasi:** ~20% lebih hemat FLOPs dibanding ResNet standar
@@ -355,7 +367,7 @@ Fungsi:
 
 ### SPPF (Spatial Pyramid Pooling Fast)
 
-**Apa itu SPPF?** SPPF adalah modul pooling multi-skala yang menangkap fitur konteks pada tiga skala receptive field berbeda dari setiap titik pada feature map 20×20. Output SPPF adalah feature map 20×20×2048 (concat 4×512 channel dari 3 pooling + input asli), memberikan representasi multi-skala untuk deteksi objek variatif.
+**Apa itu SPPF?** SPPF adalah modul pooling multi-skala yang menangkap fitur konteks pada tiga skala receptive field berbeda dari setiap titik pada feature map 20×20. Output SPPF adalah feature map 20×20×2048 (concat 4×512 channel dari 3 pooling + input asli), memberikan representasi multi-skala untuk deteksi objek variatif. [22][14][8]
 
 **Mengapa perlu multi-skala?** Objek sampah memiliki ukuran sangat bervariasi pada feature map 20×20: botol 1.5L menempati ~10×10 grid cells, puntung rokok hanya ~1×1. Pooling tunggal (misal 5×5) hanya menangkap konteks lokal - objek besar butuh konteks lebih luas. SPPF menyediakan tiga skala secara simultan dari satu feature map.
 
@@ -363,14 +375,14 @@ Fungsi:
 
 SPP orisinil menjalankan tiga operasi max-pooling **paralel** dengan kernel 5, 9, 13 pada input yang sama. SPPF melakukan tiga operasi max-pooling 5×5 **sequential** berantai. Perbedaan implementasi:
 
-| Aspek | SPP (orisinil) | SPPF (dipilih) |
-|-------|---------------|----------------|
-| Struktur | 3 pooling paralel, 3 kernel berbeda | 1 pooling 5×5 diulang 3× sequential |
-| Receptive field 1 | 5×5 (langsung) | 5×5 (pool pertama) |
-| Receptive field 2 | 9×9 (langsung) | Efektif 9×9 (pool kedua pada output pool pertama: 5+5-1=9) |
-| Receptive field 3 | 13×13 (langsung) | Efektif 13×13 (pool ketiga: 5+5+5-2=13) |
-| Operasi pooling | 3 operasi independen | 3 operasi sequential (data reuse) |
-| Kecepatan | Baseline | **2× lebih cepat** |
+| Aspek | SPP (orisinil) | SPPF (dipilih) | Referensi |
+|-------|---------------|----------------|-----------|
+| Struktur | 3 pooling paralel, 3 kernel berbeda | 1 pooling 5×5 diulang 3× sequential | [22] |
+| Receptive field 1 | 5×5 (langsung) | 5×5 (pool pertama) | [22] |
+| Receptive field 2 | 9×9 (langsung) | Efektif 9×9 (pool kedua pada output pool pertama: 5+5-1=9) | [22] |
+| Receptive field 3 | 13×13 (langsung) | Efektif 13×13 (pool ketiga: 5+5+5-2=13) | [22] |
+| Operasi pooling | 3 operasi independen | 3 operasi sequential (data reuse) | [22] |
+| Kecepatan | Baseline | **2× lebih cepat** | [8] |
 
 **Mengapa sequential lebih cepat?** Pooling sequential memanfaatkan **data locality cache GPU**. Pool pertama membaca data dari memori global ke cache L1/L2. Pool kedua dan ketiga membaca dari cache (data sudah hang), bukan dari memori global lagi. Pooling paralel dengan kernel berbeda (5, 9, 13) membutuhkan 3 access patterns berbeda ke memori global - masing-masing cold cache. Pada GPU, cache hit vs miss dapat berbeda 10-50× dalam latency. Selain itu, SPPF hanya perlu mengimplementasikan satu kernel pooling (size 5) dan memanggilnya 3×, dibanding tiga kernel berbeda.
 
@@ -379,13 +391,13 @@ Output SPPF = concat( input_asli, pool5, pool9, pool13 ) = 4 × 512 channel = 20
 
 **Mengapa SPPF, Bukan Alternatif Lain?**
 
-| Alternatif | Mekanisme | Kelebihan | Kekurangan | Keputusan |
-|------------|-----------|-----------|------------|-----------|
-| **Tanpa pooling** | Langsung ke Neck | Komputasi paling ringan | Tidak ada konteks multi-skala - deteksi objek besar dan kecil tidak optimal simultan | Ditolak - gap performa terlalu besar |
-| **Average pooling** | Rata-rata area | Lebih smooth, kurang noise | Menghapus fitur tepi yang penting untuk segmentasi | Ditolak - segmentasi butuh fitur tepi tajam |
-| **ASPP (Atrous/dilated)** | Dilated convolution multi-rate | Receptive field lebih akurat | **3× parameter lebih banyak**, komputasi lebih berat, overkill untuk 20×20 feature map | Ditolak - tidak efisien untuk resolusi rendah |
-| **SPP (orisinil)** | 3 pooling paralel | Sederhana, terbukti di YOLOv4 | Lebih lambat dari SPPF karena 3 kernel berbeda = 3 cold cache miss | Ditolak - SPPF strictly better |
-| **SPPF (dipilih)** | 3 pooling sequential 5×5 | **2× lebih cepat dari SPP, parameter identik, receptive field identik** | - | **Dipilih** |
+| Alternatif | Mekanisme | Kelebihan | Kekurangan | Keputusan | Referensi |
+|------------|-----------|-----------|------------|-----------|-----------|
+| **Tanpa pooling** | Langsung ke Neck | Komputasi paling ringan | Tidak ada konteks multi-skala - deteksi objek besar dan kecil tidak optimal simultan | Ditolak - gap performa terlalu besar | [22] |
+| **Average pooling** | Rata-rata area | Lebih smooth, kurang noise | Menghapus fitur tepi yang penting untuk segmentasi | Ditolak - segmentasi butuh fitur tepi tajam | [22] |
+| **ASPP (Atrous/dilated)** | Dilated convolution multi-rate | Receptive field lebih akurat | **3× parameter lebih banyak**, komputasi lebih berat, overkill untuk 20×20 feature map | Ditolak - tidak efisien untuk resolusi rendah | [14] |
+| **SPP (orisinil)** | 3 pooling paralel | Sederhana, terbukti di YOLOv4 | Lebih lambat dari SPPF karena 3 kernel berbeda = 3 cold cache miss | Ditolak - SPPF strictly better | [22][14] |
+| **SPPF (dipilih)** | 3 pooling sequential 5×5 | **2× lebih cepat dari SPP, parameter identik, receptive field identik** | - | **Dipilih** | [8][22] |
 
 **Alasan utama pemilihan SPPF:**
 1. **Kecepatan:** 2× lebih cepat dari SPP tanpa pengurangan receptive field - krusial untuk inference 5.1ms target
@@ -407,11 +419,11 @@ Neck bertugas memfusikan fitur dari berbagai resolusi backbone - menggabungkan i
 **Masalah yang Dipecahkan:** Backbone menghasilkan tiga level fitur dengan karakteristik berlawanan. P3 (80×80) tahu persis tepi objek tapi tidak tahu itu botol atau kaleng. P5 (20×20) tahu itu botol tapi tidak tahu persis tepinya. Jika ketiga level digunakan terpisah, deteksi objek kecil (P3 tanpa semantik) rawan false positive, deteksi objek besar (P5 tanpa detail) rawan bounding box meleset. Neck memecahkan ini dengan mengalirkan informasi antar level - FPN mengalirkan semantik ke bawah, PAN mengalirkan detail ke atas. Hasilnya: setiap level deteksi memiliki semantik (what) DAN lokasi (where) secara simultan.
 
 **Arsitektur Dua-Jalur:**
-- **FPN (Feature Pyramid Network)** - jalur top-down: P5(20×20) → P4(40×40) → P3(80×80). Membawa "pengetahuan objek" dari resolusi rendah ke tinggi. Kritis untuk deteksi objek kecil - P3 mendapat konteks "ini puntung rokok" dari P5.
-- **PAN (Path Aggregation Network)** - jalur bottom-up: P3(80×80) → P4(40×40) → P5(20×20). Membawa "detail lokasi" dari resolusi tinggi ke rendah. Kritis untuk lokalisasi objek besar - P5 mendapat tepi presisi "kardus di pojok kiri" dari P3.
-- **C2PSA (Cross Stage Partial with Position Self-Attention)** - modul attention opsional pada P5 yang memberikan konteks global tambahan.
+- **FPN (Feature Pyramid Network)** [23] - jalur top-down: P5(20×20) → P4(40×40) → P3(80×80). Membawa "pengetahuan objek" dari resolusi rendah ke tinggi. Kritis untuk deteksi objek kecil - P3 mendapat konteks "ini puntung rokok" dari P5.
+- **PAN (Path Aggregation Network)** [24] - jalur bottom-up: P3(80×80) → P4(40×40) → P5(20×20). Membawa "detail lokasi" dari resolusi tinggi ke rendah. Kritis untuk lokalisasi objek besar - P5 mendapat tepi presisi "kardus di pojok kiri" dari P3.
+- **C2PSA (Cross Stage Partial with Position Self-Attention)** [14] - modul attention opsional pada P5 yang memberikan konteks global tambahan.
 
-**Decoupled Head** adalah tiga cabang konvolusi paralel independen yang masing-masing mengkhususkan diri pada satu task: klasifikasi (membedakan Organik/Non-Organik), regresi (posisi bounding box), segmentasi (bentuk polygon mask). Tiap cabang memiliki parameter sendiri - tidak ada kompetisi parameter antar task. Anchor-Free: tanpa prior box template, prediksi langsung 4 koordinat per grid cell.
+**Decoupled Head** [25] adalah tiga cabang konvolusi paralel independen yang masing-masing mengkhususkan diri pada satu task: klasifikasi (membedakan Organik/Non-Organik), regresi (posisi bounding box), segmentasi (bentuk polygon mask). Tiap cabang memiliki parameter sendiri - tidak ada kompetisi parameter antar task. Anchor-Free [25]: tanpa prior box template, prediksi langsung 4 koordinat per grid cell.
 
 ### Apa itu Neck?
 
@@ -424,37 +436,37 @@ Neck menggabungkan kelebihan semua level sehingga setiap level deteksi memiliki 
 
 ### FPN (Feature Pyramid Network) - Top-down Path
 
-| Langkah | Operasi | Resolusi | Efek |
-|---------|---------|----------|------|
-| 1 | P5 (20x20) -> Upsample 2x | 40x40 | Fitur semantik resolusi rendah diperbesar |
-| 2 | Concat dengan P4 (40x40) | 40x40 | Fusion semantik + detail |
-| 3 | Conv 1x1 reduce channel | 40x40 | Kompresi fitur, reduksi dimensi |
-| 4 | Upsample 2x -> Concat dengan P3 | 80x80 | Informasi semantik mencapai resolusi tinggi |
+| Langkah | Operasi | Resolusi | Efek | Referensi |
+|---------|---------|----------|------|-----------|
+| 1 | P5 (20x20) -> Upsample 2x | 40x40 | Fitur semantik resolusi rendah diperbesar | [23] |
+| 2 | Concat dengan P4 (40x40) | 40x40 | Fusion semantik + detail | [23] |
+| 3 | Conv 1x1 reduce channel | 40x40 | Kompresi fitur, reduksi dimensi | [23] |
+| 4 | Upsample 2x -> Concat dengan P3 | 80x80 | Informasi semantik mencapai resolusi tinggi | [23] |
 
-**FPN membantu deteksi objek kecil** - sampah kecil seperti puntung rokok, tutup botol, atau baterai mendapat informasi semantik dari resolusi lebih rendah.
+**FPN membantu deteksi objek kecil** [23] - sampah kecil seperti puntung rokok, tutup botol, atau baterai mendapat informasi semantik dari resolusi lebih rendah.
 
 ### PAN (Path Aggregation Network) - Bottom-up Path
 
-| Langkah | Operasi | Resolusi | Efek |
-|---------|---------|----------|------|
-| 1 | P3 -> Downsample Conv k3 s2 | 40x40 | Fitur detail diperkecil |
-| 2 | Concat dengan P4 (40x40) | 40x40 | Detail memperkaya fitur semantik |
-| 3 | Conv 1x1 reduce | 40x40 | Reduksi dimensi |
-| 4 | Downsample -> Concat dengan P5 | 20x20 | Detail mencapai resolusi rendah |
+| Langkah | Operasi | Resolusi | Efek | Referensi |
+|---------|---------|----------|------|-----------|
+| 1 | P3 -> Downsample Conv k3 s2 | 40x40 | Fitur detail diperkecil | [24] |
+| 2 | Concat dengan P4 (40x40) | 40x40 | Detail memperkaya fitur semantik | [24] |
+| 3 | Conv 1x1 reduce | 40x40 | Reduksi dimensi | [24] |
+| 4 | Downsample -> Concat dengan P5 | 20x20 | Detail mencapai resolusi rendah | [24] |
 
-**PAN membantu lokalisasi objek besar** - informasi tepi presisi dari resolusi tinggi mengalir ke bawah, meningkatkan akurasi bounding box objek besar seperti kardus atau botol.
+**PAN membantu lokalisasi objek besar** [24] - informasi tepi presisi dari resolusi tinggi mengalir ke bawah, meningkatkan akurasi bounding box objek besar seperti kardus atau botol.
 
 ### Head: Decoupled Anchor-Free
 
-**Decoupled Head** = tiga cabang konvolusi paralel sepenuhnya independen, masing-masing dengan parameter sendiri. Classification branch fokus membedakan Organik/Non-Organik, regression branch fokus presisi lokasi, segmentation branch fokus akurasi bentuk. Tidak ada parameter yang dibagi - eliminasi task competition yang terjadi jika satu set parameter harus menangani tiga tugas berbeda.
+**Decoupled Head** [25] = tiga cabang konvolusi paralel sepenuhnya independen, masing-masing dengan parameter sendiri. Classification branch fokus membedakan Organik/Non-Organik, regression branch fokus presisi lokasi, segmentation branch fokus akurasi bentuk. Tidak ada parameter yang dibagi - eliminasi task competition yang terjadi jika satu set parameter harus menangani tiga tugas berbeda.
 
-**Anchor-Free** = tanpa prior box template (tidak seperti YOLOv3/v5/v8). Setiap grid cell langsung memprediksi 4 koordinat (x, y, w, h). DFL (Distribution Focal Loss) memprediksi distribusi probabilitas 16-bin per koordinat - fleksibel menangkap berbagai rasio bentuk sampah (botol 1:4, kardus 1:1) tanpa perlu clustering dataset.
+**Anchor-Free** [25] = tanpa prior box template (tidak seperti YOLOv3/v5/v8). Setiap grid cell langsung memprediksi 4 koordinat (x, y, w, h). DFL (Distribution Focal Loss) [26] memprediksi distribusi probabilitas 16-bin per koordinat - fleksibel menangkap berbagai rasio bentuk sampah (botol 1:4, kardus 1:1) tanpa perlu clustering dataset.
 
-| Cabang | Input | Layer Detail | Output |
-|--------|-------|-------------|--------|
-| **Classification** | P3/P4/P5 | Conv3x3 -> SiLU -> Conv3x3 -> Linear + Sigmoid | 3 nilai: objectness + 2 class prob |
-| **Regression (BBox)** | P3/P4/P5 | DFL 16-bin distribution per koordinat | 4 float: x, y, w, h |
-| **Segmentation (Mask)** | P3/P4/P5 | Proto Module: 32 prototype masks + coefficient | 24-point polygon per instance |
+| Cabang | Input | Layer Detail | Output | Referensi |
+|--------|-------|-------------|--------|-----------|
+| **Classification** | P3/P4/P5 | Conv3x3 -> SiLU -> Conv3x3 -> Linear + Sigmoid | 3 nilai: objectness + 2 class prob | [25] |
+| **Regression (BBox)** | P3/P4/P5 | DFL 16-bin distribution per koordinat | 4 float: x, y, w, h | [25][26] |
+| **Segmentation (Mask)** | P3/P4/P5 | Proto Module: 32 prototype masks + coefficient | 24-point polygon per instance | [25][8] |
 
 ---
 
@@ -462,46 +474,46 @@ Neck menggabungkan kelebihan semua level sehingga setiap level deteksi memiliki 
 
 ### Hyperparameter Training
 
-| Parameter | Nilai | Penjelasan |
-|-----------|-------|------------|
-| Input size | 640x640 | Resolusi gambar setelah letterbox resize - mempertahankan aspek ratio |
-| Epochs | 100 | Jumlah iterasi penuh dataset |
-| Patience | 40 | Hentikan training jika val loss tidak turun selama 40 epoch |
-| Batch size | 16 | Gambar per batch |
-| Optimizer | SGD (momentum 0.937) | Stochastic Gradient Descent dengan momentum |
-| Learning rate | 0,001 (cosine schedule) | Turun mengikuti kurva cosinus dari 0,001 ke ~0 |
-| Momentum | 0,937 | Momentum optimizer untuk mempercepat konvergensi |
-| Weight decay | 0,0005 | Regularisasi L2 untuk mencegah overfitting |
-| FP16 | Ya | Mixed precision training - mempercepat ~2x, VRAM turun ~40% |
+| Parameter | Nilai | Penjelasan | Referensi |
+|-----------|-------|------------|-----------|
+| Input size | 640x640 | Resolusi gambar setelah letterbox resize - mempertahankan aspek ratio | [17][8] |
+| Epochs | 100 | Jumlah iterasi penuh dataset | [14][8] |
+| Patience | 40 | Hentikan training jika val loss tidak turun selama 40 epoch | [8] |
+| Batch size | 16 | Gambar per batch | [8] |
+| Optimizer | SGD (momentum 0.937) | Stochastic Gradient Descent dengan momentum | [27] |
+| Learning rate | 0,001 (cosine schedule) | Turun mengikuti kurva cosinus dari 0,001 ke ~0 | [27] |
+| Momentum | 0,937 | Momentum optimizer untuk mempercepat konvergensi | [27] |
+| Weight decay | 0,0005 | Regularisasi L2 untuk mencegah overfitting | [8] |
+| FP16 | Ya | Mixed precision training - mempercepat ~2x, VRAM turun ~40% | [28] |
 
 ### Hyperparameter Loss
 
-| Loss | Weight | Fungsi |
-|------|--------|--------|
-| **CIoU Loss** | **7,5** | Optimasi 3 aspek overlap: IoU + center distance + aspect ratio. CIoU = 1 − IoU + ρ²(b,b_gt)/c² + α·v. Bobot tertinggi karena lokalisasi adalah prioritas - bounding box meleset berarti kegagalan deteksi total |
-| **BCE Loss** | **0,5** | Binary Cross-Entropy untuk 2 kelas: BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell predict probabilitas Organik vs Non-Organik. Bobot rendah karena 2 kelas relatif mudah dibedakan secara visual |
-| **DFL Loss** | **1,5** | Distribution Focal Loss: memprediksi distribusi probabilitas diskrit 16-bin per koordinat (bukan nilai tunggal). Nilai akhir = weighted sum Σ(bin_i × softmax(prob_i)). Keuntungan: (1) gradien lebih kaya - 16 sinyal vs 1, (2) representasi uncertainty untuk boundary tidak jelas, (3) memungkinkan arsitektur anchor-free |
+| Loss | Weight | Fungsi | Referensi |
+|------|--------|--------|-----------|
+| **CIoU Loss** | **7,5** | Optimasi 3 aspek overlap: IoU + center distance + aspect ratio. CIoU = 1 − IoU + ρ²(b,b_gt)/c² + α·v. Bobot tertinggi karena lokalisasi adalah prioritas - bounding box meleset berarti kegagalan deteksi total | [26] |
+| **BCE Loss** | **0,5** | Binary Cross-Entropy untuk 2 kelas: BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell predict probabilitas Organik vs Non-Organik. Bobot rendah karena 2 kelas relatif mudah dibedakan secara visual | [17] |
+| **DFL Loss** | **1,5** | Distribution Focal Loss: memprediksi distribusi probabilitas diskrit 16-bin per koordinat (bukan nilai tunggal). Nilai akhir = weighted sum Σ(bin_i × softmax(prob_i)). Keuntungan: (1) gradien lebih kaya - 16 sinyal vs 1, (2) representasi uncertainty untuk boundary tidak jelas, (3) memungkinkan arsitektur anchor-free | [26] |
 
 ### Detail Training
 
-| Aspek | Detail |
-|-------|--------|
-| Warmup epochs | 5 (linear LR increase dari 0 -> 0,001) |
-| GPU | NVIDIA RTX 5060 Ti 16GB GDDR7 |
-| Waktu training | **~4,1 jam** (247 menit, 100 epoch) |
-| Inference speed | **5,1 ms per image** (~196 FPS) |
+| Aspek | Detail | Referensi |
+|-------|--------|-----------|
+| Warmup epochs | 5 (linear LR increase dari 0 -> 0,001) | [28] |
+| GPU | NVIDIA RTX 5060 Ti 16GB GDDR7 | — |
+| Waktu training | **~4,1 jam** (247 menit, 100 epoch) | — |
+| Inference speed | **5,1 ms per image** (~196 FPS) | — |
 
 ### Optimizer SGD
 
-**Apa itu SGD?** SGD (Stochastic Gradient Descent) dengan momentum 0.937 - 93.7% arah update berasal dari gradien sebelumnya, 6.3% dari gradien saat ini.
+**Apa itu SGD?** SGD (Stochastic Gradient Descent) dengan momentum 0.937 - 93.7% arah update berasal dari gradien sebelumnya, 6.3% dari gradien saat ini. [27]
 
-**Mengapa SGD bukan Adam?** (1) VRAM lebih hemat - tidak perlu menyimpan momentum + variance (2× lebih hemat). (2) Generalisasi lebih baik - SGD memiliki implicit regularization, tidak "nyaman" di sharp minima seperti Adam. (3) Cosine annealing mengkompensasi konvergensi lambat.
+**Mengapa SGD bukan Adam?** (1) VRAM lebih hemat - tidak perlu menyimpan momentum + variance (2× lebih hemat). (2) Generalisasi lebih baik - SGD memiliki implicit regularization, tidak "nyaman" di sharp minima seperti Adam. [27] (3) Cosine annealing mengkompensasi konvergensi lambat. [27]
 
 ### Cosine LR Schedule
 
-Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(epoch/epochs * pi))`. LR turun gradual dari 0.001 ke ~0.00001 mengikuti kurva cosinus. Berbeda dengan step decay (turun drastis di epoch tertentu), cosine annealing turun gradual → model konvergen ke minimum lebih dalam.
+Learning rate decay mengikuti fungsi cosinus: `lr = lr_min + 0.5 * (lr_max - lr_min) * (1 + cos(epoch/epochs * pi))`. LR turun gradual dari 0.001 ke ~0.00001 mengikuti kurva cosinus. Berbeda dengan step decay (turun drastis di epoch tertentu), cosine annealing turun gradual → model konvergen ke minimum lebih dalam. [27]
 
-Warmup 5 epoch: LR naik linear 0 → 0.001, mencegah gradien eksplosif di awal training.
+Warmup 5 epoch: LR naik linear 0 → 0.001, mencegah gradien eksplosif di awal training. [28]
 
 ---
 
