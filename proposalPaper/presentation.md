@@ -486,13 +486,20 @@ Neck menggabungkan kelebihan semua level sehingga setiap level deteksi memiliki 
 | Weight decay | 0,0005 | Regularisasi L2 untuk mencegah overfitting | [8] |
 | FP16 | Ya | Mixed precision training - mempercepat ~2x, VRAM turun ~40% | [28] |
 
-### Hyperparameter Loss
+### Hyperparameter Loss — Mengapa 3 Loss Functions?
 
-| Loss | Weight | Fungsi | Referensi |
-|------|--------|--------|-----------|
-| **CIoU Loss** | **7,5** | Optimasi 3 aspek overlap: IoU + center distance + aspect ratio. CIoU = 1 − IoU + ρ²(b,b_gt)/c² + α·v. Bobot tertinggi karena lokalisasi adalah prioritas - bounding box meleset berarti kegagalan deteksi total | [26] |
-| **BCE Loss** | **0,5** | Binary Cross-Entropy untuk 2 kelas: BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell predict probabilitas Organik vs Non-Organik. Bobot rendah karena 2 kelas relatif mudah dibedakan secara visual | [17] |
-| **DFL Loss** | **1,5** | Distribution Focal Loss: memprediksi distribusi probabilitas diskrit 16-bin per koordinat (bukan nilai tunggal). Nilai akhir = weighted sum Σ(bin_i × softmax(prob_i)). Keuntungan: (1) gradien lebih kaya - 16 sinyal vs 1, (2) representasi uncertainty untuk boundary tidak jelas, (3) memungkinkan arsitektur anchor-free | [26] |
+YOLOv26m-seg menggunakan **3 fungsi loss berbeda**, masing-masing menangani satu aspek prediksi yang independen secara matematis. Tidak bisa digabung jadi satu fungsi karena tiap loss mengukur kesalahan pada output dengan sifat dan skala berbeda.
+
+| Loss | Target | Output | Problem Domain | Referensi |
+|------|--------|--------|---------------|-----------|
+| **CIoU Loss** (bobot 7,5) | Bounding box (4 koordinat) | 4 float: x, y, w, h | **Regresi geometris** — seberapa akurat posisi dan ukuran kotak? CIoU = 1 − IoU + ρ²/c² + α·v. Menggabungkan 3 metrik overlap: IoU (tumpang tindih), center distance (jarak pusat), aspect ratio (kesamaan bentuk). Bobot tertinggi karena lokalisasi adalah prioritas — bounding box meleset = kegagalan deteksi total | [26] |
+| **BCE Loss** (bobot 0,5) | Class probabilities (2 kelas) | 2 float [0..1] | **Klasifikasi biner** — apakah ini Organik atau Non-Organik? BCE = −[y·log(p) + (1−y)·log(1−p)]. Setiap grid cell memprediksi probabilitas per kelas secara independen. Bobot rendah karena membedakan 2 kelas secara visual relatif mudah | [17] |
+| **DFL Loss** (bobot 1,5) | Boundary distribution (4 × 16 bin) | 64 float (distribusi probabilitas) | **Distribusi regresi** — di mana tepatnya tepi objek? DFL memprediksi distribusi 16-bin untuk setiap sisi bounding box, bukan nilai tunggal. Keuntungan: (1) gradien lebih kaya — 16 sinyal vs 1, (2) uncertainty untuk boundary tidak jelas (botol transparan), (3) memungkinkan anchor-free detection | [26] |
+
+**Mengapa 3, bukan 1 atau 2?** Karena YOLO head memiliki 3 cabang output independen: classification branch (class prob), regression branch (bbox coordinates via DFL), segmentation branch (mask). Setiap cabang punya loss sendiri karena:
+1. **Satuan berbeda:** CIoU mengukur IoU (tanpa dimensi), BCE mengukur cross-entropy (nats), DFL mengukur distribusi (cross-entropy diskrit). Tidak bisa dijumlah tanpa bobot.
+2. **Prioritas berbeda:** Lokalisasi (CIoU) > distribusi boundary (DFL) > klasifikasi (BCE). Bobot [7.5, 1.5, 0.5] mencerminkan urutan prioritas ini.
+3. **Tidak bisa digabung:** Tidak ada satu fungsi loss yang bisa mengukur akurasi bounding box DAN probabilitas kelas secara simultan — keduanya adalah ruang metrik berbeda.
 
 ### Detail Training
 

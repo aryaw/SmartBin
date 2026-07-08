@@ -1341,6 +1341,16 @@ Setiap sel memprediksi: 1 set class prob (2 kelas + objectness), 1 set koordinat
 
 Konfigurasi loss dari log: box 7.5, cls 0.5, dfl 1.5. Tiga komponen loss mengukur aspek berbeda dari prediksi.
 
+**Mengapa Tiga Loss?** YOLOv26m-seg head memiliki 3 cabang output independen (classification, regression, segmentation). Masing-masing mengukur kesalahan pada domain berbeda yang tidak bisa digabung menjadi satu fungsi:
+
+| Loss | Target Output | Problem Domain | Satuan | Prioritas |
+|------|--------------|----------------|--------|-----------|
+| **CIoU** (bobot 7.5) | Bounding box: 4 koordinat (x, y, w, h) | **Regresi geometris** — seberapa akurat posisi dan ukuran kotak? | IoU [0..1] (tanpa dimensi) | **Tertinggi** — box meleset = deteksi gagal total |
+| **BCE** (bobot 0.5) | Class prob: 2 nilai [0..1] per grid | **Klasifikasi biner** — Organik atau Non-Organik? | Cross-entropy (nats) | **Terendah** — 2 kelas mudah dibedakan secara visual |
+| **DFL** (bobot 1.5) | Boundary distribusi: 4×16 bin probabilitas | **Distribusi regresi** — di mana tepatnya tepi objek? | Cross-entropy diskrit | **Menengah** — boundary tidak jelas (botol bening, amorf) |
+
+Tidak ada satu loss function yang bisa mengukur akurasi bounding box DAN probabilitas kelas secara simultan karena keduanya berada di ruang metrik berbeda. Bobot [7.5, 1.5, 0.5] mencerminkan prioritas: lokalisasi > distribusi boundary > klasifikasi.
+
 ---
 
 **A. CIoU Loss (bobot 7.5) - Regresi Bounding Box**
